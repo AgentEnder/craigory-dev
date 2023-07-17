@@ -14,7 +14,14 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
-    "paths": {}
+    "paths": {
+      "@new-personal-monorepo/presentations": [
+        "libs/presentations/src/index.ts"
+      ],
+      "@new-personal-monorepo/vite-plugin-ssr-utils": [
+        "libs/vite-plugin-ssr-utils/src/index.ts"
+      ]
+    }
   },
   "exclude": ["node_modules", "tmp"]
 }
