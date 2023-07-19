@@ -1,10 +1,11 @@
 import { useEffect, useState } from 'react';
+import { PRESENTATIONS } from './presentations';
 
-import './view-presentation.scss'
+import './view-presentation.scss';
 
 /* eslint-disable-next-line */
 export interface PresentationsProps {
-  mdUrl: string
+  presentationSlug: string;
 }
 
 export function ViewPresentation(props: PresentationsProps) {
@@ -12,12 +13,17 @@ export function ViewPresentation(props: PresentationsProps) {
   const [md, setMd] = useState<string | undefined>();
 
   useEffect(() => {
-    (async function () {
-      const res = await import(`../md/${props.mdUrl}.md?raw`).then(m => m.default);
-      setMd(res);
-    })()
-  }, [props.mdUrl])
-  
+    const p = PRESENTATIONS[props.presentationSlug];
+    if (p?.mdUrl) {
+      (async function () {
+        const res = await import(
+          `../presentation-data/${p.slug}/${p.mdUrl}.md?raw`
+        ).then((m) => m.default);
+        setMd(res.replace(/`/g, '\\`').replace(/\${/g, '\\${'));
+      })();
+    }
+  }, [props.presentationSlug]);
+
   useScript(
     { url: 'https://remarkjs.com/downloads/remark-latest.min.js' },
     () => {
@@ -26,13 +32,17 @@ export function ViewPresentation(props: PresentationsProps) {
   );
 
   useScript({
-    body: `remark.create({source: \`${md}\`, ratio: '16:9'})`,
+    body: `remark.create({source: \`${md}\`, ratio: '16:9'}).on('showSlide', function (slide) {
+      document.querySelectorAll('img').forEach((el) => {
+        if (el.src.endsWith('.gif')) {
+          el.src = el.getAttribute('src');
+        }
+      });
+    })`,
     waitFor: !!(remarkLoaded && md),
   });
 
-  return (
-    <></>
-  );
+  return <></>;
 }
 
 function useScript(
@@ -56,6 +66,8 @@ function useScript(
       } else if (body) {
         script.innerHTML = body;
       }
+
+      console.log(script.innerHTML);
 
       document.body.appendChild(script);
 

@@ -1,18 +1,37 @@
+// Consider element order: Title -> Location -> Date -> Description -> Title etc.
+//                         ^0       ^1          ^2          ^3         ^4
+// We want something like:
+// title       location
+// title       date
+// description description
+//
+// grid-template-area doesn't have auto repeating rows.
 .presentations-container {
-    display: grid;
-    grid-template-columns: 2fr 1fr;
-    grid-auto-flow: dense;
+  display: grid;
+  // Wide area for title, slim area for location and date
+  grid-template-columns: 2fr 1fr;
+  // First + Second rows are sized to be consistent, third row is sized to fit content.
+  grid-auto-rows: 1fr 1fr min-content;
+  grid-auto-flow: dense;
 
-    & > .location, & > .date {
-        text-align: right;
-    }
+  & > .location,
+  & > .date {
+    text-align: right;
+  }
 
-    & > *:nth-child(4n+1) {
-        grid-area: span 2/ span 1
-    }
-    
-    & > *:nth-child(4n+4) {
-        grid-area: span 1 / span 2;
-        margin-bottom: 2rem
-    }
+  & > .title {
+    // Title is takes 2 rows, 1 column (see area diagram above)
+    grid-area: span 2 / span 1;
+  }
+
+  & > .description {
+    // Description is takes 1 row, 2 columns (see area diagram above)
+    grid-area: span 1 / span 2;
+    margin-bottom: 2rem;
+  }
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
 }

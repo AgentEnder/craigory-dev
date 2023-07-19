@@ -1,22 +1,32 @@
-import thatConfWi2023 from './metadata/that-conf-wi-2023';
-import thatConfTx2023 from './metadata/that-conf-tx-2023';
-import nxConf2021 from './metadata/nx-conf-2021';
-import nxConfLite2022 from './metadata/nx-conf-lite-2022';
-import devup2023 from './metadata/devup-2023';
+import thatConfWi2023 from '../presentation-data/that-conf-wi-2023-benchmarking';
+import thatConfTx2023 from '../presentation-data/that-conf-tx-2023-full-stack-type-safety';
+import nxConf2021 from '../presentation-data/nx-conf-2021-nx-for-your-stack';
+import nxConfLite2022 from '../presentation-data/nx-conf-lite-2022-progressive-enhancement';
+import devup2023FSTS from '../presentation-data/devup-2023-full-stack-type-safety';
+import devup2023Benchmarking from '../presentation-data/devup-2023-benchmarking';
 
 export type Presentation = {
   mdUrl?: string;
   recordingUrl?: string;
+  extraLinks?: { url: string; title: string }[];
+
   title: string;
   description: string;
   presentedAt: string;
   presentedOn: Date;
+  slug: string;
 };
 
-export const PRESENTATIONS: Presentation[] = [
+export const PRESENTATIONS: Record<string, Presentation> = [
   thatConfWi2023,
   thatConfTx2023,
   nxConf2021,
   nxConfLite2022,
-  ...devup2023
-].sort((a, b) => b.presentedOn.getTime() - a.presentedOn.getTime());
+  devup2023Benchmarking,
+  devup2023FSTS,
+]
+  .sort((a, b) => b.presentedOn.getTime() - a.presentedOn.getTime())
+  .reduce((acc, cur) => {
+    acc[cur.slug] = cur;
+    return acc;
+  }, {} as Record<string, Presentation>);

@@ -18,6 +18,13 @@
         "cwd": "apps/craigory-dev"
       }
     },
+    "serve-static": {
+      "executor": "@nx/web:file-server",
+      "options": {
+        "buildTarget": "craigory-dev:build",
+        "staticFilePath": "dist/apps/craigory-dev/client"
+      }
+    },
     "preview": {
       "executor": "@nx/vite:preview-server",
       "defaultConfiguration": "development",
@@ -46,12 +53,6 @@
       "outputs": ["{options.outputFile}"],
       "options": {
         "lintFilePatterns": ["apps/craigory-dev/**/*.{ts,tsx,js,jsx}"]
-      }
-    },
-    "serve-static": {
-      "executor": "@nx/web:file-server",
-      "options": {
-        "buildTarget": "craigory-dev:build"
       }
     }
   },

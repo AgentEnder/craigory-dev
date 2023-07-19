@@ -8,8 +8,8 @@ import { PRESENTATIONS } from '@new-personal-monorepo/presentations';
 export const passToClient = ['pageProps', 'urlPathname', 'routeParams'];
 
 export async function prerender() {
-  return PRESENTATIONS.filter((pg) => pg.mdUrl).map(
-    (pg) => `/presentations/view/${pg.mdUrl}`
+  return Object.values(PRESENTATIONS).filter((pg) => pg.mdUrl).map(
+    (pg) => `/presentations/view/${pg.slug}`
   );
 }
 
@@ -26,7 +26,7 @@ export async function render(pageContext: PageContextServer) {
 
   // See https://vite-plugin-ssr.com/head
   const { documentProps } = pageContext.exports;
-  const title = (documentProps && documentProps.title) || 'Vite SSR app';
+  const title = (documentProps && documentProps.title) || 'Craigory Coppola';
   const desc =
     (documentProps && documentProps.description) ||
     'App using Vite + vite-plugin-ssr';

@@ -1,1 +1,1 @@
-export default '/presentations/view/@mdUrl'
+export default '/presentations/view/@presentation'

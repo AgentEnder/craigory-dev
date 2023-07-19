@@ -9,6 +9,7 @@
       }
     }
   },
+  "defaultProject": "craigory-dev",
   "targetDefaults": {
     "build": {
       "dependsOn": ["^build"],

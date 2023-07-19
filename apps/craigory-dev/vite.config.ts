@@ -6,6 +6,8 @@ import { ssr } from 'vite-plugin-ssr/plugin';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import { join, normalize } from 'path';
 
+const assetExtensions = ['png', 'jpg', 'jpeg', 'svg', 'gif', 'webp'];
+
 export default defineConfig({
   cacheDir: '../../node_modules/.vite/craigory-dev',
 
@@ -30,8 +32,12 @@ export default defineConfig({
       targets: [
         {
           src: [
-            '../../libs/presentations/assets/*.png',
-            '../../libs/presentations/assets/**/*.png',
+            `../../libs/presentations/assets/{${assetExtensions
+              .map((ext) => `*.${ext}`)
+              .join(',')}}`,
+            `../../libs/presentations/assets/**/{${assetExtensions
+              .map((ext) => `*.${ext}`)
+              .join(',')}}`,
           ],
           dest: '.',
           rename: (_1, _2, filePath) => {
