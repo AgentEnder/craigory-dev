@@ -1,12 +1,30 @@
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import styles from './app.module.scss';
+import './app.module.scss';
 
-import NxWelcome from './nx-welcome';
-
+// home page of personal website of Craigory Coppola
+// https://www.craigory.dev
+// will contain links to github, linkedin, twitter, etc
+// I enjoy programming, tech conferences, woodworking and games
 export function App() {
   return (
     <div>
-      <NxWelcome title="craigory-dev" />
+      <h1>Welcome!</h1>
+      <h2>I'm Craigory</h2>
+      <p>
+        I'm a software engineer, currently focused on open source and developer
+        tooling. I enjoy programming, tech conferences, woodworking and games.
+      </p>
+      <h2>Links</h2>
+      <ul>
+        <li>
+          <a href="https://www.github.com/agentender">Github</a>
+        </li>
+        <li>
+          <a href="https://www.linkedin.com/in/craigoryvcoppola">LinkedIn</a>
+        </li>
+        <li>
+          <a href="https://www.twitter.com/@EnderAgent">Twitter</a>
+        </li>
+      </ul>
     </div>
   );
 }

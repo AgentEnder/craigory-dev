@@ -20,7 +20,7 @@ export function PageShell({
             Home
           </Link>
           <Link className="navitem" href="/presentations">
-            Presentations
+            Speaking + Presentations
           </Link>
         </Sidebar>
         <Content>{children}</Content>

@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { PRESENTATIONS } from './presentations';
+import afterRemarkLoaded from './post-remark-load.js?raw';
 
 import './view-presentation.scss';
 
@@ -32,13 +33,8 @@ export function ViewPresentation(props: PresentationsProps) {
   );
 
   useScript({
-    body: `remark.create({source: \`${md}\`, ratio: '16:9'}).on('showSlide', function (slide) {
-      document.querySelectorAll('img').forEach((el) => {
-        if (el.src.endsWith('.gif')) {
-          el.src = el.getAttribute('src');
-        }
-      });
-    })`,
+    // eslint-disable-next-line no-template-curly-in-string
+    body: afterRemarkLoaded.replace('`${md}`', `\`${md}\``),
     waitFor: !!(remarkLoaded && md),
   });
 

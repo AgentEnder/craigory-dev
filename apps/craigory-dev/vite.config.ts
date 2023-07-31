@@ -1,12 +1,9 @@
 /// <reference types="vitest" />
-import { defineConfig, normalizePath } from 'vite';
+import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import viteTsConfigPaths from 'vite-tsconfig-paths';
 import { ssr } from 'vite-plugin-ssr/plugin';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
-import { join, normalize } from 'path';
-
-const assetExtensions = ['png', 'jpg', 'jpeg', 'svg', 'gif', 'webp'];
 
 export default defineConfig({
   cacheDir: '../../node_modules/.vite/craigory-dev',
@@ -32,17 +29,22 @@ export default defineConfig({
       targets: [
         {
           src: [
-            `../../libs/presentations/assets/{${assetExtensions
-              .map((ext) => `*.${ext}`)
-              .join(',')}}`,
-            `../../libs/presentations/assets/**/{${assetExtensions
-              .map((ext) => `*.${ext}`)
-              .join(',')}}`,
+            `../../libs/presentations/assets/*`,
+            `../../libs/presentations/assets/**/*`,
           ],
           dest: '.',
           rename: (_1, _2, filePath) => {
-            console.log({ _1, _2, filePath });
-            return filePath.replace('../../libs/presentations', '');
+            const dest = filePath.replace('../../libs/presentations', '');
+            console.log(`Copied ${filePath} -> ${dest}`);
+            return dest;
+          },
+        },
+        {
+          src: ['CNAME'],
+          dest: '.',
+          rename: (_1, _2, filePath) => {
+            console.log(`Copied ${filePath} -> ${filePath}`);
+            return filePath;
           },
         },
       ],

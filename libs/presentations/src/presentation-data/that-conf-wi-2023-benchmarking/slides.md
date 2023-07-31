@@ -22,24 +22,15 @@ background-image: url(/assets/that-conf-wi-2023/Footer_With_Landscape.png)
 
 ### Craigory Coppola
 
----
-
-# Agenda
-
-1. Introduction
-2. Why Benchmarking?
-3. The Scientific Method
-4. The Scientific Method (revisited)
-5. Implementation
-6. Transparency and Honesty
+<p>Slides: https://craigory.dev/presentations/view/that-conf-wi-2023-benchmarking</p>
 
 ---
 
 # Introduction
 
 - Craigory Coppola
-- Core team member working on Nx, a task orchestrator used to speed up workspaces via caching and parallelization.
 - Previously full stack developer, with a focus on Angular and .NET
+- Core team member working on Nx, a task orchestrator used to speed up workspaces via caching and parallelization.
 
 <div style="display: flex">
     <img style="max-width: 30%" src="/assets/that-conf-wi-2023/nrwl-logo.svg" alt="Nrwl Logo"></img>
@@ -54,6 +45,15 @@ background-image: url(/assets/that-conf-wi-2023/Footer_With_Landscape.png)
   - Clients with 1k+ projects in a single workspace, so we have to be very careful about performance.
   - Value is based on speeding up development, so we have to be very careful about any overhead our tool adds.
   - Frontend tooling is getting faster overall, so any overhead we add is a larger slice of the pie now.
+
+---
+
+# Agenda
+
+1. Why Benchmarking?
+1. The Scientific Method
+2. Implementation
+3. Transparency and Honesty
 
 ---
 
@@ -127,6 +127,12 @@ There are 3 main categories of reasons to benchmark:
 
 ---
 
+<div class="video-container">
+  <video src="/assets/that-conf-wi-2023/ada-slide-e2e.mp4" muted></video>
+</div>
+
+---
+
 # The Scientific Method
 
 - Used to support a given hypothesis
@@ -154,7 +160,28 @@ There are 3 main categories of reasons to benchmark:
 
 ---
 
+# Writing new benchmarks
+
+- Keep things simple.
+- Determine what you want to measure. (time, memory, bundle size, etc.)
+- Measure the thing you want to measure.
+- Record results.
+
+---
+
+# Benchmarks are comparisons
+
+- Measure both states
+  - Original vs modified
+  - Tech A vs Tech B
+
+---
+
 # Case Study #1: Nx Large Monorepo
+
+- Benchmark's Nx's performance on a large monorepo.
+- We've identified number of projects as a factor in overall performance.
+- Run's competitors tooling as well, to see how we stack up.
 
 ---
 
@@ -188,7 +215,7 @@ Example:
         </ul>
     </li>
 </ul>
-<img style="max-width: 100%" src="/assets/that-conf-wi-2023/turbo-nx-perf.gif" alt="Nrwl Logo"></img>
+<img style="max-width: 100%" src="/assets/that-conf-wi-2023/turbo-nx-perf.gif" alt="nx + turborepo benchmark comparison"></img>
 </div>
 
 ???
@@ -417,6 +444,26 @@ describe('feature-tests', () => {
 
 ---
 
+# Presenting Results
+
+- Consider your audience.
+  - Devs? Code alone may be fine
+  - Higher ups? Graphs and charts are likely better
+- Consider aggregation methods + appropriate statistics
+  - x% faster on average
+  - worst case is x% faster
+  - 95th percentile etc
+  
+---
+# Wrapping up:
+
+- You probably already have benchmarks
+- Make sure they are reproducible
+- Make sure they are transparent
+- Make sure they have purpose
+
+---
+
 background-image: url(/assets/that-conf-wi-2023/Session_Survey_Speaker.png)
 background-size: contain
 
@@ -433,6 +480,24 @@ background-size: contain
 
 background-image: url(/assets/that-conf-wi-2023/Save_the_Date.png)
 background-size: contain
+
+---
+
+background-image: url(/assets/that-conf-wi-2023/Footer_With_Landscape.png)
+
+<div style="display: grid; grid-template-columns: 1fr 1fr">
+<div><h2>Questions?</h2></div>
+<div>
+  <h2>Contact + Links</h2>
+  <ul>
+    <li>THAT Slack</li>
+    <li>Twitter (x?): @EnderAgent</li>
+    <li>https://www.linkedin.com/in/craigoryvcoppola/</li>
+    <li>https://github.com/agentender</li>
+    <li>https://craigory.dev</li>
+  </ul>
+</div>
+</div>
 
 ---
 
