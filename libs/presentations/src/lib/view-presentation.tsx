@@ -23,6 +23,32 @@ export function ViewPresentation(props: PresentationsProps) {
         setMd(res.replace(/`/g, '\\`').replace(/\${/g, '\\${'));
       })();
     }
+
+    const existingStyle = document.getElementById('presentation-style');
+    if (existingStyle) {
+      existingStyle.remove();
+    }
+    if (p?.scssUrl) {
+      const scssFiles = import.meta.glob('../presentation-data/**/*.scss', {
+        as: 'inline',
+      });
+      scssFiles[`../presentation-data/${p.slug}/${p.scssUrl}.scss`]().then(
+        (scss) => {
+          const style = document.createElement('style');
+          style.id = 'presentation-style';
+          style.innerHTML = (scss as any).default;
+          document.head.appendChild(style);
+        }
+      );
+    }
+    if (p?.htmlUrl) {
+      (async function () {
+        const html = await import(
+          `../presentation-data/${p.slug}/${p.htmlUrl}.html?raw`
+        );
+        document.body.innerHTML = html.default;
+      })();
+    }
   }, [props.presentationSlug]);
 
   useScript(
@@ -62,8 +88,6 @@ function useScript(
       } else if (body) {
         script.innerHTML = body;
       }
-
-      console.log(script.innerHTML);
 
       document.body.appendChild(script);
 

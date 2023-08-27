@@ -6,5 +6,7 @@ const presentation: Presentation = {
   presentedAt: 'dev up',
   presentedOn: new Date(2023, 7, 28),
   slug: 'devup-2023-full-stack-type-safety',
+  mdUrl: 'slides',
+  scssUrl: 'slides'
 };
 export default presentation;

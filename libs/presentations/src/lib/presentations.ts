@@ -4,9 +4,12 @@ import nxConf2021 from '../presentation-data/nx-conf-2021-nx-for-your-stack';
 import nxConfLite2022 from '../presentation-data/nx-conf-lite-2022-progressive-enhancement';
 import devup2023FSTS from '../presentation-data/devup-2023-full-stack-type-safety';
 import devup2023Benchmarking from '../presentation-data/devup-2023-benchmarking';
+import nxConf2023 from '../presentation-data/nx-conf-2023-inference';
 
 export type Presentation = {
   mdUrl?: string;
+  scssUrl?: string;
+  htmlUrl?: string;
   recordingUrl?: string;
   extraLinks?: { url: string; title: string }[];
 
@@ -24,9 +27,13 @@ export const PRESENTATIONS: Record<string, Presentation> = [
   nxConfLite2022,
   devup2023Benchmarking,
   devup2023FSTS,
+  nxConf2023
 ]
   .sort((a, b) => b.presentedOn.getTime() - a.presentedOn.getTime())
   .reduce((acc, cur) => {
+    if (cur.slug in acc) {
+      throw new Error("Multiple presentations should not have the same slug:" + cur.slug);
+    }
     acc[cur.slug] = cur;
     return acc;
   }, {} as Record<string, Presentation>);

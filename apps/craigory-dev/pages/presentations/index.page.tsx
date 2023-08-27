@@ -1,4 +1,5 @@
 import { PRESENTATIONS } from '@new-personal-monorepo/presentations';
+import React from 'react';
 
 import './index.page.scss';
 
@@ -6,7 +7,7 @@ export function Page() {
   return (
     <div className="presentations-container">
       {Object.values(PRESENTATIONS).map((p) => (
-        <>
+        <React.Fragment key={p.slug}>
           <h2
             style={{
               margin: 0,
@@ -33,7 +34,7 @@ export function Page() {
               <p key={line}>{line}</p>
             ))}
             <div className="links">
-              {p.mdUrl ? (
+              {p.mdUrl || p.htmlUrl ? (
                 <a href={'/presentations/view/' + p.slug}>View Slides</a>
               ) : null}
               {p.recordingUrl ? (
@@ -42,15 +43,15 @@ export function Page() {
                 </a>
               ) : null}
               {p.extraLinks
-                ? p.extraLinks.map((link) => (
-                    <a href={link.url} target="_blank" rel="noreferrer">
+                ? p.extraLinks.map((link, idx) => (
+                    <a href={link.url} target="_blank" rel="noreferrer" key={link.title}>
                       {link.title}
                     </a>
                   ))
                 : null}
             </div>
           </div>
-        </>
+        </React.Fragment>
       ))}
     </div>
   );
