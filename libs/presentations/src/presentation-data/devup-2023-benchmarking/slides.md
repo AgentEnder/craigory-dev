@@ -25,7 +25,6 @@ template: base
 
 # Introduction
 
-- Craigory Coppola
 - Previously full stack developer, with a focus on Angular and .NET
 - Core team member working on Nx, a task orchestrator used to speed up workspaces via caching and parallelization.
 
@@ -481,6 +480,10 @@ describe('feature-tests', () => {
 - Make sure they are reproducible
 - Make sure they are transparent
 - Make sure they have purpose
+
+---
+
+background-image: url(/assets/devup-2023/sponsors.jpeg)
 
 ---
 

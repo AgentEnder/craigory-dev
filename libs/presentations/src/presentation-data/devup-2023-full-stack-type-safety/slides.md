@@ -4,6 +4,33 @@
 
 ---
 
+<div style="display: grid; grid-template-columns: 1fr 1fr; height: 100%; gap: 1rem;">
+<img src="/assets/devup-2023/type-safety/color.png" style="width: 100%;">
+
+<div>
+
+<h1 style="margin-top: 0.5rem;"> Why Me? </h1>
+
+<ul>
+<li>Sr Engineer on Nx core team</li>
+<li>Maintainer of Nx .NET, which provides the C# support for Nx used in this demo.</li>
+</ul>
+
+</div>
+</div>
+
+???
+
+<p>
+I work for Nrwl. While you may not know us, you probably know at least one of the things we build. We maintain Nx and Lerna, the 2 largest monorepo tools in the JavaScript / web ecosystem.</p>
+<p> 
+I spend most of my time working on new features for Nx, mostly focused around the core and plugin compatibility layers.</p>
+
+<p>In addition, I personally maintain the dotnet / C# plugin for nx, which provides full interopt and some of the capabilities we will see today.</p>
+
+
+---
+
 # The Problem
 
 - Conventional types stop at the language boundary
@@ -23,44 +50,18 @@ Types need to cross each of these boundaries to enable true type-safety for an a
 
 ---
 
-<div style="display: grid; grid-template-columns: 1fr 1fr; height: 100%; gap: 1rem;">
-<img src="/assets/devup-2023/type-safety/color.png" style="width: 100%;">
-
-<div>
-
-<h1 style="margin-top: 0.5rem;"> Why Me? </h1>
-
-<ul>
-<li>Core contributor to Nx</li>
-<li>Maintainer of Nx .NET, which provides the C# support for Nx used in this demo.</li>
-</ul>
-
-</div>
-</div>
-
-???
-
-<p>
-I work for Nrwl. While you may not know us, you probably know at least one of the things we build. We maintain Nx and Lerna, the 2 largest monorepo tools in the JavaScript / web ecosystem.</p>
-<p> 
-I spend most of my time working on new features for Nx, mostly focused around the core and plugin compatibility layers.</p>
-
-<p>In addition, I personally maintain the dotnet / C# plugin for nx, which provides full interopt and some of the capabilities we will see today.</p>
-
----
-
 # The goal
 
 ![](/assets/devup-2023/type-safety/Clipboard.png)
 
-This is an error, at build time, in react code that was caused solely by changing the backend.
+This is an error, at build time, in angular code that was caused solely by changing the backend.
 
 ---
 
 # The Partial Solution
 
-    - Backend-for-frontend (BFF)
-    - TypeScript Everywhere (t3, nestjs, express...)
+- Backend-for-frontend (BFF)
+- TypeScript Everywhere (t3, nestjs, express...)
 
 ???
 
@@ -171,10 +172,12 @@ This isn't necessarily the prod API, it should theoretically be whichever enviro
 
 # Monorepo
 
-    - A bit less common for smaller companies, but seeing good adoption at mid to enterprise scale
-    - My tool of choice, but not always.
+- A bit less common for smaller companies, but seeing good adoption at mid to enterprise scale
+- My tool of choice, but not always.
 
-Monorepos scared me whenever the company I was at prior to Nrwl started to adopt them. It sounded like a horrible idea. This obviously changed, since I'm now here evangalizing them. Just know, that if you are apprehensive, its not an uncommon reaction.
+???
+
+Monorepos scared me whenever the company I was at prior to Nrwl started to adopt them. It sounded like a horrible idea. This obviously changed, since I'm now here sharing them. Just know, that if you are apprehensive, its not an uncommon reaction.
 
 There are some pros and cons to this setup.
 Pros:
@@ -202,9 +205,9 @@ This comparison shows our tools, vs the current competition. This doesn't show o
 
 # Alternatives Exist
 
-    - Lage, Gradle, turborepo, babel etc can likely do this too.
-    - Techniques applied are valid even if your not using C# + TypeScript, steps would be different.
-    - This talk will use Nx.
+- Lage, Gradle, turborepo, babel etc can likely do this too.
+- Techniques applied are valid even if your not using C# + TypeScript, steps would be different.
+- This talk will use Nx.
 
 ???
 
@@ -232,11 +235,11 @@ There are existing plugins for languages like C#, Go, Rust, and Python that are 
 
 # Some Terminology
 
-    - Package-based vs Integrated
-    - Target: A script, command, action etc that runs for a project. Think: Build, test, lint etc.
-    - Generator: Code scaffolding, typically provided by plugins
-    - Executor: What handles running a particular target.
-    - Task: Project + Target + Options
+- Package-based vs Integrated
+- Target: A script, command, action etc that runs for a project. Think: Build, test, lint etc.
+- Generator: Code scaffolding, typically provided by plugins
+- Executor: What handles running a particular target.
+- Task: Project + Target + Options
 
 ???
 
@@ -250,8 +253,8 @@ Nx used to only handle integrated repos, but thats been changing over the last 2
 
 # Project and Target Dependencies
 
-    - Nx lets us tell it how projects are related, if its something that can't be statically determined.
-    - Running one target can cause other targets to run, on other projects.
+- Nx lets us tell it how projects are related, if its something that can't be statically determined.
+- Running one target can cause other targets to run, on other projects.
 
 If the dependency can be statically determined, we don't have to tell Nx.
 
@@ -259,10 +262,12 @@ If the dependency can be statically determined, we don't have to tell Nx.
 
 # Example Time!
 
-    - Demo assumes new project.
-    - Existing apps can certainly use the technique, but may be more complex to setup.
+- Demo assumes new project.
+- Existing apps can certainly use the technique, but may be more complex to setup.
 
-- Demo is using C# + React within Nx. You don't need to know much about C#, nothing about react, and only what I've already mentioned for Nx.
+???
+
+- Demo is using C# + Angular within Nx. You don't need to know much about C#, nothing about angular, and only what I've already mentioned for Nx.
 - Demonstration is only using frontend as a vehicle for build-errors. We won't actually be opening a browser to look at the site here, since we really only care about what shows up in our terminal.
 
 ---
@@ -272,8 +277,8 @@ If the dependency can be statically determined, we don't have to tell Nx.
 ```shell
 > yarn create nx-workspace demo --preset apps
 > cd demo
-> yarn add --dev @nx/react @nx-dotnet/core
-> yarn nx g @nx/react:app frontend
+> yarn add --dev @nx/angular @nx-dotnet/core
+> yarn nx g @nx/angular:app frontend
 > yarn nx g @nx-dotnet/core:app backend --language "C#" --template webapi --useNxPluginOpenAPI
 ```
 
@@ -283,8 +288,8 @@ Thats it! Those commands get you the bare-minimum setup for this to be working, 
 
 You should now have an Nx workspace that contains
 
-- A react app called "frontend" using typescript, vite or webpack, jest or vitest.
-- An app containing e2e tests for your react app using cypress
+- A angular app called "frontend" using typescript, vite or webpack, jest or vitest.
+- An app containing e2e tests for your angular app using cypress
 - A C# project called backend
 - A C# project containing the unit tests for `backend`
 - A library containg the API spec file extracted from backend
@@ -300,11 +305,11 @@ You should now have an Nx workspace that contains
 
 ---
 
-### yarn add --dev @nx/react @nx-dotnet/core
+### yarn add --dev @nx/angular @nx-dotnet/core
 
-    - Nx is just a task runner
-    - Plugins are used for code generation and task execution.
-    - Full list of plugins available at nx.dev
+- Nx is just a task runner
+- Plugins are used for code generation and task execution.
+- Full list of plugins available at nx.dev
 
 ---
 
@@ -344,10 +349,10 @@ Main important parts here:
 
 ---
 
-### yarn nx g @nx/react:app frontend
+### yarn nx g @nx/angular:app frontend
 
-    - Tells Nx to use the `app` generator from `@nx/react`.
-    - `frontend` is passed in, and used as the project name.
+- Tells Nx to use the `app` generator from `@nx/angular`.
+- `frontend` is passed in, and used as the project name.
 
 ---
 
@@ -461,6 +466,10 @@ Nx can trace project level dependencies all the way from our frontend to our bac
 Changing any of the types in our C# code, and then trying to build the frontend with <span class="remark-inline-code">nx build frontend</span> results in a build time error.
 </p>
 </div>
+
+---
+
+background-image: url(/assets/devup-2023/sponsors.jpeg)
 
 ---
 
