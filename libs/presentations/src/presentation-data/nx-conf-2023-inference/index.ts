@@ -6,6 +6,18 @@ const presentation: Presentation = {
   presentedAt: 'Nx Conf 2023',
   presentedOn: new Date(2023, 10, 26),
   slug: 'nx-conf-2023-inference',
+  mdUrl: 'slides',
+  scssUrl: 'slides',
+  extraLinks: [
+    {
+      title: 'Demo Repo',
+      url: 'https://github.com/AgentEnder/inference-demo',
+    },
+    {
+      title: 'Nx .NET plugin API v2 PR',
+      url: 'https://github.com/nx-dotnet/nx-dotnet/pull/763'
+    }
+  ],
 };
 
 export default presentation;

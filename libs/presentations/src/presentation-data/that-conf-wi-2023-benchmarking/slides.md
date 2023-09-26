@@ -127,12 +127,6 @@ There are 3 main categories of reasons to benchmark:
 
 ---
 
-<div class="video-container">
-  <video src="/assets/that-conf-wi-2023/ada-slide-e2e.mp4" muted></video>
-</div>
-
----
-
 # The Scientific Method
 
 - Used to support a given hypothesis
