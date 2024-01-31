@@ -8,6 +8,7 @@ const presentation: Presentation = {
   slug: 'nx-conf-2023-inference',
   mdUrl: 'slides',
   scssUrl: 'slides',
+  recordingUrl: 'https://www.youtube.com/live/IQ5YyEYZw68?si=TQRfAG7CtNbd3Xu4&t=8514',
   extraLinks: [
     {
       title: 'Demo Repo',

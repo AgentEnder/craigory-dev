@@ -6,13 +6,16 @@
 // description description
 //
 // grid-template-area doesn't have auto repeating rows.
-.presentations-container {
+.presentation-container {
   display: grid;
   // Wide area for title, slim area for location and date
   grid-template-columns: 2fr 1fr;
   // First + Second rows are sized to be consistent, third row is sized to fit content.
   grid-auto-rows: 1fr 1fr min-content;
   grid-auto-flow: dense;
+
+  margin-bottom: 1.5rem;
+  padding: 0.5rem;
 
   & > .location,
   & > .date {
@@ -27,7 +30,17 @@
   & > .description {
     // Description is takes 1 row, 2 columns (see area diagram above)
     grid-area: span 1 / span 2;
-    margin-bottom: 2rem;
+  }
+
+  &.active {
+    background-color: beige;
+    background: linear-gradient(beige, wheat);
+    border-radius: 0.5rem;
+    box-shadow: #9b907f 0.25em 0.25em 12px;
+
+    a {
+      color: #95957c;
+    }
   }
 }
 
