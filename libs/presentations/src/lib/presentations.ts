@@ -5,6 +5,7 @@ import nxConfLite2022 from '../presentation-data/nx-conf-lite-2022-progressive-e
 import devup2023FSTS from '../presentation-data/devup-2023-full-stack-type-safety';
 import devup2023Benchmarking from '../presentation-data/devup-2023-benchmarking';
 import nxConf2023 from '../presentation-data/nx-conf-2023-inference';
+import thatTx2024 from '../presentation-data/that-conf-tx-2024-compartmentalization';
 
 export type Presentation = {
   mdUrl?: string;
@@ -27,7 +28,8 @@ export const PRESENTATIONS: Record<string, Presentation> = [
   nxConfLite2022,
   devup2023Benchmarking,
   devup2023FSTS,
-  nxConf2023
+  nxConf2023,
+  thatTx2024,
 ]
   .sort((a, b) => b.presentedOn.getTime() - a.presentedOn.getTime())
   .reduce((acc, cur) => {
