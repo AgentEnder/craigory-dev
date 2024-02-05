@@ -1,0 +1,17 @@
+code.hljs {
+    border-radius: 8px;
+    box-shadow: 0 4px 8px #000000e8;
+    padding: 16px;   
+}
+
+pre.has-filename > code {
+    border-radius: 0 0 8px 8px;
+}
+
+code {
+    // Styling for inline code blocks
+    background-color: #f4f4f4;
+    border-radius: 4px;
+    font-size: 0.9em;
+    padding: 0.2em 0.4em;
+}

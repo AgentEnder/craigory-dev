@@ -1,5 +1,5 @@
 {
-  "name": "@new-personal-monorepo/vite-plugin-ssr-utils",
+  "name": "@new-personal-monorepo/vike-utils",
   "version": "0.0.1",
   "main": "./index.js",
   "types": "./index.d.ts",

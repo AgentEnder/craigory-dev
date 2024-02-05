@@ -1,5 +1,5 @@
 import { hydrateRoot } from 'react-dom/client';
-import { PageContextClient } from '@new-personal-monorepo/vite-plugin-ssr-utils';
+import { PageContextClient } from '@new-personal-monorepo/vike-utils';
 import { MinimumPageShell } from '../../renderer/MinimumPageShell';
 
 export async function render(pageContext: PageContextClient) {

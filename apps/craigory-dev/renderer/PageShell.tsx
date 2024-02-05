@@ -1,9 +1,10 @@
 import React from 'react';
-import { PageContextProvider } from '@new-personal-monorepo/vite-plugin-ssr-utils';
-import { PageContext } from '@new-personal-monorepo/vite-plugin-ssr-utils';
+import { PageContextProvider } from '@new-personal-monorepo/vike-utils';
+import { PageContext } from '@new-personal-monorepo/vike-utils';
 import './PageShell.scss';
 import { Link } from './Link';
 import { MinimumPageShell } from './MinimumPageShell';
+import { pageCount } from '../pages/blog/config';
 
 export function PageShell({
   children,
@@ -21,6 +22,9 @@ export function PageShell({
           </Link>
           <Link className="navitem" href="/presentations">
             Speaking + Presentations
+          </Link>
+          <Link className="navitem" href={`/blog/${pageCount}`}>
+            Blog
           </Link>
         </Sidebar>
         <Content>{children}</Content>

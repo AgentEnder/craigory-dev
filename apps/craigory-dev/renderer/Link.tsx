@@ -1,4 +1,4 @@
-import { usePageContext } from '@new-personal-monorepo/vite-plugin-ssr-utils';
+import { usePageContext } from '@new-personal-monorepo/vike-utils';
 
 export function Link(p: {
   href?: string;
