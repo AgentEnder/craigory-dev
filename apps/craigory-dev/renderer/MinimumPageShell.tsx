@@ -1,7 +1,7 @@
 import {
   PageContext,
   PageContextProvider,
-} from '@new-personal-monorepo/vite-plugin-ssr-utils';
+} from '@new-personal-monorepo/vike-utils';
 import React from 'react';
 
 export function MinimumPageShell({

@@ -2,6 +2,7 @@ import { PRESENTATIONS } from '@new-personal-monorepo/presentations';
 
 import './index.page.scss';
 import { useEffect, useState } from 'react';
+import { format } from 'date-fns';
 
 export function Page() {
   const hash = useLocationHash();
@@ -53,7 +54,7 @@ export function Page() {
               {p.presentedAt}
             </div>
             <div key={p.title + p.presentedAt + 'PRESENTEDON'} className="date">
-              {p.presentedOn.toLocaleDateString()}
+              {format(p.presentedOn, 'MMM dd, yyyy')}
             </div>
             <div
               key={p.title + p.presentedAt + 'DESCRIPTION'}

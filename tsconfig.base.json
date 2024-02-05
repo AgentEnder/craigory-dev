@@ -14,13 +14,15 @@
     "skipLibCheck": true,
     "skipDefaultLibCheck": true,
     "baseUrl": ".",
+    "types": ["./types/mdx.d.ts"],
+    "resolveJsonModule": true,
     "paths": {
+      "@new-personal-monorepo/blog-posts": ["libs/blog-posts/src/index.ts"],
+      "@new-personal-monorepo/date-utils": ["libs/date-utils/src/index.ts"],
       "@new-personal-monorepo/presentations": [
         "libs/presentations/src/index.ts"
       ],
-      "@new-personal-monorepo/vite-plugin-ssr-utils": [
-        "libs/vite-plugin-ssr-utils/src/index.ts"
-      ]
+      "@new-personal-monorepo/vike-utils": ["libs/vike-utils/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]

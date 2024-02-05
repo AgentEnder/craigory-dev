@@ -1,0 +1,38 @@
+// Consider element order: Title -> Date -> Description 
+//                         ^0       ^1      ^2          
+// We want something like:
+// title       date
+// description description
+//
+// grid-template-area doesn't have auto repeating rows.
+.post-container {
+  display: grid;
+  // Wide area for title, slim area for location and date
+  grid-template-columns: 2fr 1fr;
+  // First rows are sized to be consistent, second row is sized to fit content.
+  grid-auto-rows: 1fr min-content;
+  grid-auto-flow: dense;
+
+  margin-bottom: 1.5rem;
+  padding: 0.5rem;
+
+  & > .date {
+    text-align: right;
+    margin-top: auto;
+  }
+
+  & > .title {
+    // Title is takes 2 rows, 1 column (see area diagram above)
+    grid-area: span 1 / span 1;
+  }
+
+  & > .description {
+    // Description is takes 1 row, 2 columns (see area diagram above)
+    grid-area: span 1 / span 2;
+  }
+}
+
+.links {
+  display: flex;
+  flex-direction: column;
+}

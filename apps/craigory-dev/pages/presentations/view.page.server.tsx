@@ -1,10 +1,11 @@
-import ReactDOMServer from 'react-dom/server';
-import { escapeInject, dangerouslySkipEscape } from 'vite-plugin-ssr/server';
-import type { PageContextServer } from '@new-personal-monorepo/vite-plugin-ssr-utils';
-import { MinimumPageShell } from '../../renderer/MinimumPageShell';
 import { PRESENTATIONS } from '@new-personal-monorepo/presentations';
+import ReactDOMServer from 'react-dom/server';
+import { dangerouslySkipEscape, escapeInject } from 'vike/server';
 
-// See https://vite-plugin-ssr.com/data-fetching
+import { MinimumPageShell } from '../../renderer/MinimumPageShell';
+
+import type { PageContextServer } from '@new-personal-monorepo/vike-utils';
+// See https://vike.dev/data-fetching
 export const passToClient = ['pageProps', 'urlPathname', 'routeParams'];
 
 export async function prerender() {
@@ -15,7 +16,7 @@ export async function prerender() {
 
 export async function render(pageContext: PageContextServer) {
   const { Page, pageProps } = pageContext;
-  // This render() hook only supports SSR, see https://vite-plugin-ssr.com/render-modes for how to modify render() to support SPA
+  // This render() hook only supports SSR, see https://vike.dev/render-modes for how to modify render() to support SPA
   if (!Page)
     throw new Error('My render() hook expects pageContext.Page to be defined');
   const pageHtml = ReactDOMServer.renderToString(
@@ -24,12 +25,12 @@ export async function render(pageContext: PageContextServer) {
     </MinimumPageShell>
   );
 
-  // See https://vite-plugin-ssr.com/head
+  // See https://vike.dev/head
   const { documentProps } = pageContext.exports;
   const title = (documentProps && documentProps.title) || 'Craigory Coppola';
   const desc =
     (documentProps && documentProps.description) ||
-    'App using Vite + vite-plugin-ssr';
+    'App using Vite + vike';
 
   const documentHtml = escapeInject`<!DOCTYPE html>
     <html lang="en">
@@ -37,6 +38,7 @@ export async function render(pageContext: PageContextServer) {
         <meta charset="UTF-8" />
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="description" content="${desc}" />
+        <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/obsidian.min.css">
         <title>${title}</title>
       </head>
       <body>
@@ -47,7 +49,7 @@ export async function render(pageContext: PageContextServer) {
   return {
     documentHtml,
     pageContext: {
-      // We can add some `pageContext` here, which is useful if we want to do page redirection https://vite-plugin-ssr.com/page-redirection
+      // We can add some `pageContext` here, which is useful if we want to do page redirection https://vike.dev/page-redirection
     },
   };
 }

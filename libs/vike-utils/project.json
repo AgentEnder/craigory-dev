@@ -1,7 +1,7 @@
 {
-  "name": "vite-plugin-ssr-utils",
+  "name": "vike-utils",
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
-  "sourceRoot": "libs/vite-plugin-ssr-utils/src",
+  "sourceRoot": "libs/vike-utils/src",
   "projectType": "library",
   "tags": [],
   "targets": {
@@ -9,15 +9,15 @@
       "executor": "@nx/linter:eslint",
       "outputs": ["{options.outputFile}"],
       "options": {
-        "lintFilePatterns": ["libs/vite-plugin-ssr-utils/**/*.{ts,tsx,js,jsx}"]
+        "lintFilePatterns": ["libs/vike-utils/**/*.{ts,tsx,js,jsx}"]
       }
     },
     "test": {
       "executor": "@nx/vite:test",
-      "outputs": ["coverage/libs/vite-plugin-ssr-utils"],
+      "outputs": ["coverage/libs/vike-utils"],
       "options": {
         "passWithNoTests": true,
-        "reportsDirectory": "../../coverage/libs/vite-plugin-ssr-utils"
+        "reportsDirectory": "../../coverage/libs/vike-utils"
       }
     }
   }

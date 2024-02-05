@@ -1,13 +1,13 @@
 import type {
-  PageContextBuiltIn,
+  PageContextServer as PageContextBuiltInServer,
   /*
-  // When using Client Routing https://vite-plugin-ssr.com/clientRouting
+  // When using Client Routing https://vike.dev/clientRouting
   PageContextBuiltInClientWithClientRouting as PageContextBuiltInClient
   /*/
   // When using Server Routing
-  PageContextBuiltInClientWithServerRouting as PageContextBuiltInClient,
+  PageContextClientWithServerRouting as PageContextBuiltInClient,
   //*/
-} from 'vite-plugin-ssr/types';
+} from 'vike/types';
 
 type Page = (pageProps: PageProps) => React.ReactElement;
 
@@ -23,9 +23,20 @@ export type PageContextCustom = {
       description?: string;
     };
   };
+  urlParsed?: {
+    origin: null | string;
+    pathname: string;
+    pathnameOriginal: string;
+    search: Record<string, string>; // (AKA query parameters)
+    searchAll: Record<string, string[]>;
+    searchOriginal: null | string;
+    hash: string;
+    hashOriginal: null | string;
+  };
 };
 
-export type PageContextServer = PageContextBuiltIn<Page> & PageContextCustom;
+export type PageContextServer = PageContextBuiltInServer<Page> &
+  PageContextCustom;
 export type PageContextClient = PageContextBuiltInClient<Page> &
   PageContextCustom;
 

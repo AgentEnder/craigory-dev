@@ -10,7 +10,7 @@ const presentation: Presentation = {
   By the end, participants will be equipped with a toolkit that ensures their code remains organized, adaptable, and streamlined. Whether seeking strategies to simplify legacy systems or contemplating the management of new projects, this talk offers insights and guidance to refine your development process, much like the art of crafting a perfectly layered s'more.
   `,
   presentedAt: 'THAT Conference TX',
-  presentedOn: new Date(2024, 1, 31),
+  presentedOn: new Date(2024, 0, 31),
   mdUrl: 'slides',
   slug: 'that-conf-tx-2024-compartmentalization',
   extraLinks: [
