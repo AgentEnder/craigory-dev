@@ -8,12 +8,15 @@ import rehypeExternalLinks from 'rehype-external-links';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeMdxCodeProps from 'rehype-mdx-code-props';
 import rehypeSlug from 'rehype-slug';
-import rehypeTableOfContents from 'rehype-toc';
+import remarkRehype from 'remark-rehype';
+import remarkToc from 'remark-toc';
 import { ssr } from 'vike/plugin';
 import { defineConfig } from 'vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 import * as tsconfig from '../../tsconfig.base.json';
+import { Element } from 'rehype-autolink-headings/lib';
+import remarkSmartypants from 'remark-smartypants';
 
 export default defineConfig({
   cacheDir: '../../node_modules/.vite/craigory-dev',
@@ -60,15 +63,27 @@ export default defineConfig({
       },
     }),
     mdx({
+      remarkPlugins: [remarkToc, remarkSmartypants, remarkRehype],
       rehypePlugins: [
         rehypeSlug,
-        [rehypeTableOfContents, {headings: ['h2', 'h3', 'h4']}],
-        rehypeExternalLinks,
+        [rehypeExternalLinks, {
+          target: '_blank',
+          rel: ['noopener', 'noreferrer'],
+        }],
         rehypeHighlight,
         rehypeMdxCodeProps,
         [
           rehypeAutolinkHeadings,
-          { content: fromHtmlIsomorphic('<span>🔗</span>', { fragment: true }) },
+          {
+            content: fromHtmlIsomorphic('<span>🔗</span>', { fragment: true }),
+            test: (el: Element) => {
+              if (el.type === 'element') {
+                if (el.tagName === 'h1') return false;
+                if (el.tagName === 'h2' && el.children?.find(el => el.type === 'text' && el.value === 'Table of Contents')) return false;
+              }
+              return true;
+            },
+          },
         ],
       ],
     }),
