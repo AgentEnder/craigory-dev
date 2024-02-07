@@ -1,1 +1,340 @@
-# Hello
+# From Angular Roots to Crystal Future: Nx's Evolutionary Journey
+
+## Table of Contents
+
+## Introduction
+
+Nx's configuration has changed dramatically over the years, and it's been a long journey to get to where we are today. I joined the Nx team in June 2021, right before we split up `workspace.json` into `workspace.json` and `project.json`. Since joining the team, I've had a pretty direct hand in many of these changes, and have worked closely on others.
+
+There are a few misconceptions about Nx that stem from its configuration and history, and I'd like to clear some of those up.
+
+- Nx is only for Angular
+- Nx is hard to configure
+- Nx has a lot of configuration.
+
+## The Quick Scoop (tldr)
+
+> - Nx was initially built as an Angular CLI extension. It has been its own CLI for several years, and has no direct ties to angular at this point.
+> - Nx's configuration has went through several iterations, and mostly configures itself these days.
+> - You shouldn't have to worry when the configuration changes, as Nx will migrate your existing config for you.
+
+## Nx's Angular Beginnings
+
+Nx was initially built as an Angular CLI extension. It was a set of schematics and builders that extended the Angular CLI's capabilities. This was a great way to get started, but it had some limitations. For example, it was difficult to add support for other frameworks, and it was difficult to add new commands to the CLI.
+
+Angular CLI also supports monorepos, and in the beginning Nx used angular's configuration. When you have multiple projects, the configuration would look something like this:
+
+```json filename="angular.json"
+{
+  "version": 1,
+  "projects": {
+    "my-app": {
+      "architect": {
+        "build": {
+          "builder": "@angular-devkit/build-angular:browser",
+          "options": {
+            "main": "apps/my-app/src/main.ts",
+            "tsConfig": "apps/my-app/tsconfig.app.json",
+            "assets": ["apps/my-app/src/favicon.ico", "apps/my-app/src/assets"],
+            "styles": ["apps/my-app/src/styles.css"],
+            "scripts": []
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+To help distinguish a plain Angular CLI project from an Nx workspace, and better support other tools, we added support for a `workspace.json` file. This file was identical to `angular.json`.
+
+As Nx grew and added more features, we needed to add more configuration. We added a `nx.json` file to store this configuration. This file was used to store configuration for things that were specific to Nx, and that angular wouldn't understand. For example, we added support for `tags` and `implicitDependencies` to help Nx understand the relationships between projects.
+
+## Birth of the Nx CLI: Evolution Beyond Angular
+
+After a bit, Nx grew apart from Angular CLI. It became a standalone tool that could be used with any framework. This meant that we needed to create our own configuration file. We created `workspace.json` to replace `angular.json`. The configuration was extraordinarily similar, but it was a different file and a few properties had a different name. The names changed to more closely match the names that Nx uses. For example, `builder` became `executor` and `architect` became `targets`.
+
+These changes included some differences in `nx.json` as well. The `schematics` property was renamed as `generators`.
+
+At this point, the files looked like this:
+
+```json filename='workspace.json'
+{
+  "version": 2,
+  "projects": {
+    "my-app": {
+      "targets": {
+        "build": {
+          "executor": "@nrwl/web:build",
+          "options": {
+            "main": "apps/my-app/src/main.ts",
+            "tsConfig": "apps/my-app/tsconfig.app.json",
+            "assets": ["apps/my-app/src/favicon.ico", "apps/my-app/src/assets"],
+            "styles": ["apps/my-app/src/styles.css"],
+            "scripts": []
+          }
+        }
+      }
+    }
+  }
+}
+```
+
+```json filename='nx.json'
+{
+  "projects": {
+    "my-app": {
+      "tags": []
+    }
+  },
+  "generators": {
+    "@nrwl/angular:component": {
+      "style": "scss"
+    }
+  }
+}
+```
+
+Additionally, nx added the capability to run dependant targets before a target. This was initially done by adding a `targetDependencies` section within `nx.json`. The property was scoped to all targets with a given name, and looked like this:
+
+```json filename='nx.json'
+{
+  "targetDependencies": {
+    "build": [
+      {
+        "target": "build-base",
+        "projects": "self"
+      }
+    ],
+    "build-base": [
+      {
+        "target": "build-base",
+        "projects": "dependencies"
+      }
+    ]
+  }
+}
+```
+
+The above configuration would run the `build-base` target for all projects before running the `build` target of that same project. This was a powerful feature, but it wasn't as general as we had hoped and needed a bit more flexibility.
+
+Soon after, we renamed `targetDependencies` to `targetDefaults` + `dependsOn` and allowed specifying it on a per-project basis. This allowed us to specify different defaults for different projects. The configuration looked like this:
+
+```json filename='nx.json'
+{
+  "targetDefaults": {
+    "build": {
+      "dependsOn": [
+        {
+          "target": "build-base",
+          "projects": "self"
+        }
+      ]
+    }
+  }
+}
+```
+
+```json filename='workspace.json'
+{
+  "projects": {
+    "my-app": {
+      "targets": {
+        "build": {
+          "executor": "@nrwl/web:build",
+          "options": {
+            "main": "apps/my-app/src/main.ts",
+            "tsConfig": "apps/my-app/tsconfig.app.json",
+            "assets": ["apps/my-app/src/favicon.ico", "apps/my-app/src/assets"],
+            "styles": ["apps/my-app/src/styles.css"],
+            "scripts": []
+          },
+          "dependsOn": [
+            {
+              "target": "build-base",
+              "projects": "self"
+            }
+          ]
+        }
+      }
+    }
+  }
+}
+```
+
+## `project.json` and splitting `workspace.json`
+
+Nx is a monorepo focused tool. It's designed to work with many projects in a single repository. As such, the `workspace.json` file can get quite large. Every time a new project is added, an existing project is modified, or an older project is removed, the `workspace.json` file needs to be updated. This can lead to merge conflicts and other issues.
+
+When working with customers with over 200 projects, this was no longer scalable. We needed to split the `workspace.json` file into multiple files. We also needed to make it easier to add new projects and modify existing projects.
+
+We decided that `workspace.json` would contain a map of project name to file path. This would allow us to split the configuration into multiple files. At the same time, it was important to maintain compatibility with Angular CLI schematics and builders. We wanted to do this without having to keep a copy of the Angular CLI configuration in sync with the Nx configuration.
+
+As such, we created a translation layer that would handle reading and writing the configuration when angular asked for it. Doing this unlocked a ton of flexibility on our side to make changes to the configuration without breaking compatibility with Angular CLI.
+
+Additionally, we took some time to reevaluate where existing configuration options lived. Since we now have a configuration file per project it made less sense to place `tags` and `implicitDependencies` in `nx.json`. We moved these properties to `nx.json` as well.
+
+The end result of this round of changes resulted in:
+
+- `workspace.json` containing a map of project name to file path
+- `project.json` containing all of the configuration for a single project
+- `nx.json` containing configuration that is global to the workspace
+
+This was a much cleaner and more scalable way to manage configuration. It meant less merge conflicts, but also made it easier to tell what projects may have been affected by a change.
+
+```json filename="workspace.json"
+{
+  "version": 2,
+  "projects": {
+    "myapp": "apps/myapp",
+    "mylib": "libs/mylib"
+  }
+}
+```
+
+```json filename="apps/myapp/project.json"
+{
+  "targets": {
+    "build": {
+      "executor": "@nrwl/web:build",
+      "options": {
+        "main": "apps/myapp/src/main.ts",
+        "tsConfig": "apps/myapp/tsconfig.app.json",
+        "assets": ["apps/myapp/src/favicon.ico", "apps/myapp/src/assets"],
+        "styles": ["apps/myapp/src/styles.css"],
+        "scripts": []
+      }
+    }
+  }
+}
+```
+
+```json filename="nx.json"
+{
+  "targetDefaults": {
+    "build": {
+      "dependsOn": [
+        {
+          "target": "build-base",
+          "projects": "self"
+        }
+      ]
+    }
+  }
+}
+```
+
+## The Beginnings of Inference
+
+After the last round of changes, we noticed that the `workspace.json` file was not particularly useful. It was just a map of project name to file path. We decided that it should be optional, and in time we dropped support for it entirely.
+
+This change required Nx to be able to locate the configuration of projects without a central file. Adding this support was not a major task, but while doing so we also decided to open up the possibility of dynamically building configuration.
+
+At the same time, there was a push from non-angular users to simplify the configuration. Npm/yarn/pnpm workspaces had gained a bit of popularity and it was much easier to define targets as a `package.json` script for a segment of users. We wanted to make it easier for these users to use Nx, while also helping Nx make sense when compared to other tools. The decision was made that if there was a package.json file inside a project, Nx would be able to run its scripts as a target.
+
+## Enter Lerna
+
+Lerna has been around a long time, and maintains a good amount of popularity within the JavaScript community. It's a tool that helps manage multiple packages in a single repository. It's a bit different from Nx, but it's similar enough that we were already looking at making it easier to use the two together. Lerna had some functionality that Nx didn't (publishing packages), and Nx had some functionality that Lerna didn't (caching and code generation).
+
+Around this time, several things surrounding lerna started to become worrisome. There was an [issue](https://github.com/lerna/lerna/issues/2703) filed stating that lerna had been unmaintained. A [PR](https://github.com/lerna/lerna/pull/3092) had been merged adding a warning that lerna wasn't being actively maintained, and that the community should consider using other tools.
+
+These users would need to go somewhere, but any change for them would not be without difficulty. Nrwl, the company behind Nx, decided to step in and offer a solution. After talking with the maintainer, we were able to take over stewardship and step in to maintain the project. This was announced in a blog post here: [Lerna is dead, Long live Lerna](https://blog.nrwl.io/lerna-is-dead-long-live-lerna-61259f97dbd9).
+
+## Inference API v1, and Workspaces Support
+
+With Lerna under our purview we wanted to be able to unify the two tools. Nx should be able to work in a lerna workspace, and hopefully the portions of Lerna that Nx could already handle would then be able to invoke Nx under the hood. This would prevent us from having to maintain two copies of the same functionality, and we were optimistic we could do this without breaking any existing workflows.
+
+The first step of this process was to ensure that Nx could work in a Lerna repository without changing the existing structure. This meant a few things:
+
+- `workspace.json` had to be optional
+- `project.json` had to be optional
+- `nx.json` had to be optional
+
+If any of these 3 files had been required, it would have caught lerna users off guard and look like Nx was replacing lerna.
+
+This built upon our existing inference capabilities, and while opening them up further we decided to publish a version that plugin authors could take advantage of.
+
+The first version of these inference APIs never left experimental, and weren't actually used internally. Rather, they acted almost as a proof of concept and allowed us to see what the API might look like. Essentially, we needed an API that would be able to turn a project's configuration file into its actual configuration. The API looked something like this:
+
+```typescript
+import { NxPlugin } from '@nx/devkit';
+
+const plugin: NxPlugin = {
+  projectFilePatterns = ['project.json'],
+  registerProjectTargets = (projectFile) => {
+    // ...
+  },
+};
+```
+
+In this example, `projectFilePatterns` is an array of file patterns that the plugin can handle. When Nx is looking for a project's configuration, it will look for a file that matches one of these patterns. If it finds one, it will pass it to `registerProjectTargets` and expect it to return the targets a given project can run.
+
+While we didn't directly use this API, it was a very small inclusion in the core code to enable Nx running inside a repository that was only configured by `package.json` files. The published API was also used to show how Nx could one day be used in C# or Java repositories, without introducing new configuration files.
+
+## Elevating Workspaces with Inference API v2
+
+We were mostly happy with the inference apis and configuration loading, but there were a few things that we wanted to clean up within Nx's codebase and the API itself. In particular we wanted to be able to streamline our handling of `angular.json` for legacy users, and wanted to migrate the `project.json` and `package.json` configuration loading into the same API.
+
+In order to do this, we needed an API that:
+
+- Could provide a full project configuration, not just the targets
+- Could read multiple projects from a single file (angular.json supports this)
+
+Additionally, there were other plugin APIs to extend the project graph that were a bit confusing when deciding if a plugin should be an inference plugin or a project graph plugin. Project graph plugins exported a single function, that received the current project graph and returned a new one. As part of this, they could add new nodes and edges to the graph. Most nodes on the graph were projects, but adding a project via these APIs resulted in odd behavior as targets couldn't be ran because they weren't present when Nx initially loaded project configurations.
+
+As such, we decided to merge the two APIs into a single one. This API is responsible for creating nodes on the project graph, and creating edges between those nodes. The API looks something like this:
+
+```typescript
+import { NxPlugin } from '@nx/devkit';
+
+const plugin: NxPlugin = {
+  createNodes: ['**/*.csproj', (projectFile, ctx) => readProjectsFromFile(projectFile)]
+  createDependencies: (ctx) => readEdgesFromContext(ctx)
+};
+```
+
+`CreateNodes` is a tuple, where the first element is a glob pattern that the plugin can handle, and the second element is a function that will read the file and return the projects it contains. `createDependencies` is a function that will be called after all of the nodes have been created, and is responsible for creating the edges between the nodes.
+
+This API met all of the requirements we set out on, and ensured there was only one spot for plugin authors to add new nodes to the graph. It released as part of Nx 17, and was talked about at that years [Nx Conf](https://www.youtube.com/watch?v=bnjOu7iOrMg)
+
+## Entering the Crystal Era 💎
+
+A large goal that the Nx team has consistently worked on is making Nx easier to adopt. Configuration changes are a large part of this, but we also took some time to reflect on how we integrate with other tools.
+
+Traditionally, Nx would provide an executor that wrapped a tool like `jest`. When running test, Nx would invoke the executor which would then invoke `jest`. This was a bit of a pain point for users, as they would have to learn how to use Nx's executors and any of the idiosyncrasies that came with them. Additionally, it made it harder to get help when things went wrong, as the error messages would be different than what the user would see when running `jest` directly. Users would frequently ask questions that would be better solved by Jest's documentation, but they wouldn't know that because they were using Nx's executors.
+
+Nx had been able to run arbitrary scripts in `package.json` files or arbitrary commands specified in `project.json` for a while, but it was not the default. We didn't encourage using `run-commands` for everything, as there were some problems when using it:
+
+- Terminal output was not as nice as it could be
+- Tools may need some extra configuration to work properly
+- Keeping the configuration in sync with the rest of the workspace was difficult
+
+Making the terminal output nicer was a bit of a heavy lift, but we were able to make it work. Adding support for running commands inside a pseudo-terminal allowed us to capture output as it would look on the dev's machine, rather than the older output style that mimicked what you would see in a CI environment. Additionally, this meant that interactive commands could work how a dev would expect.
+
+For the second point, we decided to shift how we wrote our first party plugins. Instead of writing an executor that wrapped a tool, we can write plugins for many of the tools themselves to implement the same functionality. This would allow us to take advantage of the tool's configuration, and would allow us to provide a better experience for users, while being a bit more transparent about our changes.
+
+The inference APIs we had just added were a perfect fit for keeping the configuration in sync. If we infer that every project with a jest configuration should have a `test` target, we can add that target to the project's configuration. This would allow us to keep the configuration in sync with the rest of the workspace, and would allow us to provide a better experience for users.
+
+With these 3 pain points addressed, we made the major decision to step away from using executors for most of our first party plugins and infer targets from configuration files where possible. As far as configuration is concerned, nothing **really** changed but things did look a bit different to users. Mainly, the `targets` section of `project.json` was no longer required to run a target.
+
+Many `project.json` files can now be as simple as this:
+
+```json filename="apps/myapp/project.json"
+{
+    "name": "myapp",
+    "tags": [],
+}
+```
+
+Internally, we referred to this change as project configuration v3. It represents a major shift in how we think about configuration, and how we think about integrating with other tools. As such, we released it as Nx 18: Project Crystal 💎.
+
+There are some published resources that go into more detail about this change:
+
+- [Nx Project Crystal 💎](https://www.youtube.com/watch?v=wADNsVItnsM)
+- [Inferred Tasks documentation](https://nx.dev/concepts/inferred-tasks#inferred-tasks-project-crystal)
+
+## Conclusion
+
+Nx's configuration has changed a lot over the years, and it's been a long journey to get to where we are today. We've made a lot of changes to make Nx easier to adopt, and we've made a lot of changes to make Nx easier to use. 
+
+Project Crystal helped slim down the Nx configuration within a workspace to only `nx.json` for many repos, and opens the doors for Nx to be used in a wider variety of repositories. We're excited to see what the future holds for Nx, and as always, stay tuned 📺.
