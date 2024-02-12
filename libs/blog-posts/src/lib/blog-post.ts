@@ -1,9 +1,7 @@
-import { JSX } from "react";
-
 export interface BlogPost {
-    publishDate: Date;
-    mdx: (props: unknown) => JSX.Element;
-    slug: string;
-    title: string;
-    description: string;
+  publishDate: Date;
+  mdx: typeof import('*.mdx').default;
+  slug: string;
+  title: string;
+  description: string;
 }

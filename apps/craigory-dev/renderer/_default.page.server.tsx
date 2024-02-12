@@ -19,7 +19,7 @@ export async function render(pageContext: PageContextServer) {
   // See https://vike.dev/head
   const { documentProps } = pageContext.exports
   const title = (documentProps && documentProps.title) || 'Craigory Coppola'
-  const desc = (documentProps && documentProps.description) || 'App using Vite + vike'
+  const desc = (documentProps && documentProps.description) || ''
 
   const documentHtml = escapeInject`<!DOCTYPE html>
     <html lang="en">
@@ -28,6 +28,20 @@ export async function render(pageContext: PageContextServer) {
         <meta name="viewport" content="width=device-width, initial-scale=1.0" />
         <meta name="description" content="${desc}" />
         <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/obsidian.min.css">
+        <!-- Google tag (gtag.js) -->
+        <script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-1180FLF5RC"
+        ></script>
+        <script>
+          window.dataLayer = window.dataLayer || [];
+          function gtag() {
+            dataLayer.push(arguments);
+          }
+          gtag('js', new Date());
+    
+          gtag('config', 'G-1180FLF5RC');
+        </script>
         <title>${title}</title>
       </head>
       <body>

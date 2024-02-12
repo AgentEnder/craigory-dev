@@ -1,5 +1,4 @@
 import React from 'react';
-import { PageContextProvider } from '@new-personal-monorepo/vike-utils';
 import { PageContext } from '@new-personal-monorepo/vike-utils';
 import './PageShell.scss';
 import { Link } from './Link';
@@ -35,13 +34,7 @@ export function PageShell({
 
 function Layout({ children }: { children: React.ReactNode }) {
   return (
-    <div
-      style={{
-        display: 'flex',
-        maxWidth: 900,
-        margin: 'auto',
-      }}
-    >
+    <div className="layout">
       {children}
     </div>
   );
@@ -50,14 +43,7 @@ function Layout({ children }: { children: React.ReactNode }) {
 function Sidebar({ children }: { children: React.ReactNode }) {
   return (
     <div
-      style={{
-        padding: 20,
-        flexShrink: 0,
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-        lineHeight: '1.8em',
-      }}
+      className='sidebar'
     >
       {children}
     </div>
@@ -67,12 +53,7 @@ function Sidebar({ children }: { children: React.ReactNode }) {
 function Content({ children }: { children: React.ReactNode }) {
   return (
     <div
-      style={{
-        padding: 20,
-        paddingBottom: 50,
-        borderLeft: '2px solid #eee',
-        minHeight: '100vh',
-      }}
+      className='content'
     >
       {children}
     </div>

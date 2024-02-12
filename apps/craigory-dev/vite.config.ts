@@ -1,9 +1,10 @@
 /// <reference types="vitest" />
 import mdx from '@mdx-js/rollup';
 import react from '@vitejs/plugin-react';
-import { fromHtmlIsomorphic } from 'hast-util-from-html-isomorphic';
 import { join } from 'path';
-import rehypeAutolinkHeadings from 'rehype-autolink-headings';
+import rehypeAutolinkHeadings, {
+  type Options as RehypeAutolinkOptions,
+} from 'rehype-autolink-headings';
 import rehypeExternalLinks from 'rehype-external-links';
 import rehypeHighlight from 'rehype-highlight';
 import rehypeMdxCodeProps from 'rehype-mdx-code-props';
@@ -15,8 +16,31 @@ import { defineConfig } from 'vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 
 import * as tsconfig from '../../tsconfig.base.json';
-import { Element } from 'rehype-autolink-headings/lib';
 import remarkSmartypants from 'remark-smartypants';
+
+const rehypeAutolinkHeadingsOptions: RehypeAutolinkOptions = {
+  behavior: 'append',
+  content: {
+    type: 'text',
+    value: '#'
+  },
+  properties: {
+    className: 'heading-link',
+  },
+  test: (el) => {
+    if (el.type === 'element') {
+      if (el.tagName === 'h1') return false;
+      if (
+        el.tagName === 'h2' &&
+        el.children?.find(
+          (el) => el.type === 'text' && el.value === 'Table of Contents'
+        )
+      )
+        return false;
+    }
+    return true;
+  },
+};
 
 export default defineConfig({
   cacheDir: '../../node_modules/.vite/craigory-dev',
@@ -66,25 +90,16 @@ export default defineConfig({
       remarkPlugins: [remarkToc, remarkSmartypants, remarkRehype],
       rehypePlugins: [
         rehypeSlug,
-        [rehypeExternalLinks, {
-          target: '_blank',
-          rel: ['noopener', 'noreferrer'],
-        }],
-        rehypeHighlight,
-        rehypeMdxCodeProps,
         [
-          rehypeAutolinkHeadings,
+          rehypeExternalLinks,
           {
-            content: fromHtmlIsomorphic('<span>🔗</span>', { fragment: true }),
-            test: (el: Element) => {
-              if (el.type === 'element') {
-                if (el.tagName === 'h1') return false;
-                if (el.tagName === 'h2' && el.children?.find(el => el.type === 'text' && el.value === 'Table of Contents')) return false;
-              }
-              return true;
-            },
+            target: '_blank',
+            rel: ['noopener', 'noreferrer'],
           },
         ],
+        rehypeHighlight,
+        rehypeMdxCodeProps,
+        [rehypeAutolinkHeadings, rehypeAutolinkHeadingsOptions],
       ],
     }),
   ],

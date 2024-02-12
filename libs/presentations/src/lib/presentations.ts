@@ -6,6 +6,7 @@ import devup2023FSTS from '../presentation-data/devup-2023-full-stack-type-safet
 import devup2023Benchmarking from '../presentation-data/devup-2023-benchmarking';
 import nxConf2023 from '../presentation-data/nx-conf-2023-inference';
 import thatTx2024 from '../presentation-data/that-conf-tx-2024-compartmentalization';
+import launchNxConf2024CrystalDotnet from '../presentation-data/nx-conf-2024-crystal-dotnet';
 
 export type Presentation = {
   mdUrl?: string;
@@ -30,11 +31,14 @@ export const PRESENTATIONS: Record<string, Presentation> = [
   devup2023FSTS,
   nxConf2023,
   thatTx2024,
+  launchNxConf2024CrystalDotnet,
 ]
   .sort((a, b) => b.presentedOn.getTime() - a.presentedOn.getTime())
   .reduce((acc, cur) => {
     if (cur.slug in acc) {
-      throw new Error("Multiple presentations should not have the same slug:" + cur.slug);
+      throw new Error(
+        'Multiple presentations should not have the same slug:' + cur.slug
+      );
     }
     acc[cur.slug] = cur;
     return acc;
