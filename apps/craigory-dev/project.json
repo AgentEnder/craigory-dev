@@ -11,6 +11,14 @@
         "cwd": "apps/craigory-dev"
       }
     },
+    "prepare": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "sscli -b https://craigory.dev -r dist/apps/craigory-dev/client -c '**,weekly' 'blog/**,daily'"
+      },
+      "dependsOn": ["build"],
+      "cache": true
+    },
     "serve": {
       "executor": "nx:run-commands",
       "options": {
@@ -62,7 +70,7 @@
         "directory": "dist/apps/craigory-dev/client",
         "remote": "https://github.com/AgentEnder/agentender.github.io.git"
       },
-      "dependsOn": ["build"]
+      "dependsOn": ["prepare"]
     }
   },
   "tags": []

@@ -25,6 +25,7 @@
     "remark-rehype": "^11.1.0",
     "remark-smartypants": "^2.1.0",
     "remark-toc": "^9.0.0",
+    "static-sitemap-cli": "^2.2.3",
     "tslib": "^2.3.0",
     "vike": "^0.4.160",
     "vite-plugin-static-copy": "^0.17.0"
