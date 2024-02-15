@@ -6,7 +6,7 @@
 
 Nx's configuration has changed dramatically over the years, and it's been a long journey to get to where we are today. I joined the Nx team in June 2021, right before we split up `workspace.json` into `workspace.json` and `project.json`. Since joining the team, I've had a pretty direct hand in many of these changes, and have worked closely on others.
 
-There are a few misconceptions about Nx that stem from its configuration and history, and I'd like to clear some of those up.
+There are a few misconceptions about Nx that stem from its configuration and history, and I'd like to clear some of those up. Those misconceptions are:
 
 - Nx is only for Angular
 - Nx is hard to configure
@@ -14,9 +14,9 @@ There are a few misconceptions about Nx that stem from its configuration and his
 
 ### The Quick Scoop (tldr)
 
-- Nx was initially built as an Angular CLI extension. It has been its own CLI for several years, and has no direct ties to angular at this point.
+- Nx was initially built as an Angular CLI extension. It has been its own CLI for several years, and has had no direct ties to angular since 2020 (confirm date!).
 - Nx's configuration has went through several iterations, and mostly configures itself these days.
-- You shouldn't have to worry when the configuration changes, as Nx will migrate your existing config for you.
+- You shouldn't have to worry when the configuration changes, as Nx will always migrate your existing config for you.
 
 ### The Final Result
 
@@ -60,11 +60,11 @@ Angular CLI also supports monorepos, and in the beginning Nx used angular's conf
 
 To help distinguish a plain Angular CLI project from an Nx workspace, and better support other tools, we added support for a `workspace.json` file. This file was identical to `angular.json`.
 
-As Nx grew and added more features, we needed to add more configuration. We added a `nx.json` file to store this configuration. This file was used to store configuration for things that were specific to Nx, and that angular wouldn't understand. For example, we added support for `tags` and `implicitDependencies` to help Nx understand the relationships between projects.
+As Nx grew and added more features, we needed to add more configuration. We added a `nx.json` file to store this configuration. This file was used to store configuration for things that were specific to Nx, and that Angular wouldn't understand. For example, we added support for `tags` and `implicitDependencies` to help Nx understand the relationships between projects.
 
 ## Birth of the Nx CLI: Evolution Beyond Angular
 
-After a bit, Nx grew apart from Angular CLI. It became a standalone tool that could be used with any framework. This meant that we needed to create our own configuration file. We created `workspace.json` to replace `angular.json`. The configuration was extraordinarily similar, but it was a different file and a few properties had a different name. The names changed to more closely match the names that Nx uses. For example, `builder` became `executor` and `architect` became `targets`.
+After a bit, Nx grew apart from Angular CLI. It became a standalone tool that could be used with any framework. This meant that we needed to create our own configuration file. We created `workspace.json` to replace `angular.json`. The configuration was extraordinarily similar, but it was a different file and a few properties had a different name. The names changed to more closely match the names that Nx uses. For example, `builder` became `executor` and `architect` became `targets`. [The mechanics of executors were slightly different from builders as well, as Angular preferred Observable-based `builders`, while Nx moved on to Promise-based `executors`]
 
 These changes included some differences in `nx.json` as well. The `schematics` property was renamed as `generators`.
 
@@ -174,7 +174,7 @@ Soon after, we renamed `targetDependencies` to `targetDefaults` + `dependsOn` an
 }
 ```
 
-## `project.json` and splitting `workspace.json`
+## `project.json` and splitting `workspace.json` [add dates to the 'eras' to give more context! A timeline graphic updating each section would really drive this point home!]
 
 Nx is a monorepo focused tool. It's designed to work with many projects in a single repository. As such, the `workspace.json` file can get quite large. Every time a new project is added, an existing project is modified, or an older project is removed, the `workspace.json` file needs to be updated. This can lead to merge conflicts and other issues.
 
@@ -252,7 +252,7 @@ Around this time, several things surrounding lerna started to become worrisome. 
 
 These users would need to go somewhere, but any change for them would not be without difficulty. Nrwl, the company behind Nx, decided to step in and offer a solution. After talking with the maintainer, we were able to take over stewardship and step in to maintain the project. This was announced in a blog post here: [Lerna is dead, Long live Lerna](https://blog.nrwl.io/lerna-is-dead-long-live-lerna-61259f97dbd9).
 
-## Inference API v1, and Workspaces Support
+## Inference API v1, and Workspaces Support [I would include context on support for npm/yarn/pnpm workspaces, and reading package.json files! Austin may have more context there.]
 
 With Lerna under our purview we wanted to be able to unify the two tools. Nx should be able to work in a lerna workspace, and hopefully the portions of Lerna that Nx could already handle would then be able to invoke Nx under the hood. This would prevent us from having to maintain two copies of the same functionality, and we were optimistic we could do this without breaking any existing workflows.
 
