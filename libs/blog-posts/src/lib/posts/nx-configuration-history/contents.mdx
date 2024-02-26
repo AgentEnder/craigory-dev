@@ -12,11 +12,23 @@ There are a few misconceptions about Nx that stem from its configuration and his
 - Nx is hard to configure
 - Nx has a lot of configuration.
 
-## The Quick Scoop (tldr)
+### The Quick Scoop (tldr)
 
 - Nx was initially built as an Angular CLI extension. It has been its own CLI for several years, and has no direct ties to angular at this point.
 - Nx's configuration has went through several iterations, and mostly configures itself these days.
 - You shouldn't have to worry when the configuration changes, as Nx will migrate your existing config for you.
+
+### The Final Result
+
+After Nx 18, the Nx side of configuration for individual projects in a workspace can be as simple as this:
+
+```json filename="apps/myapp/project.json"
+{
+    "name": "myapp",
+}
+```
+
+The rest of the configuration that one may expect (targets to run as the most common example) can be inferred from configuration files present in the project's root. This is a dramatic reduction from where we started, and hopefully makes Nx easier to adopt and learn.
 
 ## Nx's Angular Beginnings
 
@@ -172,7 +184,7 @@ We decided that `workspace.json` would contain a map of project name to file pat
 
 As such, we created a translation layer that would handle reading and writing the configuration when angular asked for it. Doing this unlocked a ton of flexibility on our side to make changes to the configuration without breaking compatibility with Angular CLI.
 
-Additionally, we took some time to reevaluate where existing configuration options lived. Since we now have a configuration file per project it made less sense to place `tags` and `implicitDependencies` in `nx.json`. We moved these properties to `nx.json` as well.
+Additionally, we took some time to reevaluate where existing configuration options lived. Since we now have a configuration file per project it made less sense to place `tags` and `implicitDependencies` in `nx.json`. We moved these properties to `project.json` as well.
 
 The end result of this round of changes resulted in:
 
@@ -338,3 +350,7 @@ There are some published resources that go into more detail about this change:
 Nx's configuration has changed a lot over the years, and it's been a long journey to get to where we are today. We've made a lot of changes to make Nx easier to adopt, and we've made a lot of changes to make Nx easier to use. 
 
 Project Crystal helped slim down the Nx configuration within a workspace to only `nx.json` for many repos, and opens the doors for Nx to be used in a wider variety of repositories. We're excited to see what the future holds for Nx, and as always, stay tuned 📺.
+
+## References and Links
+
+- [Nx Project Crystal 💎](https://www.youtube.com/watch?v=wADNsVItnsM)
