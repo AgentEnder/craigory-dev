@@ -2,13 +2,27 @@ import { OnBeforePrerenderStartAsync } from 'vike/types';
 import { Octokit } from '@octokit/rest';
 import { GithubRepo, RepoData } from './types';
 import { isBefore, subYears } from 'date-fns';
+import { basename } from 'path';
 
 const client = new Octokit({
   auth: process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN,
 });
 
+let githubRequestCount = 0;
+const originalRequest = client.request;
+const patchedRequest: typeof client.request = ((
+  ...args: Parameters<typeof client.request>
+) => {
+  githubRequestCount++;
+  return originalRequest(...args);
+}) as any;
+
+Object.assign(patchedRequest, originalRequest);
+
+client.request = patchedRequest;
+
 export const onBeforePrerenderStart = (async () => {
-  return [
+  const result = [
     {
       url: '/projects',
       pageContext: {
@@ -18,6 +32,8 @@ export const onBeforePrerenderStart = (async () => {
       },
     },
   ];
+  console.log('GitHub requests:', githubRequestCount);
+  return result;
 }) satisfies OnBeforePrerenderStartAsync;
 
 const ADDITIONAL_REPOS = [
@@ -43,7 +59,6 @@ const FORBIDDEN_WORDS = [
   /advent.?of.?code/,
 
   // Personal / schoolwork
-  'project for',
   'course',
 ];
 
@@ -81,28 +96,50 @@ async function getAllRepos() {
     }
   );
   const repos: RepoData[] = [];
-  for (const repo of ADDITIONAL_REPOS) {
-    const githubRepo = await client.rest.repos.get({
-      owner: repo.owner,
-      repo: repo.name,
-    });
-    const data = await processRepo(githubRepo.data as GithubRepo);
-    if (data) {
-      repos.push(data);
-    }
+  const chunks = ADDITIONAL_REPOS.reduce(
+    (acc, repo) => {
+      if (acc[acc.length - 1].length < 20) {
+        acc[acc.length - 1].push(repo);
+      } else {
+        acc.push([repo]);
+      }
+      return acc;
+    },
+    [[]] as {
+      owner: string;
+      name: string;
+    }[][]
+  );
+  for (const chunk of chunks) {
+    const chunkData = await Promise.all(
+      chunk.map(async (repo) => {
+        const githubRepo = await client.rest.repos.get({
+          owner: repo.owner,
+          repo: repo.name,
+        });
+        return processRepo(githubRepo.data as GithubRepo);
+      })
+    );
+    repos.push(...(chunkData.filter(Boolean) as RepoData[]));
   }
   for await (const { data } of iterator) {
-    for (const repo of data) {
-      if (repo.fork) {
-        continue;
-      }
-      const data = await processRepo(repo);
-      if (data) {
-        repos.push(data);
-      }
-    }
+    const chunk = await Promise.all(
+      data.map((repo) => {
+        if (repo.fork) {
+          return;
+        }
+        return processRepo(repo);
+      })
+    );
+    repos.push(...(chunk.filter(Boolean) as RepoData[]));
   }
-  return repos;
+  return repos.sort((a, b) => {
+    const starDifference = (b.stars ?? 0) - (a.stars ?? 0);
+    if (starDifference !== 0) {
+      return starDifference > 0 ? 1 : -1;
+    }
+    return isBefore(b.lastCommit ?? '', a.lastCommit ?? '') ? -1 : 1;
+  });
 }
 
 async function processRepo(repo: GithubRepo): Promise<RepoData | undefined> {
@@ -110,11 +147,14 @@ async function processRepo(repo: GithubRepo): Promise<RepoData | undefined> {
     return;
   }
 
-  const [readme, deployment, lastCommit] = await Promise.all([
-    getReadme(repo),
-    findRepositoryDeployment(repo),
-    getLastCommit(repo),
-  ]);
+  const [readme, deployment, lastCommit, publishedPackages] = await Promise.all(
+    [
+      getReadme(repo),
+      findRepositoryDeployment(repo),
+      getLastCommit(repo),
+      getPublishedPackages(repo),
+    ]
+  );
 
   if (
     readme &&
@@ -134,6 +174,7 @@ async function processRepo(repo: GithubRepo): Promise<RepoData | undefined> {
     stars: repo.stargazers_count,
     lastCommit,
     readme,
+    publishedPackages,
   };
 }
 
@@ -196,4 +237,65 @@ async function findRepositoryDeployment(repo: GithubRepo) {
   } catch {
     // inactive
   }
+}
+
+async function getPublishedPackages(repo: GithubRepo) {
+  // find all package.json files in repo
+
+  const packageJsonFiles: { name: string; private: boolean }[] = [];
+  if (!repo.default_branch) {
+    return {};
+  }
+  const allCheckedInFiles = await client.paginate.iterator(client.git.getTree, {
+    owner: repo.owner.login,
+    repo: repo.name,
+    tree_sha: repo.default_branch,
+    recursive: 'true',
+  });
+
+  for await (const chunk of allCheckedInFiles) {
+    await Promise.all(
+      chunk.data.tree.map(async (item) => {
+        if (!item.type || !item.path || !item.url) {
+          return;
+        }
+        if (item.type === 'blob' && basename(item.path) === 'package.json') {
+          const fileContents = await client.request(item.url);
+          const result = await fileContents.data;
+          if (result.content) {
+            const decodedContent = JSON.parse(
+              Buffer.from(result.content, 'base64').toString('utf-8')
+            );
+            packageJsonFiles.push(decodedContent);
+          } else {
+            console.log('No content?', result);
+          }
+        }
+      })
+    );
+  }
+
+  const packages: Record<string, number> = {};
+  for (const packageJson of packageJsonFiles) {
+    if (!packageJson.name || packageJson.private) {
+      continue;
+    }
+    const weeklyDownloadsByVersion: {
+      downloads: Record<string, number>;
+    } = await fetch(
+      `https://api.npmjs.org/versions/${encodeURIComponent(
+        packageJson.name
+      )}/last-week`
+    ).then((res) => res.json());
+
+    for (const [version, downloads] of Object.entries(
+      weeklyDownloadsByVersion.downloads
+    )) {
+      packages[packageJson.name] ??= 0;
+      packages[packageJson.name] += downloads;
+    }
+  }
+
+  return packages;
+  // get the contents of each package.json
 }

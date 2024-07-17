@@ -9,6 +9,7 @@ export type RepoData = {
   stars?: number;
   readme?: string | null;
   data: GithubRepo;
+  publishedPackages?: Record<string, number>;
 };
 
 export type GithubRepo = Awaited<

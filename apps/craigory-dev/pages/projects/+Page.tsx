@@ -1,13 +1,16 @@
 import { usePageContext } from 'vike-react/usePageContext';
 import { RepoData } from './types';
 import { format, isThisYear } from 'date-fns';
-import { renderMarkdownToHTML } from './render-markdown';
+
+import './styles.scss';
 
 export function Page() {
   const { projects } = useData();
 
   return (
     <>
+      <h1>Projects</h1>
+      Sorted by GitHub stars and last commit date.
       {projects.map((p) => (
         <div key={p.repo}>
           <div
@@ -55,12 +58,48 @@ export function Page() {
             ></div>
           ) : null} */}
           <p>
-            Repo: <a href={p.url}>Github</a>
+            Repo:{' '}
+            <a href={p.url} target="_blank" rel="noreferrer">
+              Github
+            </a>
           </p>
           {p.deployment ? (
             <p>
-              Website: <a href={p.deployment}>{p.repo}</a>
+              Website:{' '}
+              <a href={p.deployment} target="_blank" rel="noreferrer">
+                {p.repo}
+              </a>
             </p>
+          ) : null}
+          {Object.keys(p.publishedPackages ?? {}).length ? (
+            <div>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Package</th>
+                    <th>Weekly Downloads</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {Object.entries(p.publishedPackages ?? {})
+                    .sort(([, a], [, b]) => b - a)
+                    .map(([name, downloads]) => (
+                      <tr key={name}>
+                        <td>
+                          <a
+                            href={`https://npmjs.com/${name}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            {name}
+                          </a>
+                        </td>
+                        <td>{downloads}</td>
+                      </tr>
+                    ))}
+                </tbody>
+              </table>
+            </div>
           ) : null}
         </div>
       ))}
