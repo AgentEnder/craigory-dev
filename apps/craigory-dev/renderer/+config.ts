@@ -22,7 +22,8 @@ export default {
     'data',
   ],
   title: 'Craigory Coppola',
+  desc: 'Personal website of Craigory Coppola',
   Head,
   clientRouting: false,
   ssr: true,
-} satisfies Config;
+} satisfies Config & { desc: string };

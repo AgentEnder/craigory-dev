@@ -3,7 +3,8 @@
   "version": "0.0.0",
   "license": "MIT",
   "scripts": {
-    "prepare": "patch-package"
+    "prepare": "patch-package",
+    "start": "nx serve-static craigory-dev"
   },
   "private": true,
   "dependencies": {
@@ -20,6 +21,7 @@
     "ora": "^7.0.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",
+    "react-icons": "^5.2.1",
     "react-router-dom": "^6.14.1",
     "reading-time": "^1.5.0",
     "rehype-autolink-headings": "^7.1.0",

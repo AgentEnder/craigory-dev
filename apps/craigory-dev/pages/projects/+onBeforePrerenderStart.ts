@@ -2,7 +2,9 @@ import { OnBeforePrerenderStartAsync } from 'vike/types';
 import { Octokit } from '@octokit/rest';
 import { GithubRepo, RepoData } from './types';
 import { isBefore, subYears } from 'date-fns';
-import { basename } from 'path';
+import { basename, dirname, join } from 'path';
+import { existsSync, readFileSync, writeFileSync, mkdirSync } from 'fs';
+import { fileURLToPath } from 'url';
 
 const client = new Octokit({
   auth: process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN,
@@ -21,7 +23,20 @@ Object.assign(patchedRequest, originalRequest);
 
 client.request = patchedRequest;
 
+// ENTRY POINT FOR VIKE PRE-RENDERING
 export const onBeforePrerenderStart = (async () => {
+  const workspaceRoot = findWorkspaceRoot(fileURLToPath(import.meta.url));
+  const cachePath = join(workspaceRoot, 'tmp', 'github-projects-cache.json');
+  try {
+    mkdirSync(dirname(cachePath), { recursive: true });
+  } catch {}
+  const cacheData = existsSync(cachePath)
+    ? JSON.parse(readFileSync(cachePath, 'utf-8'))
+    : null;
+  if (cacheData) {
+    console.log('Reusing data from', cachePath);
+    return cacheData;
+  }
   const result = [
     {
       url: '/projects',
@@ -33,6 +48,7 @@ export const onBeforePrerenderStart = (async () => {
     },
   ];
   console.log('GitHub requests:', githubRequestCount);
+  writeFileSync(cachePath, JSON.stringify(result, null, 2));
   return result;
 }) satisfies OnBeforePrerenderStartAsync;
 
@@ -147,14 +163,14 @@ async function processRepo(repo: GithubRepo): Promise<RepoData | undefined> {
     return;
   }
 
-  const [readme, deployment, lastCommit, publishedPackages] = await Promise.all(
-    [
+  const [readme, deployment, lastCommit, publishedPackages, languages] =
+    await Promise.all([
       getReadme(repo),
       findRepositoryDeployment(repo),
       getLastCommit(repo),
       getPublishedPackages(repo),
-    ]
-  );
+      getLanguages(repo),
+    ]);
 
   if (
     readme &&
@@ -175,6 +191,7 @@ async function processRepo(repo: GithubRepo): Promise<RepoData | undefined> {
     lastCommit,
     readme,
     publishedPackages,
+    languages,
   };
 }
 
@@ -202,6 +219,34 @@ async function getLastCommit(repo: GithubRepo) {
     return lastCommit.data?.commit.author?.date;
   } catch {
     return null;
+  }
+}
+
+const LANGUAGE_PERCENTAGE_THRESHOLD = 0.01;
+async function getLanguages(repo: GithubRepo) {
+  try {
+    const languages = await client.rest.repos.listLanguages({
+      owner: repo.owner.login,
+      repo: repo.name,
+    });
+    let totalBytes = 0;
+    let results: Record<string, number> = {};
+    for (const lang in languages.data) {
+      totalBytes += languages.data[lang];
+    }
+    for (const lang in languages.data) {
+      const percentage = languages.data[lang] / totalBytes;
+      if (percentage >= LANGUAGE_PERCENTAGE_THRESHOLD) {
+        results[lang] = Math.round((languages.data[lang] * 100) / totalBytes);
+      } else {
+        // console.log(
+        //   `Dropping ${lang} in ${repo.full_name} due to low percentage: ${percentage}`
+        // );
+      }
+    }
+    return results;
+  } catch {
+    return undefined;
   }
 }
 
@@ -275,7 +320,14 @@ async function getPublishedPackages(repo: GithubRepo) {
     );
   }
 
-  const packages: Record<string, number> = {};
+  const packages: Record<
+    string,
+    {
+      downloads: number;
+      registry: 'npm';
+      url: string;
+    }
+  > = {};
   for (const packageJson of packageJsonFiles) {
     if (!packageJson.name || packageJson.private) {
       continue;
@@ -291,11 +343,29 @@ async function getPublishedPackages(repo: GithubRepo) {
     for (const [version, downloads] of Object.entries(
       weeklyDownloadsByVersion.downloads
     )) {
-      packages[packageJson.name] ??= 0;
-      packages[packageJson.name] += downloads;
+      packages[packageJson.name] ??= {
+        downloads: 0,
+        registry: 'npm',
+        url: `https://npmjs.com/${packageJson.name}`,
+      };
+      packages[packageJson.name].downloads += downloads;
     }
   }
 
   return packages;
   // get the contents of each package.json
+}
+
+function findWorkspaceRoot(startingDirectory: string) {
+  let last = startingDirectory;
+  let next = dirname(startingDirectory);
+  while (last !== next) {
+    const candidate = join(last, 'nx.json');
+    if (existsSync(candidate)) {
+      return last;
+    }
+    last = next;
+    next = dirname(next);
+  }
+  throw new Error('Prerendering should happen inside the Nx workspace');
 }

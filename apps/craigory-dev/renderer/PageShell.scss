@@ -41,11 +41,11 @@ a {
     max-width: 1200px;
   }
 
-  @media screen and (min-width: 1200px) and (max-width: 1599px){
+  @media screen and (min-width: 1200px) and (max-width: 1599px) {
     max-width: 900px;
   }
 
-  @media screen and (min-width: 901px) and (max-width: 1199px){
+  @media screen and (min-width: 901px) and (max-width: 1199px) {
     max-width: 80vw;
   }
 
@@ -127,13 +127,14 @@ h6 {
 }
 
 h1 {
-  font-size: 3em;
+  font-size: 3.25em;
   margin-bottom: 0.5em;
+  text-decoration: underline;
 }
 
 h2 {
-  font-size: 2.5em;
-  margin-bottom: 0.5em;
+  font-size: 2.75em;
+  margin-bottom: 0.4em;
 
   code {
     font-size: 0.8em;
@@ -142,7 +143,8 @@ h2 {
 
 h3 {
   font-size: 2em;
-  margin-bottom: 0.5em;
+  margin-bottom: 0.3em;
+  font-style: italic;
 }
 
 h4 {

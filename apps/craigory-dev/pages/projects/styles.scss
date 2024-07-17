@@ -13,6 +13,12 @@ table {
     padding: 10px;
     text-align: left;
     border-bottom: 1px solid #ddd;
+    width: calc(min(auto, 100px));
+  }
+
+  td div {
+    align-items: center;
+    display: flex;
   }
 
   th {
@@ -33,4 +39,11 @@ table {
       border-bottom: 1px solid #ccc;
     }
   }
+}
+
+hr {
+  border: none;
+  height: 2px;
+  background-color: #eee;
+  margin: 20px 0;
 }

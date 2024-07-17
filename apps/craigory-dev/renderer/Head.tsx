@@ -1,4 +1,7 @@
+import { usePageContext } from 'vike-react/usePageContext';
+
 export function Head() {
+  const context = usePageContext();
   return (
     <>
       <meta charSet="UTF-8" />
@@ -6,7 +9,7 @@ export function Head() {
         name="viewport"
         content="width=device-width, initial-scale=1.0"
       ></meta>
-      <meta name="description" content="${desc}"></meta>
+      <meta name="description" content={(context.config as any).desc}></meta>
       <link
         rel="stylesheet"
         href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/obsidian.min.css"
