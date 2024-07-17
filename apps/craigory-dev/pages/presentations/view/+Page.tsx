@@ -1,5 +1,5 @@
 import { ViewPresentation } from '@new-personal-monorepo/presentations';
-import { usePageContext } from '@new-personal-monorepo/vike-utils';
+import { usePageContext } from 'vike-react/usePageContext';
 import { useEffect, useState } from 'react';
 
 export function Page() {
@@ -11,6 +11,8 @@ export function Page() {
   return presentation ? (
     <ViewPresentation presentationSlug={presentation}></ViewPresentation>
   ) : (
-    <div>Hello?</div>
+    <>
+      <div>Hello?</div>
+    </>
   );
 }

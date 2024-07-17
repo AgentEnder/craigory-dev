@@ -1,5 +1,5 @@
 import { pages } from '@new-personal-monorepo/blog-posts';
-import { usePageContext } from '@new-personal-monorepo/vike-utils';
+import { usePageContext } from 'vike-react/usePageContext';
 import { formatDateString } from '@new-personal-monorepo/date-utils';
 import { format } from 'date-fns';
 

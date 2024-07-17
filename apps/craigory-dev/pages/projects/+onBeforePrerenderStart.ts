@@ -43,8 +43,7 @@ const FORBIDDEN_WORDS = [
   /advent.?of.?code/,
 
   // Personal / schoolwork
-  'personal',
-  'project',
+  'project for',
   'course',
 ];
 

@@ -1,6 +1,9 @@
 import type { Config } from 'vike/types';
+import react from 'vike-react/config';
+import { Head } from './Head';
 
 export default {
+  extends: react,
   meta: {
     // We create a new setting called `title`
     title: {
@@ -11,5 +14,15 @@ export default {
       env: { server: true },
     },
   },
-  passToClient: ['pageProps', 'urlPathname', 'urlParsed', 'routeParams'],
+  passToClient: [
+    'pageProps',
+    'urlPathname',
+    'urlParsed',
+    'routeParams',
+    'data',
+  ],
+  title: 'Craigory Coppola',
+  Head,
+  clientRouting: false,
+  ssr: true,
 } satisfies Config;

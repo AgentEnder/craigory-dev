@@ -1,4 +1,4 @@
-import { usePageContext } from '@new-personal-monorepo/vike-utils';
+import { usePageContext } from 'vike-react/usePageContext';
 
 export function Link(p: {
   href?: string;

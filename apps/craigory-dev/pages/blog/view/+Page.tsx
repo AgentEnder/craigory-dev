@@ -1,5 +1,5 @@
 import { slugMap } from '@new-personal-monorepo/blog-posts';
-import { usePageContext } from '@new-personal-monorepo/vike-utils';
+import { usePageContext } from 'vike-react/usePageContext';
 
 import './view.page.scss';
 import { CodeWrapper } from '../code-wrapper';

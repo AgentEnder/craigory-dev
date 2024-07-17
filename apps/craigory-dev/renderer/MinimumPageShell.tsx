@@ -1,7 +1,4 @@
-import {
-  PageContext,
-  PageContextProvider,
-} from '@new-personal-monorepo/vike-utils';
+import { PageContext } from '@new-personal-monorepo/vike-utils';
 import React from 'react';
 
 export function MinimumPageShell({
@@ -11,11 +8,5 @@ export function MinimumPageShell({
   children: React.ReactNode;
   pageContext: PageContext;
 }) {
-  return (
-    <React.StrictMode>
-      <PageContextProvider pageContext={pageContext}>
-        {children}
-      </PageContextProvider>
-    </React.StrictMode>
-  )
+  return <React.StrictMode>{children}</React.StrictMode>;
 }

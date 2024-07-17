@@ -53,6 +53,7 @@ export default defineConfig({
       prerender: {
         partial: true,
       },
+      trailingSlash: false,
     }),
     mdx({
       remarkPlugins: REMARK_PLUGINS,

@@ -1,4 +1,4 @@
-import { usePageContext } from '@new-personal-monorepo/vike-utils';
+import { usePageContext } from 'vike-react/usePageContext';
 import { RepoData } from './types';
 import { format, isThisYear } from 'date-fns';
 import { renderMarkdownToHTML } from './render-markdown';
@@ -16,8 +16,23 @@ export function Page() {
               flexDirection: 'row',
               alignItems: 'baseline',
             }}
+            id={p.repo}
           >
             <h2>{p.repo}</h2>
+            <a
+              href={`/projects#${p.repo}`}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                fontSize: '2rem',
+                textDecoration: 'none',
+                color: 'darkgray',
+                scrollBehavior: 'smooth',
+              }}
+            >
+              #
+            </a>
             <div style={{ flexGrow: 1 }}></div>
             {p.lastCommit ? (
               <span>
