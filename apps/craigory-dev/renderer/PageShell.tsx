@@ -19,6 +19,9 @@ export function PageShell({
           <Link className="navitem" href="/">
             Home
           </Link>
+          <Link className="navitem" href="/projects">
+            Projects
+          </Link>
           <Link className="navitem" href="/presentations">
             Speaking + Presentations
           </Link>
@@ -33,29 +36,13 @@ export function PageShell({
 }
 
 function Layout({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="layout">
-      {children}
-    </div>
-  );
+  return <div className="layout">{children}</div>;
 }
 
 function Sidebar({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      className='sidebar'
-    >
-      {children}
-    </div>
-  );
+  return <div className="sidebar">{children}</div>;
 }
 
 function Content({ children }: { children: React.ReactNode }) {
-  return (
-    <div
-      className='content'
-    >
-      {children}
-    </div>
-  );
+  return <div className="content">{children}</div>;
 }

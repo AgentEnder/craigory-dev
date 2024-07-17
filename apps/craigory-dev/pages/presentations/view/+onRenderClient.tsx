@@ -1,8 +1,8 @@
 import { hydrateRoot } from 'react-dom/client';
 import { PageContextClient } from '@new-personal-monorepo/vike-utils';
-import { MinimumPageShell } from '../../renderer/MinimumPageShell';
+import { MinimumPageShell } from '../../../renderer/MinimumPageShell';
 
-export async function render(pageContext: PageContextClient) {
+export async function onRenderClient(pageContext: PageContextClient) {
   const { Page, pageProps } = pageContext;
   if (!Page)
     throw new Error(

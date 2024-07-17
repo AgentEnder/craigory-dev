@@ -2,7 +2,7 @@ import { slugMap } from '@new-personal-monorepo/blog-posts';
 import { usePageContext } from '@new-personal-monorepo/vike-utils';
 
 import './view.page.scss';
-import { CodeWrapper } from './code-wrapper';
+import { CodeWrapper } from '../code-wrapper';
 import { useEffect, useState } from 'react';
 
 export function Page() {
@@ -17,7 +17,7 @@ export function Page() {
     if (ref) {
       setReturnLink(ref);
     }
-  }, [])
+  }, []);
 
   if (!blogPost) {
     throw new Error();

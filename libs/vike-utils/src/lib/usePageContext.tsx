@@ -1,14 +1,16 @@
-// `usePageContext` allows us to access `pageContext` in any React component.
-// See https://vike.dev/pageContext-anywhere
+// https://vike.dev/usePageContext
+// eslint-disable-next-line react-refresh/only-export-components
+export { usePageContext };
+export { PageContextProvider };
 
 import React, { useContext } from 'react';
-import type { PageContext } from './types';
+import type { PageContext } from 'vike/types';
 
 const Context = React.createContext<PageContext>(
   undefined as unknown as PageContext
 );
 
-export function PageContextProvider({
+function PageContextProvider({
   pageContext,
   children,
 }: {
@@ -18,7 +20,8 @@ export function PageContextProvider({
   return <Context.Provider value={pageContext}>{children}</Context.Provider>;
 }
 
-export function usePageContext() {
+/** https://vike.dev/usePageContext */
+function usePageContext() {
   const pageContext = useContext(Context);
   return pageContext;
 }

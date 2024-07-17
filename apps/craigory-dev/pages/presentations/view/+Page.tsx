@@ -2,10 +2,6 @@ import { ViewPresentation } from '@new-personal-monorepo/presentations';
 import { usePageContext } from '@new-personal-monorepo/vike-utils';
 import { useEffect, useState } from 'react';
 
-export const documentProps = {
-  title: 'Craigory Coppola - View Presentation',
-}
-
 export function Page() {
   const context = usePageContext();
   const [presentation, setPresentation] = useState<string | undefined>();

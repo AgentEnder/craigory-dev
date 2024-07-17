@@ -3,7 +3,7 @@ import { PageShell } from './PageShell';
 import type { PageContextClient } from '@new-personal-monorepo/vike-utils';
 
 // This render() hook only supports SSR, see https://vike.dev/render-modes for how to modify render() to support SPA
-export async function render(pageContext: PageContextClient) {
+export async function onRenderClient(pageContext: PageContextClient) {
   const { Page, pageProps } = pageContext;
   if (!Page)
     throw new Error(

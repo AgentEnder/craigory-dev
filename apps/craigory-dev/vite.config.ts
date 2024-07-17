@@ -1,46 +1,13 @@
 /// <reference types="vitest" />
 import mdx from '@mdx-js/rollup';
 import react from '@vitejs/plugin-react';
-import { join } from 'path';
-import rehypeAutolinkHeadings, {
-  type Options as RehypeAutolinkOptions,
-} from 'rehype-autolink-headings';
-import rehypeExternalLinks from 'rehype-external-links';
-import rehypeHighlight from 'rehype-highlight';
-import rehypeMdxCodeProps from 'rehype-mdx-code-props';
-import rehypeSlug from 'rehype-slug';
-import remarkRehype from 'remark-rehype';
-import remarkToc from 'remark-toc';
+
 import { ssr } from 'vike/plugin';
 import { defineConfig } from 'vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
+import viteTsConfigPaths from 'vite-tsconfig-paths';
 
-import * as tsconfig from '../../tsconfig.base.json';
-import remarkSmartypants from 'remark-smartypants';
-
-const rehypeAutolinkHeadingsOptions: RehypeAutolinkOptions = {
-  behavior: 'append',
-  content: {
-    type: 'text',
-    value: '#'
-  },
-  properties: {
-    className: 'heading-link',
-  },
-  test: (el) => {
-    if (el.type === 'element') {
-      if (el.tagName === 'h1') return false;
-      if (
-        el.tagName === 'h2' &&
-        el.children?.find(
-          (el) => el.type === 'text' && el.value === 'Table of Contents'
-        )
-      )
-        return false;
-    }
-    return true;
-  },
-};
+import { REMARK_PLUGINS, REHYPE_PLUGINS } from './plugins';
 
 export default defineConfig({
   cacheDir: '../../node_modules/.vite/craigory-dev',
@@ -50,7 +17,7 @@ export default defineConfig({
     host: 'localhost',
   },
 
-  assetsInclude: ['../../libs/presentations/**/*.md'],
+  assetsInclude: ['../../libs/presentations/**/*.md', './static/**/*'],
 
   preview: {
     port: 4300,
@@ -58,6 +25,7 @@ export default defineConfig({
   },
 
   plugins: [
+    viteTsConfigPaths(),
     react(),
     viteStaticCopy({
       targets: [
@@ -87,30 +55,13 @@ export default defineConfig({
       },
     }),
     mdx({
-      remarkPlugins: [remarkToc, remarkSmartypants, remarkRehype],
-      rehypePlugins: [
-        rehypeSlug,
-        [
-          rehypeExternalLinks,
-          {
-            target: '_blank',
-            rel: ['noopener', 'noreferrer'],
-          },
-        ],
-        rehypeHighlight,
-        rehypeMdxCodeProps,
-        [rehypeAutolinkHeadings, rehypeAutolinkHeadingsOptions],
-      ],
+      remarkPlugins: REMARK_PLUGINS,
+      rehypePlugins: REHYPE_PLUGINS as any,
     }),
   ],
 
   resolve: {
-    alias: Object.fromEntries(
-      Object.entries(tsconfig.compilerOptions.paths).map(([m, p]) => [
-        m,
-        join('../..', p[0]),
-      ])
-    ),
+    // alias,
   },
 
   // Uncomment this if you are using workers.
