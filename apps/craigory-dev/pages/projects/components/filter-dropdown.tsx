@@ -1,6 +1,6 @@
 type FilterDropdownBaseProps = {
   label: string;
-  options: string[];
+  options: (string | { label: string; value: string })[];
   defaultValue?: string;
 };
 
@@ -50,11 +50,20 @@ export function FilterDropdown({
             width: '100%',
           }}
         >
-          {options.map((option) => (
-            <option key={option} value={option}>
-              {option}
-            </option>
-          ))}
+          {options.map((option) => {
+            if (typeof option === 'string') {
+              return (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              );
+            }
+            return (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            );
+          })}
         </select>
       </td>
     </tr>

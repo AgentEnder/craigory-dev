@@ -12,7 +12,9 @@ export type ToastContent = string | JSX.Element;
 
 export type ToastOptions = {
   content: ToastContent;
+  style?: 'success' | 'error' | 'info';
   duration?: number;
+  ephemeral?: boolean;
 };
 
 export type Toast = ToastOptions & {
@@ -41,9 +43,12 @@ export function Toaster() {
         ...prev,
       ]);
 
-      setTimeout(() => {
-        setToasts((prev) => prev.slice(0, -1));
-      }, e.detail.duration ?? 3000);
+      // If the toast is ephemeral, remove it after a duration
+      if (e.detail.ephemeral !== false) {
+        setTimeout(() => {
+          setToasts((prev) => prev.slice(0, -1));
+        }, e.detail.duration ?? 3000);
+      }
     };
     window.addEventListener('toast', listener);
 
@@ -77,8 +82,22 @@ export function Toaster() {
             textAlign: 'right',
             padding: '1em',
             borderRadius: 8,
-            backgroundColor: 'rgba(64, 48, 64, 0.6)',
-            color: 'white',
+            ...((style) => {
+              switch (style) {
+                case 'success':
+                  return { backgroundColor: '#282', color: 'white' };
+                case 'error':
+                  return { backgroundColor: '#822', color: 'white' };
+                case 'info':
+                  return { backgroundColor: '#228', color: 'white' };
+                default:
+                  return {
+                    backgroundColor: '#434',
+                    color: 'white',
+                  };
+              }
+            })(toast.style),
+            opacity: 0.7,
             display: 'flex',
             alignItems: 'center',
           }}

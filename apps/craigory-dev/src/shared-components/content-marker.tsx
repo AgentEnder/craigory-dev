@@ -11,7 +11,7 @@ export function ContentMarker() {
           if (e.target.parentElement instanceof HTMLAnchorElement) {
             if (navigator.clipboard) {
               navigator.clipboard.writeText(e.target.parentElement.href);
-              toast({ content: 'Copied link to clipboard' });
+              toast({ content: 'Copied link to clipboard', style: 'info' });
             }
           }
         }

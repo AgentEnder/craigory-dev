@@ -9,6 +9,11 @@
       "options": {
         "command": "vite build",
         "cwd": "apps/craigory-dev"
+      },
+      "configurations": {
+        "development": {
+          "command": "vite build --mode development"
+        }
       }
     },
     "prepare": {
