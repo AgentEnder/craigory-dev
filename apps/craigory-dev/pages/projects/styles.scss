@@ -9,6 +9,7 @@ table {
   border: 1px solid #ccc;
   border-radius: 5px;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
+  align-items: center;
 
   thead,
   tbody,
@@ -22,7 +23,7 @@ table {
     padding: 10px;
     text-align: left;
     border-bottom: 1px solid #ddd;
-    width: calc(min(auto, 100px));
+    height: 100%;
   }
 
   tr:nth-child(even) td {
@@ -40,6 +41,13 @@ table {
   td div {
     align-items: center;
     display: flex;
+    margin-top: auto;
+    margin-bottom: auto;
+  }
+
+  td {
+    display: flex;
+    align-items: center;
   }
 }
 
