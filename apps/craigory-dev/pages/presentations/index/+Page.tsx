@@ -3,6 +3,7 @@ import { PRESENTATIONS } from '@new-personal-monorepo/presentations';
 import './index.page.scss';
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
+import { ContentMarker } from '../../../src/shared-components/content-marker';
 
 export function Page() {
   const hash = useLocationHash();
@@ -14,13 +15,6 @@ export function Page() {
         active.classList.remove('active');
       }
       const el = document.getElementById(hash);
-      if (el) {
-        el.scrollIntoView({
-          behavior: 'smooth',
-          block: 'start',
-          inline: 'nearest',
-        });
-      }
       el?.classList.add('active');
     }
   }, [hash]);
@@ -88,7 +82,7 @@ export function Page() {
             </div>
           </div>
           <a
-            href={`/presentations#${p.slug}`}
+            href={'#' + p.slug}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -96,10 +90,10 @@ export function Page() {
               fontSize: '2rem',
               textDecoration: 'none',
               color: 'darkgray',
-              scrollBehavior: 'smooth'
+              scrollBehavior: 'smooth',
             }}
           >
-            #
+            <ContentMarker></ContentMarker>
           </a>
         </div>
       ))}

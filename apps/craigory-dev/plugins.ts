@@ -12,8 +12,12 @@ import remarkToc from 'remark-toc';
 const rehypeAutolinkHeadingsOptions: RehypeAutolinkOptions = {
   behavior: 'append',
   content: {
-    type: 'text',
-    value: '#',
+    type: 'element',
+    tagName: 'Anchor',
+    children: [{ type: 'text', value: '#' }],
+    properties: {
+      className: 'heading-link-anchor',
+    },
   },
   properties: {
     className: 'heading-link',

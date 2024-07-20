@@ -38,6 +38,9 @@
     border-radius: 0.5rem;
     box-shadow: #9b907f 0.25em 0.25em 12px;
 
+    transform: rotate(1deg);
+    transition: transform 0.25s ease-in-out;
+
     a {
       color: #95957c;
     }

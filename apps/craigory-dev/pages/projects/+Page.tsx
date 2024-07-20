@@ -13,6 +13,7 @@ import './styles.scss';
 import { RepoData } from './types';
 import { FilterBar } from './components/filter-bar';
 import { PercentBar } from './components/percent-bar';
+import { ContentMarker } from '../../src/shared-components/content-marker';
 
 export function Page() {
   const { projects } = useData<{ projects: RepoData[] }>();
@@ -57,7 +58,7 @@ export function Page() {
                 marginRight: 'calc(3.5rem - 1ch)',
               }}
             >
-              #
+              <ContentMarker></ContentMarker>
             </a>
 
             <h2

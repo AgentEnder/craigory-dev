@@ -4,6 +4,7 @@ import './PageShell.scss';
 import { Link } from './Link';
 import { MinimumPageShell } from './MinimumPageShell';
 import { pageCount } from '../pages/blog/config';
+import { Toaster } from '../src/shared-components/toaster';
 
 export function PageShell({
   children,
@@ -31,6 +32,7 @@ export function PageShell({
         </Sidebar>
         <Content>{children}</Content>
       </Layout>
+      <Toaster></Toaster>
     </MinimumPageShell>
   );
 }

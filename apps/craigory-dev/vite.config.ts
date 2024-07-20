@@ -57,6 +57,7 @@ export default defineConfig({
     }),
     mdx({
       remarkPlugins: REMARK_PLUGINS,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       rehypePlugins: REHYPE_PLUGINS as any,
     }),
   ],

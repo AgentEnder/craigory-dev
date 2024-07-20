@@ -4,6 +4,7 @@ import { usePageContext } from 'vike-react/usePageContext';
 import './view.page.scss';
 import { CodeWrapper } from '../code-wrapper';
 import { useEffect, useState } from 'react';
+import { ContentMarker } from '../../../src/shared-components/content-marker';
 
 export function Page() {
   const pageContext = usePageContext();
@@ -31,6 +32,7 @@ export function Page() {
       {data.mdx({
         components: {
           pre: CodeWrapper,
+          Anchor: ContentMarker,
         },
       })}
       {returnLink ? <a href={returnLink}>Return to previous page</a> : null}
