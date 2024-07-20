@@ -39,7 +39,7 @@ jobs:
       # Add your deployment steps here
       - name: Deploy to production
         run: |
-          node ./node_modules/.bin/nx build craigory-dev --configuration=development
+          node ./node_modules/.bin/nx build craigory-dev
           node ./node_modules/.bin/nx deploy craigory-dev
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}

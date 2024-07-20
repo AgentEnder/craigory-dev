@@ -6,15 +6,11 @@
   "tags": [],
   "targets": {
     "lint": {
-      "executor": "@nx/linter:eslint",
-      "outputs": ["{options.outputFile}"],
-      "options": {
-        "lintFilePatterns": ["libs/vike-utils/**/*.{ts,tsx,js,jsx}"]
-      }
+      "executor": "@nx/eslint:lint"
     },
     "test": {
       "executor": "@nx/vite:test",
-      "outputs": ["coverage/libs/vike-utils"],
+      "outputs": ["{workspaceRoot}/coverage/libs/vike-utils"],
       "options": {
         "passWithNoTests": true,
         "reportsDirectory": "../../coverage/libs/vike-utils"

@@ -3,6 +3,7 @@
   "$schema": "../../node_modules/nx/schemas/project-schema.json",
   "sourceRoot": "apps/craigory-dev/src",
   "projectType": "application",
+  "tags": [],
   "targets": {
     "build": {
       "executor": "nx:run-commands",
@@ -56,18 +57,14 @@
     },
     "test": {
       "executor": "@nx/vite:test",
-      "outputs": ["coverage/apps/craigory-dev"],
+      "outputs": ["{workspaceRoot}/coverage/apps/craigory-dev"],
       "options": {
         "passWithNoTests": true,
         "reportsDirectory": "../../coverage/apps/craigory-dev"
       }
     },
     "lint": {
-      "executor": "@nx/linter:eslint",
-      "outputs": ["{options.outputFile}"],
-      "options": {
-        "lintFilePatterns": ["apps/craigory-dev/**/*.{ts,tsx,js,jsx}"]
-      }
+      "executor": "@nx/eslint:lint"
     },
     "deploy": {
       "executor": "@nx-dotnet/nx-ghpages:deploy",
@@ -77,6 +74,5 @@
       },
       "dependsOn": ["prepare"]
     }
-  },
-  "tags": []
+  }
 }

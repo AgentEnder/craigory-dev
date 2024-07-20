@@ -6,15 +6,11 @@
   "tags": [],
   "targets": {
     "lint": {
-      "executor": "@nx/linter:eslint",
-      "outputs": ["{options.outputFile}"],
-      "options": {
-        "lintFilePatterns": ["libs/presentations/**/*.{ts,tsx,js,jsx}"]
-      }
+      "executor": "@nx/eslint:lint"
     },
     "test": {
       "executor": "@nx/vite:test",
-      "outputs": ["coverage/libs/presentations"],
+      "outputs": ["{workspaceRoot}/coverage/libs/presentations"],
       "options": {
         "passWithNoTests": true,
         "reportsDirectory": "../../coverage/libs/presentations"
