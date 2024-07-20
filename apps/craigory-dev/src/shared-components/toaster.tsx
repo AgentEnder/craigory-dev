@@ -1,5 +1,7 @@
 import { useEffect, useState } from 'react';
 
+import { IoClose } from 'react-icons/io5';
+
 declare global {
   interface GlobalEventHandlersEventMap {
     toast: CustomEvent<ToastOptions>;
@@ -10,6 +12,7 @@ export type ToastContent = string | JSX.Element;
 
 export type ToastOptions = {
   content: ToastContent;
+  duration?: number;
 };
 
 export type Toast = ToastOptions & {
@@ -40,7 +43,7 @@ export function Toaster() {
 
       setTimeout(() => {
         setToasts((prev) => prev.slice(0, -1));
-      }, 3000);
+      }, e.detail.duration ?? 3000);
     };
     window.addEventListener('toast', listener);
 
@@ -76,8 +79,24 @@ export function Toaster() {
             borderRadius: 8,
             backgroundColor: 'rgba(64, 48, 64, 0.6)',
             color: 'white',
+            display: 'flex',
+            alignItems: 'center',
           }}
         >
+          <button
+            style={{
+              display: 'inline-block',
+              appearance: 'none',
+              border: 'none',
+              padding: 0,
+              background: 'none',
+            }}
+            onClick={() => {
+              setToasts((prev) => prev.filter((t) => t.id !== toast.id));
+            }}
+          >
+            <IoClose color="white" fontSize={'2em'}></IoClose>
+          </button>
           {toast.content}
         </div>
       ))}
