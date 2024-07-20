@@ -11,8 +11,7 @@ export function Page() {
   return presentation ? (
     <ViewPresentation presentationSlug={presentation}></ViewPresentation>
   ) : (
-    <>
-      <div>Hello?</div>
-    </>
+    // eslint-disable-next-line react/jsx-no-useless-fragment
+    <></>
   );
 }

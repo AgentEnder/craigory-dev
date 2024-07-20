@@ -1,4 +1,6 @@
 table {
+  display: grid;
+  grid-template-columns: max-content 1fr;
   border-collapse: collapse;
   width: 100%;
   font-size: 14px;
@@ -8,36 +10,36 @@ table {
   border-radius: 5px;
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
 
-  th,
-  td {
+  thead,
+  tbody,
+  tr {
+    display: contents;
+  }
+
+  td,
+  th {
+    width: 100%;
     padding: 10px;
     text-align: left;
     border-bottom: 1px solid #ddd;
     width: calc(min(auto, 100px));
   }
 
-  td div {
-    align-items: center;
-    display: flex;
-  }
-
-  th {
-    background-color: #f5f5f5;
-    font-weight: bold;
-  }
-
-  tr:nth-child(even) {
+  tr:nth-child(even) td {
     background-color: #f2f2f2;
   }
 
-  tr:hover {
+  tr:hover td {
     background-color: #e6e6e6;
   }
 
-  tr:last-child {
-    td {
-      border-bottom: 1px solid #ccc;
-    }
+  tr:last-child td {
+    border-bottom: 1px solid #ccc;
+  }
+
+  td div {
+    align-items: center;
+    display: flex;
   }
 }
 
@@ -46,4 +48,34 @@ hr {
   height: 2px;
   background-color: #eee;
   margin: 20px 0;
+}
+
+label {
+  display: block;
+  font-weight: bold;
+  margin-bottom: 5px;
+
+  input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    font-size: 14px;
+  }
+}
+
+label:has(input[type='string']) {
+  input {
+    width: 100%;
+  }
+}
+
+input[type='checkbox'][state] {
+  margin-right: 5px;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0.15rem;
 }

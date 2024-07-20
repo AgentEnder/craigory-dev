@@ -1,0 +1,26 @@
+.percent-bar-fill {
+  background-color: #858;
+  border-radius: 5px;
+  height: 100%;
+  transition: width 0.5s;
+  color: white;
+  font-size: 0.8em;
+}
+
+.percent-bar-label {
+  display: block;
+  margin: 1em;
+  text-align: center;
+}
+
+tr:nth-child(even) .percent-bar-fill {
+  background-color: #646;
+}
+
+.percent-bar {
+  background-color: #e0e0e0;
+  border-radius: 5px;
+  height: 1em;
+  width: 100%;
+  margin: 0.25em;
+}

@@ -1,6 +1,6 @@
 /* This CSS is common to all pages */
 
-@import url('https://fonts.googleapis.com/css2?family=Rubik:ital,wght@0,400px;0,700px;1,400px;1,700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Rubik&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Maiden+Orange&display=swap');
 
@@ -12,6 +12,7 @@ body {
 }
 * {
   box-sizing: border-box;
+  scroll-margin-top: 2rem;
 }
 a {
   text-decoration: none;
@@ -35,6 +36,7 @@ a {
     padding-bottom: 50px;
     border-left: 2px solid #eee;
     min-height: 100vh;
+    width: 100%;
   }
 
   @media screen and (min-width: 1600px) {
@@ -160,4 +162,8 @@ h5 {
 h6 {
   font-size: 1em;
   margin-bottom: 0.5em;
+}
+
+html {
+  scroll-behavior: smooth;
 }

@@ -28,6 +28,16 @@ export function ViewPresentation(props: PresentationsProps) {
     if (existingStyle) {
       existingStyle.remove();
     }
+    if (import.meta.env.DEV) {
+      const styles = Array.from(
+        document.querySelectorAll('head link[rel="stylesheet"]')
+      );
+      for (const style of styles) {
+        if ((style as HTMLLinkElement).href.includes('presentation-data')) {
+          style.remove();
+        }
+      }
+    }
     if (p?.scssUrl) {
       const scssFiles = import.meta.glob('../presentation-data/**/*.scss', {
         as: 'inline',
@@ -36,7 +46,7 @@ export function ViewPresentation(props: PresentationsProps) {
         (scss) => {
           const style = document.createElement('style');
           style.id = 'presentation-style';
-          style.innerHTML = (scss as any).default;
+          style.innerHTML = (scss as { default: string }).default;
           document.head.appendChild(style);
         }
       );
@@ -64,6 +74,7 @@ export function ViewPresentation(props: PresentationsProps) {
     waitFor: !!(remarkLoaded && md),
   });
 
+  // eslint-disable-next-line react/jsx-no-useless-fragment
   return <></>;
 }
 

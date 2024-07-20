@@ -1,4 +1,4 @@
-import { OnBeforePrerenderStartAsync } from 'vike/types';
+import { PageContext } from 'vike/types';
 import { Octokit } from '@octokit/rest';
 import { GithubRepo, RepoData } from './types';
 import { isBefore, subYears } from 'date-fns';
@@ -17,19 +17,21 @@ const patchedRequest: typeof client.request = ((
 ) => {
   githubRequestCount++;
   return originalRequest(...args);
-}) as any;
+}) as Partial<typeof client.request> as typeof client.request;
 
 Object.assign(patchedRequest, originalRequest);
 
 client.request = patchedRequest;
 
 // ENTRY POINT FOR VIKE PRE-RENDERING
-export const onBeforePrerenderStart = (async () => {
+export const data = async (pageContext: PageContext) => {
   const workspaceRoot = findWorkspaceRoot(fileURLToPath(import.meta.url));
   const cachePath = join(workspaceRoot, 'tmp', 'github-projects-cache.json');
   try {
     mkdirSync(dirname(cachePath), { recursive: true });
-  } catch {}
+  } catch {
+    // ignore
+  }
   const cacheData = existsSync(cachePath)
     ? JSON.parse(readFileSync(cachePath, 'utf-8'))
     : null;
@@ -37,20 +39,13 @@ export const onBeforePrerenderStart = (async () => {
     console.log('Reusing data from', cachePath);
     return cacheData;
   }
-  const result = [
-    {
-      url: '/projects',
-      pageContext: {
-        data: {
-          projects: await getAllRepos(),
-        },
-      },
-    },
-  ];
+  const result = {
+    projects: await getAllRepos(),
+  };
   console.log('GitHub requests:', githubRequestCount);
   writeFileSync(cachePath, JSON.stringify(result, null, 2));
   return result;
-}) satisfies OnBeforePrerenderStartAsync;
+};
 
 const ADDITIONAL_REPOS = [
   {
@@ -98,7 +93,7 @@ const repoFilter = (repo: GithubRepo) => {
       repo.description.toLowerCase().includes('deployments of')
     ) &&
     !repo.private &&
-    !isBefore(repo.updated_at!, subYears(new Date(), 5))
+    !(repo.updated_at && isBefore(repo.updated_at, subYears(new Date(), 5)))
   );
 };
 
@@ -142,7 +137,7 @@ async function getAllRepos() {
     const chunk = await Promise.all(
       data.map((repo) => {
         if (repo.fork) {
-          return;
+          return Promise.resolve();
         }
         return processRepo(repo);
       })
@@ -210,11 +205,14 @@ async function getReadme(repo: GithubRepo) {
 }
 
 async function getLastCommit(repo: GithubRepo) {
+  if (!repo.default_branch) {
+    return null;
+  }
   try {
     const lastCommit = await client.rest.repos.getCommit({
       owner: repo.owner.login,
       repo: repo.name,
-      ref: repo.default_branch!,
+      ref: repo.default_branch,
     });
     return lastCommit.data?.commit.author?.date;
   } catch {
@@ -230,7 +228,7 @@ async function getLanguages(repo: GithubRepo) {
       repo: repo.name,
     });
     let totalBytes = 0;
-    let results: Record<string, number> = {};
+    const results: Record<string, number> = {};
     for (const lang in languages.data) {
       totalBytes += languages.data[lang];
     }
@@ -340,7 +338,7 @@ async function getPublishedPackages(repo: GithubRepo) {
       )}/last-week`
     ).then((res) => res.json());
 
-    for (const [version, downloads] of Object.entries(
+    for (const [, downloads] of Object.entries(
       weeklyDownloadsByVersion.downloads
     )) {
       packages[packageJson.name] ??= {
