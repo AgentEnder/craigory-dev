@@ -8,6 +8,7 @@ on:
 
 jobs:
   deploy:
+    name: 'PR Checks and Preview'
     runs-on: ubuntu-latest
     permissions:
       contents: write

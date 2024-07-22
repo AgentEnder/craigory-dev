@@ -70,17 +70,17 @@
       "executor": "@nx-dotnet/nx-ghpages:deploy",
       "options": {
         "directory": "dist/apps/craigory-dev/client",
-        "remote": "https://github.com/AgentEnder/agentender.github.io.git",
-        "syncWithBaseBranch": true,
-        "syncStrategy": "merge",
-        "syncGitOptions": ["--allow-unrelated-histories"],
-        "baseBranch": "gh-pages"
+        "remote": "https://github.com/AgentEnder/agentender.github.io.git"
       },
       "configurations": {
         "production": {},
         "preview": {
           "remote": "https://github.com/AgentEnder/craigory-dev.git",
-          "CNAME": "preview.craigory.dev"
+          "CNAME": "preview.craigory.dev",
+          "syncWithBaseBranch": true,
+          "syncStrategy": "merge",
+          "syncGitOptions": ["--allow-unrelated-histories"],
+          "baseBranch": "gh-pages"
         }
       },
       "dependsOn": ["prepare"]

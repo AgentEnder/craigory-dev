@@ -107,6 +107,7 @@ async function getAllRepos() {
     }
   );
   const repos: RepoData[] = [];
+  // ADDITIONAL_REPOS
   const chunks = ADDITIONAL_REPOS.reduce(
     (acc, repo) => {
       if (acc[acc.length - 1].length < 20) {
@@ -133,6 +134,15 @@ async function getAllRepos() {
     );
     repos.push(...(chunkData.filter(Boolean) as RepoData[]));
   }
+  // If not authenticated, we have extremely limited rate limits.
+  // As such, we'll only fetch the additional repos to get a working
+  // build.
+  if (!(process.env.GH_TOKEN + process.env.GITHUB_TOKEN).length) {
+    return {
+      projects: repos,
+    };
+  }
+  // MAIN REPOS
   for await (const { data } of iterator) {
     const chunk = await Promise.all(
       data.map((repo) => {
