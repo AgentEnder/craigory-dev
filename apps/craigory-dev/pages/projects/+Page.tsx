@@ -75,13 +75,7 @@ export function Page() {
           <table>
             <thead>
               <tr>
-                <th
-                  style={{
-                    gridColumn: '1 / span 2',
-                  }}
-                >
-                  Project Info
-                </th>
+                <th colSpan={2}>Project Info</th>
               </tr>
             </thead>
             <tbody>
@@ -102,7 +96,7 @@ export function Page() {
                 </td>
                 <td>
                   <a href={p.url} target="_blank" rel="noreferrer">
-                    {p.url}
+                    {p.data.full_name}
                   </a>
                 </td>
               </tr>
@@ -164,20 +158,12 @@ export function Page() {
                 </tr>
               ) : null}
             </tbody>
-          </table>
-
-          {/* {p.readme ? (
-            <div
-              dangerouslySetInnerHTML={{
-                __html: renderMarkdownToHTML(p.readme),
-              }}
-            ></div>
-          ) : null} */}
-          {p.languages ? (
-            <div>
-              <h3>Languages</h3>
-              <table>
+            {p.languages ? (
+              <>
                 <thead>
+                  <tr>
+                    <th colSpan={2}>Languages Used</th>
+                  </tr>
                   <tr>
                     <th>Language</th>
                     <th>%</th>
@@ -203,14 +189,14 @@ export function Page() {
                       </tr>
                     ))}
                 </tbody>
-              </table>
-            </div>
-          ) : null}
-          {Object.keys(p.publishedPackages ?? {}).length ? (
-            <div>
-              <h3>Published Packages</h3>
-              <table>
+              </>
+            ) : null}
+            {Object.keys(p.publishedPackages ?? {}).length ? (
+              <>
                 <thead>
+                  <tr>
+                    <th colSpan={2}>Published Packages</th>
+                  </tr>
                   <tr>
                     <th>Package</th>
                     <th>Weekly Downloads</th>
@@ -241,9 +227,9 @@ export function Page() {
                       </tr>
                     ))}
                 </tbody>
-              </table>
-            </div>
-          ) : null}
+              </>
+            ) : null}
+          </table>
           {idx < projects.length - 1 ? <hr /> : null}
         </div>
       ))}

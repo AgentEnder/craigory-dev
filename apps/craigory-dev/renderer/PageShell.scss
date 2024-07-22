@@ -124,19 +124,18 @@ h6 {
   font-family: 'Maiden Orange', serif;
   font-weight: 400;
   line-height: 1.25em;
-  margin: 1em 0;
+  margin: 0;
+  margin-top: 0.5em;
   padding: 0;
 }
 
 h1 {
   font-size: 3.25em;
-  margin-bottom: 0.5em;
   text-decoration: underline;
 }
 
 h2 {
   font-size: 2.75em;
-  margin-bottom: 0.4em;
 
   code {
     font-size: 0.8em;
@@ -145,23 +144,19 @@ h2 {
 
 h3 {
   font-size: 2em;
-  margin-bottom: 0.3em;
   font-style: italic;
 }
 
 h4 {
   font-size: 1.5em;
-  margin-bottom: 0.5em;
 }
 
 h5 {
   font-size: 1.2em;
-  margin-bottom: 0.5em;
 }
 
 h6 {
   font-size: 1em;
-  margin-bottom: 0.5em;
 }
 
 html {

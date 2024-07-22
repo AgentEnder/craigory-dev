@@ -82,8 +82,7 @@ input[type='checkbox'][state] {
   margin-right: 5px;
 }
 
-h1,
-h2,
-h3 {
-  margin: 0.15rem;
+th[colspan='2'],
+td[colspan='2'] {
+  grid-column: 1 / span 2;
 }
