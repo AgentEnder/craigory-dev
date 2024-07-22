@@ -51,7 +51,7 @@ jobs:
           rm -rf tmp
         env:
           ALL: ${{ github.event.inputs.all || false }}
-          GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Add your deployment steps here
       - name: Push changes
