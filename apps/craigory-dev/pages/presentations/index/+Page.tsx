@@ -4,6 +4,7 @@ import './index.page.scss';
 import { useEffect, useState } from 'react';
 import { format } from 'date-fns';
 import { ContentMarker } from '../../../src/shared-components/content-marker';
+import { Link } from '../../../renderer/Link';
 
 export function Page() {
   const hash = useLocationHash();
@@ -59,7 +60,9 @@ export function Page() {
               ))}
               <div className="links">
                 {p.mdUrl || p.htmlUrl ? (
-                  <a href={'/presentations/view/' + p.slug}>View Slides</a>
+                  <Link href={'/presentations/view/' + p.slug}>
+                    View Slides
+                  </Link>
                 ) : null}
                 {p.recordingUrl ? (
                   <a href={p.recordingUrl} target="_blank" rel="noreferrer">

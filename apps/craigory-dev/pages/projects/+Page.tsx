@@ -4,7 +4,6 @@ import { useData } from 'vike-react/useData';
 
 // Vendor Deps
 import { DiNpm } from 'react-icons/di';
-import { format } from 'date-fns';
 import { FaCalendar, FaGithub, FaGlobe, FaStar } from 'react-icons/fa';
 
 // Local Deps

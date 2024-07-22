@@ -1,4 +1,6 @@
-export function Page({ is404 }: { is404: boolean }) {
+import { PageContext } from 'vike/types';
+
+export function Page({ is404, abortReason, abortStatusCode }: PageContext) {
   if (is404) {
     return (
       <>
@@ -11,6 +13,8 @@ export function Page({ is404 }: { is404: boolean }) {
       <>
         <h1>500 Internal Error</h1>
         <p>Something went wrong.</p>
+        <p>{JSON.stringify(abortReason)}</p>
+        <p>{abortStatusCode}</p>
       </>
     );
   }

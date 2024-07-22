@@ -5,6 +5,7 @@ import './view.page.scss';
 import { CodeWrapper } from '../code-wrapper';
 import { useEffect, useState } from 'react';
 import { ContentMarker } from '../../../src/shared-components/content-marker';
+import { Link } from '../../../renderer/Link';
 
 export function Page() {
   const pageContext = usePageContext();
@@ -28,14 +29,18 @@ export function Page() {
 
   return (
     <>
-      {returnLink ? <a href={returnLink}>Return to previous page</a> : null}
+      {returnLink ? (
+        <Link href={returnLink}>Return to previous page</Link>
+      ) : null}
       {data.mdx({
         components: {
           pre: CodeWrapper,
           Anchor: ContentMarker,
         },
       })}
-      {returnLink ? <a href={returnLink}>Return to previous page</a> : null}
+      {returnLink ? (
+        <Link href={returnLink}>Return to previous page</Link>
+      ) : null}
     </>
   );
 }

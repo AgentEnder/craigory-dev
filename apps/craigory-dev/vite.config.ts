@@ -17,6 +17,8 @@ export default defineConfig({
     host: 'localhost',
   },
 
+  base: process.env.PUBLIC_ENV__BASE_URL || '/',
+
   assetsInclude: ['../../libs/presentations/**/*.md', './static/**/*'],
 
   preview: {

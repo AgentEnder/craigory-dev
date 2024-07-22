@@ -1,0 +1,64 @@
+name: PR Checks + Deployment
+
+on:
+  pull_request:
+    branches:
+      - main
+      - preview
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      pages: write
+      issues: write
+      pull-requests: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.5.1'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Git User
+        run: |
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+
+      - name: Build / Test / Lint
+        run: |
+          node ./node_modules/.bin/nx run-many -t build, test, lint
+        env:
+          GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+
+      # Add your deployment steps here
+      - name: Deploy to preview environment
+        run: |
+          PUBLIC_ENV__BASE_URL=$PATH_PREFIX  node ./node_modules/.bin/nx build craigory-dev 
+          mkdir -p ./dist/gh-pages-root/pr/$GITHUB_SHA
+          cp -r ./dist/apps/craigory-dev/client "./dist/gh-pages-root${PATH_PREFIX}"
+          cp ./dist/apps/craigory-dev/client/CNAME ./dist/gh-pages-root
+          node ./node_modules/.bin/nx deploy craigory-dev -c preview --directory ./dist/gh-pages-root
+        env:
+          GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          PR_NUMBER: ${{ github.event.number }}
+          PATH_PREFIX: /pr/${{ github.event.number || github.sha }}
+
+      - name: Comment on PR
+        run: |
+          npx -y tsx tools/update-preview-comment.ts
+        env:
+          PATH_PREFIX: /pr/${{ github.event.number || github.sha }}
+          PR_NUMBER: ${{ github.event.number }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
