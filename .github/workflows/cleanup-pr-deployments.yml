@@ -1,0 +1,63 @@
+name: Cleanup PR Deployments
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+    inputs:
+      all:
+        description: 'Cleanup all PR deployments'
+        required: false
+        default: 'false'
+        type: boolean
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+      id-token: write
+      pages: write
+
+    steps:
+      #  Preview deployments are created on this repo's gh-pages branch
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 1
+          ref: 'gh-pages'
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.5.1'
+
+      # Download tools/cleanup-old-deployments.ts from main
+      - name: Download cleanup script
+        run: |
+          mkdir tmp
+          curl -o tmp/cleanup-old-deployments.ts https://raw.githubusercontent.com/agentender/craigory-dev/${GITHUB_SHA}/tools/cleanup-old-deployments.ts
+          npm i @octokit/rest
+
+      - name: Setup Git User
+        run: |
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+
+      - name: Cleanup old files
+        run: |
+          npx -y tsx tmp/cleanup-old-deployments.ts
+          rm -rf tmp
+        env:
+          ALL: ${{ github.event.inputs.all || false }}
+          GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+
+      # Add your deployment steps here
+      - name: Push changes
+        run: |
+          git add .
+          git commit -m "Cleanup old deployments ♼🗑️ [skip ci]"
+          git push
+        env:
+          GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}

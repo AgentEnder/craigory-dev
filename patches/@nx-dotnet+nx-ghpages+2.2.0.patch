@@ -1,8 +1,8 @@
 diff --git a/node_modules/@nx-dotnet/nx-ghpages/src/executors/deploy/executor.js b/node_modules/@nx-dotnet/nx-ghpages/src/executors/deploy/executor.js
-index 22a3f17..c123a42 100644
+index 22a3f17..9385745 100644
 --- a/node_modules/@nx-dotnet/nx-ghpages/src/executors/deploy/executor.js
 +++ b/node_modules/@nx-dotnet/nx-ghpages/src/executors/deploy/executor.js
-@@ -1,75 +1,92 @@
+@@ -1,75 +1,108 @@
 -"use strict";
 -Object.defineProperty(exports, "__esModule", { value: true });
 -const tslib_1 = require("tslib");
@@ -79,19 +79,11 @@ index 22a3f17..c123a42 100644
 -            yield exec(`git ${syncStrategy} ${options.remoteName}/${baseBranch}`, {
 -                cwd: directory,
 -            });
--        }
--        yield exec(`git push -f --set-upstream ${options.remoteName} gh-pages`, {
--            cwd: directory,
--        });
--        devkit_1.logger.info('Pushing to GH Pages -- COMPLETE');
--        return {
--            success: true,
--        };
 +  var _a, _b;
 +  return tslib_1.__awaiter(this, void 0, void 0, function* () {
 +    const directory = (0, path_1.join)(
 +      devkit_1.workspaceRoot,
-+      options.directory,
++      options.directory
 +    );
 +    if (!(yield exists(directory))) {
 +      devkit_1.logger.error(`Output directory does not exist! ${directory}`);
@@ -99,17 +91,24 @@ index 22a3f17..c123a42 100644
 +        success: false,
 +      };
 +    }
++    if (options.CNAME) {
++      fs_1.writeFileSync(
++        (0, path_1.join)(directory, 'CNAME'),
++        options.CNAME,
++        'utf-8'
++      );
++    }
 +    devkit_1.logger.info('Setting up git remote');
 +    if (!(yield exists((0, path_1.join)(directory, '.git')))) {
 +      devkit_1.logger.info(
-+        `Git repository not found, initializing a blank repository ${directory}`,
++        `Git repository not found, initializing a blank repository ${directory}`
 +      );
 +      yield exec('git init', { cwd: directory });
 +    }
 +    if (process.env.GH_TOKEN) {
 +      options.remote = options.remote.replace(
 +        'https://',
-+        `https://github-actions:${process.env.GH_TOKEN}@`,
++        `https://github-actions:${process.env.GH_TOKEN}@`
 +      );
 +    }
 +    try {
@@ -126,7 +125,7 @@ index 22a3f17..c123a42 100644
 +    yield exec(`git add .`, { cwd: directory });
 +    yield exec(` git commit -m "${options.commitMessage}"`, {
 +      cwd: directory,
-     });
++    });
 +    devkit_1.logger.info('Authoring Commit -- COMPLETE');
 +    devkit_1.logger.info('Pushing to GH Pages');
 +    try {
@@ -146,13 +145,29 @@ index 22a3f17..c123a42 100644
 +          : _b.defaultBase) ||
 +        'master';
 +      const syncStrategy = options.syncStrategy;
-+      yield exec(`git ${syncStrategy} ${options.remoteName}/${baseBranch}`, {
++      yield exec(`git fetch ${options.remoteName}`, {
 +        cwd: directory,
 +      });
++      yield exec(
++        `git ${syncStrategy} ${options.remoteName}/${baseBranch} ${(
++          options.syncGitOptions ?? []
++        ).join(' ')}`.trim(),
++        {
++          cwd: directory,
++          stdio: 'inherit',
+         }
+-        yield exec(`git push -f --set-upstream ${options.remoteName} gh-pages`, {
+-            cwd: directory,
+-        });
+-        devkit_1.logger.info('Pushing to GH Pages -- COMPLETE');
+-        return {
+-            success: true,
+-        };
++      );
 +    }
 +    yield exec(`git push -f --set-upstream ${options.remoteName} gh-pages`, {
 +      cwd: directory,
-+    });
+     });
 +    devkit_1.logger.info('Pushing to GH Pages -- COMPLETE');
 +    return {
 +      success: true,
@@ -161,11 +176,22 @@ index 22a3f17..c123a42 100644
  }
  exports.default = deployExecutor;
  //# sourceMappingURL=executor.js.map
+diff --git a/node_modules/@nx-dotnet/nx-ghpages/src/executors/deploy/schema.d.ts b/node_modules/@nx-dotnet/nx-ghpages/src/executors/deploy/schema.d.ts
+index edcac5b..7042c9a 100644
+--- a/node_modules/@nx-dotnet/nx-ghpages/src/executors/deploy/schema.d.ts
++++ b/node_modules/@nx-dotnet/nx-ghpages/src/executors/deploy/schema.d.ts
+@@ -6,4 +6,6 @@ export interface BuildExecutorSchema {
+   baseBranch: string;
+   syncWithBaseBranch: boolean;
+   syncStrategy: 'rebase' | 'merge';
++  syncGitOptions: string[];
++  CNAME: string;
+ }
 diff --git a/node_modules/@nx-dotnet/nx-ghpages/src/executors/deploy/schema.json b/node_modules/@nx-dotnet/nx-ghpages/src/executors/deploy/schema.json
-index a7ab0fc..27ad6cb 100644
+index a7ab0fc..ba44d16 100644
 --- a/node_modules/@nx-dotnet/nx-ghpages/src/executors/deploy/schema.json
 +++ b/node_modules/@nx-dotnet/nx-ghpages/src/executors/deploy/schema.json
-@@ -29,9 +29,9 @@
+@@ -29,15 +29,26 @@
        "default": "master"
      },
      "syncWithBaseBranch": {
@@ -177,3 +203,20 @@ index a7ab0fc..27ad6cb 100644
      },
      "syncStrategy": {
        "type": "string",
+       "description": "Git command to use to sync the gh-pages branch with the base branch",
+       "enum": ["rebase", "merge"],
+       "default": "rebase"
++    },
++    "syncGitOptions": {
++      "type": "array",
++      "description": "Extra git options to use when syncing the gh-pages branch with the base branch",
++      "items": {
++        "type": "string"
++      }
++    },
++    "CNAME": {
++      "type": "string",
++      "description": "Custom domain to use for the Github Pages site"
+     }
+   },
+   "required": ["remote", "directory"]

@@ -17,6 +17,8 @@ export default defineConfig({
     host: 'localhost',
   },
 
+  base: process.env.PUBLIC_ENV__BASE_URL || '/',
+
   assetsInclude: ['../../libs/presentations/**/*.md', './static/**/*'],
 
   preview: {
@@ -40,18 +42,11 @@ export default defineConfig({
             return dest;
           },
         },
-        {
-          src: ['CNAME'],
-          dest: '.',
-          rename: (_1, _2, filePath) => {
-            return filePath;
-          },
-        },
       ],
     }),
     ssr({
       prerender: {
-        partial: true,
+        partial: false,
       },
       trailingSlash: false,
     }),
@@ -83,11 +78,15 @@ export default defineConfig({
     target: 'esnext',
     commonjsOptions: { transformMixedEsModules: true },
     sourcemap: undefined,
-    minify: undefined,
     manifest: undefined,
     ssrManifest: undefined,
     ssr: undefined,
     watch: null,
+    minify: false,
+    terserOptions: {
+      compress: false,
+      mangle: false,
+    },
   },
 
   test: {

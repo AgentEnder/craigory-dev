@@ -6,15 +6,24 @@ export function Link(p: {
   children: React.ReactNode;
 }) {
   const pageContext = usePageContext();
-  const { children, ...props } = p;
+  const { children, href, ...props } = p;
   const className = [
     props.className,
-    pageContext.urlPathname === props.href && 'is-active',
+    pageContext.urlPathname === href && 'is-active',
   ]
     .filter(Boolean)
     .join(' ');
   return (
-    <a {...props} className={className}>
+    <a
+      href={
+        import.meta.env.PUBLIC_ENV__BASE_URL === '/' ||
+        !import.meta.env.PUBLIC_ENV__BASE_URL
+          ? href
+          : import.meta.env.PUBLIC_ENV__BASE_URL + href
+      }
+      {...props}
+      className={className}
+    >
       {children}
     </a>
   );

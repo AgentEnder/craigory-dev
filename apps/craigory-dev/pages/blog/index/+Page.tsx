@@ -4,6 +4,7 @@ import { formatDateString } from '@new-personal-monorepo/date-utils';
 import { format } from 'date-fns';
 
 import './index.page.scss';
+import { Link } from '../../../renderer/Link';
 
 export function Page() {
   const pageContext = usePageContext();
@@ -34,13 +35,13 @@ export function Page() {
                 key={post.title + 'TITLE'}
                 className="title"
               >
-                <a
+                <Link
                   href={`/blog/${formatDateString(post.publishDate)}/${
                     post.slug
                   }?ref=/blog/${page}`}
                 >
                   {post.title}
-                </a>
+                </Link>
               </h2>
               <div key={post.title + 'PUBLISH DATE'} className="date">
                 {format(post.publishDate, 'MMM dd, yyyy')}

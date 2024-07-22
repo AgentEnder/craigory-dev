@@ -4,7 +4,6 @@ import { useData } from 'vike-react/useData';
 
 // Vendor Deps
 import { DiNpm } from 'react-icons/di';
-import { format } from 'date-fns';
 import { FaCalendar, FaGithub, FaGlobe, FaStar } from 'react-icons/fa';
 
 // Local Deps
@@ -14,6 +13,7 @@ import { RepoData } from './types';
 import { FilterBar } from './components/filter-bar';
 import { PercentBar } from './components/percent-bar';
 import { ContentMarker } from '../../src/shared-components/content-marker';
+import { FormattedDate } from '@new-personal-monorepo/date-utils';
 
 export function Page() {
   const { projects } = useData<{ projects: RepoData[] }>();
@@ -75,13 +75,7 @@ export function Page() {
           <table>
             <thead>
               <tr>
-                <th
-                  style={{
-                    gridColumn: '1 / span 2',
-                  }}
-                >
-                  Project Info
-                </th>
+                <th colSpan={2}>Project Info</th>
               </tr>
             </thead>
             <tbody>
@@ -102,7 +96,7 @@ export function Page() {
                 </td>
                 <td>
                   <a href={p.url} target="_blank" rel="noreferrer">
-                    {p.url}
+                    {p.data.full_name}
                   </a>
                 </td>
               </tr>
@@ -160,24 +154,18 @@ export function Page() {
                       <div>Last Commit</div>
                     </div>
                   </td>
-                  <td>{format(p.lastCommit, `MMM do yyyy`)}</td>
+                  <td>
+                    <FormattedDate date={p.lastCommit} format="MMM do yyyy" />
+                  </td>
                 </tr>
               ) : null}
             </tbody>
-          </table>
-
-          {/* {p.readme ? (
-            <div
-              dangerouslySetInnerHTML={{
-                __html: renderMarkdownToHTML(p.readme),
-              }}
-            ></div>
-          ) : null} */}
-          {p.languages ? (
-            <div>
-              <h3>Languages</h3>
-              <table>
+            {p.languages ? (
+              <>
                 <thead>
+                  <tr>
+                    <th colSpan={2}>Languages Used</th>
+                  </tr>
                   <tr>
                     <th>Language</th>
                     <th>%</th>
@@ -203,14 +191,14 @@ export function Page() {
                       </tr>
                     ))}
                 </tbody>
-              </table>
-            </div>
-          ) : null}
-          {Object.keys(p.publishedPackages ?? {}).length ? (
-            <div>
-              <h3>Published Packages</h3>
-              <table>
+              </>
+            ) : null}
+            {Object.keys(p.publishedPackages ?? {}).length ? (
+              <>
                 <thead>
+                  <tr>
+                    <th colSpan={2}>Published Packages</th>
+                  </tr>
                   <tr>
                     <th>Package</th>
                     <th>Weekly Downloads</th>
@@ -241,9 +229,9 @@ export function Page() {
                       </tr>
                     ))}
                 </tbody>
-              </table>
-            </div>
-          ) : null}
+              </>
+            ) : null}
+          </table>
           {idx < projects.length - 1 ? <hr /> : null}
         </div>
       ))}
