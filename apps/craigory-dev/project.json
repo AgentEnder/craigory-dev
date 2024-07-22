@@ -72,6 +72,13 @@
         "directory": "dist/apps/craigory-dev/client",
         "remote": "https://github.com/AgentEnder/agentender.github.io.git"
       },
+      "configurations": {
+        "production": {},
+        "preview": {
+          "remote": "https://github.com/AgentEnder/craigory-dev.git",
+          "CNAME": "preview.craigory.dev"
+        }
+      },
       "dependsOn": ["prepare"]
     }
   }

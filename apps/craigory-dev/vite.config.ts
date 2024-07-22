@@ -83,11 +83,15 @@ export default defineConfig({
     target: 'esnext',
     commonjsOptions: { transformMixedEsModules: true },
     sourcemap: undefined,
-    minify: undefined,
     manifest: undefined,
     ssrManifest: undefined,
     ssr: undefined,
     watch: null,
+    minify: false,
+    terserOptions: {
+      compress: false,
+      mangle: false,
+    },
   },
 
   test: {

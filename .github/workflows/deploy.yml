@@ -6,7 +6,17 @@ on:
   push:
     branches:
       - main
+      - preview
   workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Environment to deploy to'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - preview
 
 jobs:
   deploy:
@@ -40,6 +50,7 @@ jobs:
       - name: Deploy to production
         run: |
           node ./node_modules/.bin/nx build craigory-dev
-          node ./node_modules/.bin/nx deploy craigory-dev
+          node ./node_modules/.bin/nx deploy craigory-dev -c $ENV
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          ENV: ${{ github.event.inputs.environment || github.ref_name }}
