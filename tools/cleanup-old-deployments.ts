@@ -23,7 +23,7 @@ async function updatePrComment(number: number) {
     })
     .then((res) => res.data);
   const comment = allComments.find((c) =>
-    c.body?.includes('Preview deployment')
+    c.body?.toLowerCase()?.includes('preview deployment')
   );
   if (comment) {
     await client.rest.issues.updateComment({

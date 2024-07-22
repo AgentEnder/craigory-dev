@@ -73,7 +73,7 @@
         "remote": "https://github.com/AgentEnder/agentender.github.io.git",
         "syncWithBaseBranch": true,
         "syncStrategy": "merge",
-        "syncGitOptions": ["-s", "ours", "--allow-unrelated-histories"],
+        "syncGitOptions": ["--allow-unrelated-histories"],
         "baseBranch": "gh-pages"
       },
       "configurations": {

@@ -7,7 +7,7 @@ import './app.module.scss';
 export function App() {
   return (
     <div>
-      <h1>Welcome!</h1>
+      <h1>Welcome!!</h1>
       <h2>I'm Craigory</h2>
       <p>
         I'm a software engineer, currently focused on open source and developer
