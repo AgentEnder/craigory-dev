@@ -1,0 +1,10 @@
+https://craigory.dev/
+https://craigory.dev/presentations
+https://craigory.dev/projects
+https://craigory.dev/blog/1
+https://craigory.dev/blog/2024-02-05/nx-configuration-history
+https://craigory.dev/presentations/view/devup-2023-benchmarking
+https://craigory.dev/presentations/view/devup-2023-full-stack-type-safety
+https://craigory.dev/presentations/view/nx-conf-2023-inference
+https://craigory.dev/presentations/view/that-conf-tx-2024-compartmentalization
+https://craigory.dev/presentations/view/that-conf-wi-2023-benchmarking
