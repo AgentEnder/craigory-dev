@@ -40,18 +40,11 @@ export default defineConfig({
             return dest;
           },
         },
-        {
-          src: ['CNAME'],
-          dest: '.',
-          rename: (_1, _2, filePath) => {
-            return filePath;
-          },
-        },
       ],
     }),
     ssr({
       prerender: {
-        partial: true,
+        partial: false,
       },
       trailingSlash: false,
     }),

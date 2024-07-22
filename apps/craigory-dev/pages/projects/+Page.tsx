@@ -14,6 +14,7 @@ import { RepoData } from './types';
 import { FilterBar } from './components/filter-bar';
 import { PercentBar } from './components/percent-bar';
 import { ContentMarker } from '../../src/shared-components/content-marker';
+import { FormattedDate } from '@new-personal-monorepo/date-utils';
 
 export function Page() {
   const { projects } = useData<{ projects: RepoData[] }>();
@@ -154,7 +155,9 @@ export function Page() {
                       <div>Last Commit</div>
                     </div>
                   </td>
-                  <td>{format(p.lastCommit, `MMM do yyyy`)}</td>
+                  <td>
+                    <FormattedDate date={p.lastCommit} format="MMM do yyyy" />
+                  </td>
                 </tr>
               ) : null}
             </tbody>
