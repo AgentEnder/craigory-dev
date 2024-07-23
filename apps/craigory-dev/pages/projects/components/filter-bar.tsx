@@ -81,7 +81,7 @@ function LiveSiteFilter({
     if (state) {
       onSetFilter(id, (p) => !!p.deployment);
     } else {
-      onSetFilter(id, (p) => !!p.deployment);
+      onSetFilter(id, (p) => !p.deployment);
     }
   }, [state, onSetFilter, id]);
 
