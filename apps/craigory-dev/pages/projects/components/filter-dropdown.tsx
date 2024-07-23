@@ -26,7 +26,7 @@ export function FilterDropdown({
   multiple,
 }: FilterDropdownProps) {
   return (
-    <tr>
+    <>
       <td>
         <div>
           <label htmlFor={label + '-dropdown'}>{label}</label>
@@ -66,6 +66,6 @@ export function FilterDropdown({
           })}
         </select>
       </td>
-    </tr>
+    </>
   );
 }

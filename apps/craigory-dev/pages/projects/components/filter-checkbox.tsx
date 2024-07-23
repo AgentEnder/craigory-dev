@@ -24,7 +24,7 @@ export function FilterCheckbox({
   }, [value, input, allowIndeterminate]);
 
   return (
-    <tr>
+    <>
       <td>
         <div>
           <label htmlFor={label + '-checkbox'}>{label}</label>
@@ -50,6 +50,6 @@ export function FilterCheckbox({
           }}
         />
       </td>
-    </tr>
+    </>
   );
 }

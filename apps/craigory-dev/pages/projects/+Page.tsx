@@ -24,7 +24,6 @@ export function Page() {
   const [filteredProjects, setFilteredProjects] = useState(projects);
 
   useEffect(() => {
-    console.log('Filtering projects', filterFn?.toString());
     setFilteredProjects(
       filterFn ? projects.filter((p) => filterFn(p)) : projects
     );
