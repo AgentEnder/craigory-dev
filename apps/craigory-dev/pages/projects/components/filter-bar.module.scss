@@ -1,1 +1,59 @@
+.filter-table {
+  grid-template-columns: min-content max-content 1fr;
 
+  align-items: center;
+
+  label {
+    margin: 0;
+  }
+
+  td[colspan='3'] {
+    grid-column: 1 / span 3;
+    width: 100%;
+  }
+
+  td {
+    input[type='text'],
+    select {
+      width: 100%;
+      padding: 0.5em;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 16px;
+    }
+
+    input[type='checkbox'] {
+      width: 1.5em;
+      height: 1.55em;
+      border: 2px solid #ccc;
+      border-radius: 4px;
+      outline: none;
+      transition: border-color 0.3s ease-in-out;
+      appearance: none;
+      cursor: pointer;
+
+      &:checked {
+        border-color: #007bff;
+        background-color: #007bff;
+        display: grid;
+
+        &::after {
+          content: 'X';
+          color: white;
+          font-size: 1em;
+          place-self: center;
+        }
+      }
+    }
+
+    button {
+      background-color: red;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      padding: 0.5em 1em;
+      cursor: pointer;
+      font-size: 16px;
+    }
+  }
+}

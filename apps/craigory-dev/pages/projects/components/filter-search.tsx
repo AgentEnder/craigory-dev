@@ -4,7 +4,7 @@ export function FilterSearch({
   onSearch: (searchText: string) => void;
 }) {
   return (
-    <tr>
+    <>
       <td>
         <div>
           <label htmlFor="repo-search-textbox">Search</label>
@@ -18,6 +18,6 @@ export function FilterSearch({
           placeholder="Search projects..."
         />
       </td>
-    </tr>
+    </>
   );
 }
