@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+    <html lang='en'>
+      <head>
+        <link rel="stylesheet" type="text/css" href="/pr/10/assets/static/Layout.DPiU9c-V.css">
+        <link rel="stylesheet" type="text/css" href="/pr/10/assets/static/view.CxJuleVu.css">
+        <link rel="stylesheet" type="text/css" href="/pr/10/assets/static/Head.lfeRihPF.css">
+    <meta charset="UTF-8" />
+    <title>Craigory Coppola</title><meta property="og:title" content="Craigory Coppola" />
+    <meta charSet="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="description" content="Personal website of Craigory Coppola"/><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/obsidian.min.css"/><script async="" src="https://www.googletagmanager.com/gtag/js?id=G-1180FLF5RC"></script><script>window.dataLayer = window.dataLayer || [];
+        function gtag() {
+          dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+  
+        gtag('config', 'G-1180FLF5RC');
+          </script>
+    
+  </head>
+      <body>
+        <div id="root"><div class="layout"><div class="sidebar"><a href="/pr/10/" class="navitem">Home</a><a href="/pr/10/projects" class="navitem">Projects</a><a href="/pr/10/presentations" class="navitem">Speaking + Presentations</a><a href="/pr/10/blog/1" class="navitem">Blog</a></div><div class="content"><h1 id="nx-from-angular-roots-to-crystal-future">Nx: From Angular Roots to Crystal Future</h1>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#introduction">Introduction</a>
+<ul>
+<li><a href="#the-quick-scoop-tldr">The Quick Scoop (tldr)</a></li>
+<li><a href="#the-final-result">The Final Result</a></li>
+</ul>
+</li>
+<li><a href="#nxs-angular-beginnings">Nx’s Angular Beginnings</a></li>
+<li><a href="#birth-of-the-nx-cli-evolution-beyond-angular">Birth of the Nx CLI: Evolution Beyond Angular</a></li>
+<li><a href="#projectjson-and-splitting-workspacejson"><code>project.json</code> and splitting <code>workspace.json</code></a></li>
+<li><a href="#the-beginnings-of-inference">The Beginnings of Inference</a></li>
+<li><a href="#enter-lerna">Enter Lerna</a></li>
+<li><a href="#inference-api-v1-and-workspaces-support">Inference API v1, and Workspaces Support</a></li>
+<li><a href="#elevating-workspaces-with-inference-api-v2">Elevating Workspaces with Inference API v2</a></li>
+<li><a href="#entering-the-crystal-era-">Entering the Crystal Era 💎</a></li>
+<li><a href="#conclusion">Conclusion</a></li>
+<li><a href="#references-and-links">References and Links</a></li>
+</ul>
+<h2 id="introduction">Introduction<a class="heading-link" href="#introduction"><div style="display:inline-block">#</div></a></h2>
+<p>Nx’s configuration has changed dramatically over the years, and it’s been a long journey to get to where we are today. I joined the Nx team in June 2021, right before we split up <code>workspace.json</code> into <code>workspace.json</code> and <code>project.json</code>. Since joining the team, I’ve had a pretty direct hand in many of these changes, and have worked closely on others.</p>
+<p>There are a few misconceptions about Nx that stem from its configuration and history, and I’d like to clear some of those up.</p>
+<ul>
+<li>Nx is only for Angular</li>
+<li>Nx is hard to configure</li>
+<li>Nx has a lot of configuration.</li>
+</ul>
+<h3 id="the-quick-scoop-tldr">The Quick Scoop (tldr)<a class="heading-link" href="#the-quick-scoop-tldr"><div style="display:inline-block">#</div></a></h3>
+<ul>
+<li>Nx was initially built as an Angular CLI extension. It has been its own CLI for several years, and has no direct ties to angular at this point.</li>
+<li>Nx’s configuration has went through several iterations, and mostly configures itself these days.</li>
+<li>You shouldn’t have to worry when the configuration changes, as Nx will migrate your existing config for you.</li>
+</ul>
+<h3 id="the-final-result">The Final Result<a class="heading-link" href="#the-final-result"><div style="display:inline-block">#</div></a></h3>
+<p>After Nx 18, the Nx side of configuration for individual projects in a workspace can be as simple as this:</p>
+<div style="display:flex;flex-direction:column"><div class="code-tabs"><div class="filename">apps/myapp/project.json</div></div><pre style="margin-top:0" class="code-wrapper has-filename"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;myapp&quot;</span>
+<span class="hljs-punctuation">}</span>
+</code></pre></div>
+<p>The rest of the configuration that one may expect (targets to run as the most common example) can be inferred from configuration files present in the project’s root. This is a dramatic reduction from where we started, and hopefully makes Nx easier to adopt and learn.</p>
+<h2 id="nxs-angular-beginnings">Nx’s Angular Beginnings<a class="heading-link" href="#nxs-angular-beginnings"><div style="display:inline-block">#</div></a></h2>
+<p>Nx was initially built as an Angular CLI extension. It was a set of schematics and builders that extended the Angular CLI’s capabilities. This was a great way to get started, but it had some limitations. For example, it was difficult to add support for other frameworks, and it was difficult to add new commands to the CLI.</p>
+<p>Angular CLI also supports monorepos, and in the beginning Nx used angular’s configuration. When you have multiple projects, the configuration would look something like this:</p>
+<div style="display:flex;flex-direction:column"><div class="code-tabs"><div class="filename">angular.json</div></div><pre style="margin-top:0" class="code-wrapper has-filename"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">1</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;projects&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;my-app&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;architect&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+        <span class="hljs-attr">&quot;build&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+          <span class="hljs-attr">&quot;builder&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;@angular-devkit/build-angular:browser&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;options&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+            <span class="hljs-attr">&quot;main&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;apps/my-app/src/main.ts&quot;</span><span class="hljs-punctuation">,</span>
+            <span class="hljs-attr">&quot;tsConfig&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;apps/my-app/tsconfig.app.json&quot;</span><span class="hljs-punctuation">,</span>
+            <span class="hljs-attr">&quot;assets&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">&quot;apps/my-app/src/favicon.ico&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-string">&quot;apps/my-app/src/assets&quot;</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+            <span class="hljs-attr">&quot;styles&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">&quot;apps/my-app/src/styles.css&quot;</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+            <span class="hljs-attr">&quot;scripts&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-punctuation">]</span>
+          <span class="hljs-punctuation">}</span>
+        <span class="hljs-punctuation">}</span>
+      <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre></div>
+<p>To help distinguish a plain Angular CLI project from an Nx workspace, and better support other tools, we added support for a <code>workspace.json</code> file. This file was identical to <code>angular.json</code>.</p>
+<p>As Nx grew and added more features, we needed to add more configuration. We added a <code>nx.json</code> file to store this configuration. This file was used to store configuration for things that were specific to Nx, and that angular wouldn’t understand. For example, we added support for <code>tags</code> and <code>implicitDependencies</code> to help Nx understand the relationships between projects.</p>
+<h2 id="birth-of-the-nx-cli-evolution-beyond-angular">Birth of the Nx CLI: Evolution Beyond Angular<a class="heading-link" href="#birth-of-the-nx-cli-evolution-beyond-angular"><div style="display:inline-block">#</div></a></h2>
+<p>After a bit, Nx grew apart from Angular CLI. It became a standalone tool that could be used with any framework. This meant that we needed to create our own configuration file. We created <code>workspace.json</code> to replace <code>angular.json</code>. The configuration was extraordinarily similar, but it was a different file and a few properties had a different name. The names changed to more closely match the names that Nx uses. For example, <code>builder</code> became <code>executor</code> and <code>architect</code> became <code>targets</code>.</p>
+<p>These changes included some differences in <code>nx.json</code> as well. The <code>schematics</code> property was renamed as <code>generators</code>.</p>
+<p>At this point, the files looked like this:</p>
+<div style="display:flex;flex-direction:column"><div class="code-tabs"><div class="filename">workspace.json</div></div><pre style="margin-top:0" class="code-wrapper has-filename"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">2</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;projects&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;my-app&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;targets&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+        <span class="hljs-attr">&quot;build&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+          <span class="hljs-attr">&quot;executor&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;@nrwl/web:build&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;options&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+            <span class="hljs-attr">&quot;main&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;apps/my-app/src/main.ts&quot;</span><span class="hljs-punctuation">,</span>
+            <span class="hljs-attr">&quot;tsConfig&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;apps/my-app/tsconfig.app.json&quot;</span><span class="hljs-punctuation">,</span>
+            <span class="hljs-attr">&quot;assets&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">&quot;apps/my-app/src/favicon.ico&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-string">&quot;apps/my-app/src/assets&quot;</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+            <span class="hljs-attr">&quot;styles&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">&quot;apps/my-app/src/styles.css&quot;</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+            <span class="hljs-attr">&quot;scripts&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-punctuation">]</span>
+          <span class="hljs-punctuation">}</span>
+        <span class="hljs-punctuation">}</span>
+      <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre></div>
+<div style="display:flex;flex-direction:column"><div class="code-tabs"><div class="filename">nx.json</div></div><pre style="margin-top:0" class="code-wrapper has-filename"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;projects&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;my-app&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;tags&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-punctuation">]</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;generators&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;@nrwl/angular:component&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;style&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;scss&quot;</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre></div>
+<p>Additionally, nx added the capability to run dependant targets before a target. This was initially done by adding a <code>targetDependencies</code> section within <code>nx.json</code>. The property was scoped to all targets with a given name, and looked like this:</p>
+<div style="display:flex;flex-direction:column"><div class="code-tabs"><div class="filename">nx.json</div></div><pre style="margin-top:0" class="code-wrapper has-filename"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;targetDependencies&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;build&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+      <span class="hljs-punctuation">{</span>
+        <span class="hljs-attr">&quot;target&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;build-base&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;projects&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;self&quot;</span>
+      <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;build-base&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+      <span class="hljs-punctuation">{</span>
+        <span class="hljs-attr">&quot;target&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;build-base&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;projects&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;dependencies&quot;</span>
+      <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">]</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre></div>
+<p>The above configuration would run the <code>build-base</code> target for all projects before running the <code>build</code> target of that same project. This was a powerful feature, but it wasn’t as general as we had hoped and needed a bit more flexibility.</p>
+<p>Soon after, we renamed <code>targetDependencies</code> to <code>targetDefaults</code> + <code>dependsOn</code> and allowed specifying it on a per-project basis. This allowed us to specify different defaults for different projects. The configuration looked like this:</p>
+<div style="display:flex;flex-direction:column"><div class="code-tabs"><div class="filename">nx.json</div></div><pre style="margin-top:0" class="code-wrapper has-filename"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;targetDefaults&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;build&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;dependsOn&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+        <span class="hljs-punctuation">{</span>
+          <span class="hljs-attr">&quot;target&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;build-base&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;projects&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;self&quot;</span>
+        <span class="hljs-punctuation">}</span>
+      <span class="hljs-punctuation">]</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre></div>
+<div style="display:flex;flex-direction:column"><div class="code-tabs"><div class="filename">workspace.json</div></div><pre style="margin-top:0" class="code-wrapper has-filename"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;projects&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;my-app&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;targets&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+        <span class="hljs-attr">&quot;build&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+          <span class="hljs-attr">&quot;executor&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;@nrwl/web:build&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;options&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+            <span class="hljs-attr">&quot;main&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;apps/my-app/src/main.ts&quot;</span><span class="hljs-punctuation">,</span>
+            <span class="hljs-attr">&quot;tsConfig&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;apps/my-app/tsconfig.app.json&quot;</span><span class="hljs-punctuation">,</span>
+            <span class="hljs-attr">&quot;assets&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">&quot;apps/my-app/src/favicon.ico&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-string">&quot;apps/my-app/src/assets&quot;</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+            <span class="hljs-attr">&quot;styles&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">&quot;apps/my-app/src/styles.css&quot;</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+            <span class="hljs-attr">&quot;scripts&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-punctuation">]</span>
+          <span class="hljs-punctuation">}</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;dependsOn&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+            <span class="hljs-punctuation">{</span>
+              <span class="hljs-attr">&quot;target&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;build-base&quot;</span><span class="hljs-punctuation">,</span>
+              <span class="hljs-attr">&quot;projects&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;self&quot;</span>
+            <span class="hljs-punctuation">}</span>
+          <span class="hljs-punctuation">]</span>
+        <span class="hljs-punctuation">}</span>
+      <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre></div>
+<h2 id="projectjson-and-splitting-workspacejson"><code>project.json</code> and splitting <code>workspace.json</code><a class="heading-link" href="#projectjson-and-splitting-workspacejson"><div style="display:inline-block">#</div></a></h2>
+<p>Nx is a monorepo focused tool. It’s designed to work with many projects in a single repository. As such, the <code>workspace.json</code> file can get quite large. Every time a new project is added, an existing project is modified, or an older project is removed, the <code>workspace.json</code> file needs to be updated. This can lead to merge conflicts and other issues.</p>
+<p>When working with customers with over 200 projects, this was no longer scalable. We needed to split the <code>workspace.json</code> file into multiple files. We also needed to make it easier to add new projects and modify existing projects.</p>
+<p>We decided that <code>workspace.json</code> would contain a map of project name to file path. This would allow us to split the configuration into multiple files. At the same time, it was important to maintain compatibility with Angular CLI schematics and builders. We wanted to do this without having to keep a copy of the Angular CLI configuration in sync with the Nx configuration.</p>
+<p>As such, we created a translation layer that would handle reading and writing the configuration when angular asked for it. Doing this unlocked a ton of flexibility on our side to make changes to the configuration without breaking compatibility with Angular CLI.</p>
+<p>Additionally, we took some time to reevaluate where existing configuration options lived. Since we now have a configuration file per project it made less sense to place <code>tags</code> and <code>implicitDependencies</code> in <code>nx.json</code>. We moved these properties to <code>project.json</code> as well.</p>
+<p>The end result of this round of changes resulted in:</p>
+<ul>
+<li><code>workspace.json</code> containing a map of project name to file path</li>
+<li><code>project.json</code> containing all of the configuration for a single project</li>
+<li><code>nx.json</code> containing configuration that is global to the workspace</li>
+</ul>
+<p>This was a much cleaner and more scalable way to manage configuration. It meant less merge conflicts, but also made it easier to tell what projects may have been affected by a change.</p>
+<div style="display:flex;flex-direction:column"><div class="code-tabs"><div class="filename">workspace.json</div></div><pre style="margin-top:0" class="code-wrapper has-filename"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;version&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-number">2</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;projects&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;myapp&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;apps/myapp&quot;</span><span class="hljs-punctuation">,</span>
+    <span class="hljs-attr">&quot;mylib&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;libs/mylib&quot;</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre></div>
+<div style="display:flex;flex-direction:column"><div class="code-tabs"><div class="filename">apps/myapp/project.json</div></div><pre style="margin-top:0" class="code-wrapper has-filename"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;targets&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;build&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;executor&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;@nrwl/web:build&quot;</span><span class="hljs-punctuation">,</span>
+      <span class="hljs-attr">&quot;options&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+        <span class="hljs-attr">&quot;main&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;apps/myapp/src/main.ts&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;tsConfig&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;apps/myapp/tsconfig.app.json&quot;</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;assets&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">&quot;apps/myapp/src/favicon.ico&quot;</span><span class="hljs-punctuation">,</span> <span class="hljs-string">&quot;apps/myapp/src/assets&quot;</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;styles&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-string">&quot;apps/myapp/src/styles.css&quot;</span><span class="hljs-punctuation">]</span><span class="hljs-punctuation">,</span>
+        <span class="hljs-attr">&quot;scripts&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-punctuation">]</span>
+      <span class="hljs-punctuation">}</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre></div>
+<div style="display:flex;flex-direction:column"><div class="code-tabs"><div class="filename">nx.json</div></div><pre style="margin-top:0" class="code-wrapper has-filename"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;targetDefaults&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+    <span class="hljs-attr">&quot;build&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">{</span>
+      <span class="hljs-attr">&quot;dependsOn&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span>
+        <span class="hljs-punctuation">{</span>
+          <span class="hljs-attr">&quot;target&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;build-base&quot;</span><span class="hljs-punctuation">,</span>
+          <span class="hljs-attr">&quot;projects&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;self&quot;</span>
+        <span class="hljs-punctuation">}</span>
+      <span class="hljs-punctuation">]</span>
+    <span class="hljs-punctuation">}</span>
+  <span class="hljs-punctuation">}</span>
+<span class="hljs-punctuation">}</span>
+</code></pre></div>
+<h2 id="the-beginnings-of-inference">The Beginnings of Inference<a class="heading-link" href="#the-beginnings-of-inference"><div style="display:inline-block">#</div></a></h2>
+<p>After the last round of changes, we noticed that the <code>workspace.json</code> file was not particularly useful. It was just a map of project name to file path. We decided that it should be optional, and in time we dropped support for it entirely.</p>
+<p>This change required Nx to be able to locate the configuration of projects without a central file. Adding this support was not a major task, but while doing so we also decided to open up the possibility of dynamically building configuration.</p>
+<p>At the same time, there was a push from non-angular users to simplify the configuration. Npm/yarn/pnpm workspaces had gained a bit of popularity and it was much easier to define targets as a <code>package.json</code> script for a segment of users. We wanted to make it easier for these users to use Nx, while also helping Nx make sense when compared to other tools. The decision was made that if there was a package.json file inside a project, Nx would be able to run its scripts as a target.</p>
+<h2 id="enter-lerna">Enter Lerna<a class="heading-link" href="#enter-lerna"><div style="display:inline-block">#</div></a></h2>
+<p>Lerna has been around a long time, and maintains a good amount of popularity within the JavaScript community. It’s a tool that helps manage multiple packages in a single repository. It’s a bit different from Nx, but it’s similar enough that we were already looking at making it easier to use the two together. Lerna had some functionality that Nx didn’t (publishing packages), and Nx had some functionality that Lerna didn’t (caching and code generation).</p>
+<p>Around this time, several things surrounding lerna started to become worrisome. There was an <a href="https://github.com/lerna/lerna/issues/2703" rel="noopener noreferrer" target="_blank">issue</a> filed stating that lerna had been unmaintained. A <a href="https://github.com/lerna/lerna/pull/3092" rel="noopener noreferrer" target="_blank">PR</a> had been merged adding a warning that lerna wasn’t being actively maintained, and that the community should consider using other tools.</p>
+<p>These users would need to go somewhere, but any change for them would not be without difficulty. Nrwl, the company behind Nx, decided to step in and offer a solution. After talking with the maintainer, we were able to take over stewardship and step in to maintain the project. This was announced in a blog post here: <a href="https://blog.nrwl.io/lerna-is-dead-long-live-lerna-61259f97dbd9" rel="noopener noreferrer" target="_blank">Lerna is dead, Long live Lerna</a>.</p>
+<h2 id="inference-api-v1-and-workspaces-support">Inference API v1, and Workspaces Support<a class="heading-link" href="#inference-api-v1-and-workspaces-support"><div style="display:inline-block">#</div></a></h2>
+<p>With Lerna under our purview we wanted to be able to unify the two tools. Nx should be able to work in a lerna workspace, and hopefully the portions of Lerna that Nx could already handle would then be able to invoke Nx under the hood. This would prevent us from having to maintain two copies of the same functionality, and we were optimistic we could do this without breaking any existing workflows.</p>
+<p>The first step of this process was to ensure that Nx could work in a Lerna repository without changing the existing structure. This meant a few things:</p>
+<ul>
+<li><code>workspace.json</code> had to be optional</li>
+<li><code>project.json</code> had to be optional</li>
+<li><code>nx.json</code> had to be optional</li>
+</ul>
+<p>If any of these 3 files had been required, it would have caught lerna users off guard and look like Nx was replacing lerna.</p>
+<p>This built upon our existing inference capabilities, and while opening them up further we decided to publish a version that plugin authors could take advantage of.</p>
+<p>The first version of these inference APIs never left experimental, and weren’t actually used internally. Rather, they acted almost as a proof of concept and allowed us to see what the API might look like. Essentially, we needed an API that would be able to turn a project’s configuration file into its actual configuration. The API looked something like this:</p>
+<div style="display:flex;flex-direction:column"><pre style="margin-top:0" class="code-wrapper "><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">NxPlugin</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@nx/devkit&#x27;</span>;
+
+<span class="hljs-keyword">const</span> <span class="hljs-attr">plugin</span>: <span class="hljs-title class_">NxPlugin</span> = {
+  projectFilePatterns = [<span class="hljs-string">&#x27;project.json&#x27;</span>],
+  registerProjectTargets = <span class="hljs-function">(<span class="hljs-params">projectFile</span>) =&gt;</span> {
+    <span class="hljs-comment">// ...</span>
+  },
+};
+</code></pre></div>
+<p>In this example, <code>projectFilePatterns</code> is an array of file patterns that the plugin can handle. When Nx is looking for a project’s configuration, it will look for a file that matches one of these patterns. If it finds one, it will pass it to <code>registerProjectTargets</code> and expect it to return the targets a given project can run.</p>
+<p>While we didn’t directly use this API, it was a very small inclusion in the core code to enable Nx running inside a repository that was only configured by <code>package.json</code> files. The published API was also used to show how Nx could one day be used in C# or Java repositories, without introducing new configuration files.</p>
+<h2 id="elevating-workspaces-with-inference-api-v2">Elevating Workspaces with Inference API v2<a class="heading-link" href="#elevating-workspaces-with-inference-api-v2"><div style="display:inline-block">#</div></a></h2>
+<p>We were mostly happy with the inference apis and configuration loading, but there were a few things that we wanted to clean up within Nx’s codebase and the API itself. In particular we wanted to be able to streamline our handling of <code>angular.json</code> for legacy users, and wanted to migrate the <code>project.json</code> and <code>package.json</code> configuration loading into the same API.</p>
+<p>In order to do this, we needed an API that:</p>
+<ul>
+<li>Could provide a full project configuration, not just the targets</li>
+<li>Could read multiple projects from a single file (angular.json supports this)</li>
+</ul>
+<p>Additionally, there were other plugin APIs to extend the project graph that were a bit confusing when deciding if a plugin should be an inference plugin or a project graph plugin. Project graph plugins exported a single function, that received the current project graph and returned a new one. As part of this, they could add new nodes and edges to the graph. Most nodes on the graph were projects, but adding a project via these APIs resulted in odd behavior as targets couldn’t be ran because they weren’t present when Nx initially loaded project configurations.</p>
+<p>As such, we decided to merge the two APIs into a single one. This API is responsible for creating nodes on the project graph, and creating edges between those nodes. The API looks something like this:</p>
+<div style="display:flex;flex-direction:column"><pre style="margin-top:0" class="code-wrapper "><code class="hljs language-typescript"><span class="hljs-keyword">import</span> { <span class="hljs-title class_">NxPlugin</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">&#x27;@nx/devkit&#x27;</span>;
+
+<span class="hljs-keyword">const</span> <span class="hljs-attr">plugin</span>: <span class="hljs-title class_">NxPlugin</span> = {
+  <span class="hljs-attr">createNodes</span>: [<span class="hljs-string">&#x27;**/*.csproj&#x27;</span>, <span class="hljs-function">(<span class="hljs-params">projectFile, ctx</span>) =&gt;</span> <span class="hljs-title function_">readProjectsFromFile</span>(projectFile)]
+  <span class="hljs-attr">createDependencies</span>: <span class="hljs-function">(<span class="hljs-params">ctx</span>) =&gt;</span> <span class="hljs-title function_">readEdgesFromContext</span>(ctx)
+};
+</code></pre></div>
+<p><code>CreateNodes</code> is a tuple, where the first element is a glob pattern that the plugin can handle, and the second element is a function that will read the file and return the projects it contains. <code>createDependencies</code> is a function that will be called after all of the nodes have been created, and is responsible for creating the edges between the nodes.</p>
+<p>This API met all of the requirements we set out on, and ensured there was only one spot for plugin authors to add new nodes to the graph. It released as part of Nx 17, and was talked about at that years <a href="https://www.youtube.com/watch?v=bnjOu7iOrMg" rel="noopener noreferrer" target="_blank">Nx Conf</a></p>
+<h2 id="entering-the-crystal-era-">Entering the Crystal Era 💎<a class="heading-link" href="#entering-the-crystal-era-"><div style="display:inline-block">#</div></a></h2>
+<p>A large goal that the Nx team has consistently worked on is making Nx easier to adopt. Configuration changes are a large part of this, but we also took some time to reflect on how we integrate with other tools.</p>
+<p>Traditionally, Nx would provide an executor that wrapped a tool like <code>jest</code>. When running test, Nx would invoke the executor which would then invoke <code>jest</code>. This was a bit of a pain point for users, as they would have to learn how to use Nx’s executors and any of the idiosyncrasies that came with them. Additionally, it made it harder to get help when things went wrong, as the error messages would be different than what the user would see when running <code>jest</code> directly. Users would frequently ask questions that would be better solved by Jest’s documentation, but they wouldn’t know that because they were using Nx’s executors.</p>
+<p>Nx had been able to run arbitrary scripts in <code>package.json</code> files or arbitrary commands specified in <code>project.json</code> for a while, but it was not the default. We didn’t encourage using <code>run-commands</code> for everything, as there were some problems when using it:</p>
+<ul>
+<li>Terminal output was not as nice as it could be</li>
+<li>Tools may need some extra configuration to work properly</li>
+<li>Keeping the configuration in sync with the rest of the workspace was difficult</li>
+</ul>
+<p>Making the terminal output nicer was a bit of a heavy lift, but we were able to make it work. Adding support for running commands inside a pseudo-terminal allowed us to capture output as it would look on the dev’s machine, rather than the older output style that mimicked what you would see in a CI environment. Additionally, this meant that interactive commands could work how a dev would expect.</p>
+<p>For the second point, we decided to shift how we wrote our first party plugins. Instead of writing an executor that wrapped a tool, we can write plugins for many of the tools themselves to implement the same functionality. This would allow us to take advantage of the tool’s configuration, and would allow us to provide a better experience for users, while being a bit more transparent about our changes.</p>
+<p>The inference APIs we had just added were a perfect fit for keeping the configuration in sync. If we infer that every project with a jest configuration should have a <code>test</code> target, we can add that target to the project’s configuration. This would allow us to keep the configuration in sync with the rest of the workspace, and would allow us to provide a better experience for users.</p>
+<p>With these 3 pain points addressed, we made the major decision to step away from using executors for most of our first party plugins and infer targets from configuration files where possible. As far as configuration is concerned, nothing <strong>really</strong> changed but things did look a bit different to users. Mainly, the <code>targets</code> section of <code>project.json</code> was no longer required to run a target.</p>
+<p>Many <code>project.json</code> files can now be as simple as this:</p>
+<div style="display:flex;flex-direction:column"><div class="code-tabs"><div class="filename">apps/myapp/project.json</div></div><pre style="margin-top:0" class="code-wrapper has-filename"><code class="hljs language-json"><span class="hljs-punctuation">{</span>
+  <span class="hljs-attr">&quot;name&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-string">&quot;myapp&quot;</span><span class="hljs-punctuation">,</span>
+  <span class="hljs-attr">&quot;tags&quot;</span><span class="hljs-punctuation">:</span> <span class="hljs-punctuation">[</span><span class="hljs-punctuation">]</span>
+<span class="hljs-punctuation">}</span>
+</code></pre></div>
+<p>Internally, we referred to this change as project configuration v3. It represents a major shift in how we think about configuration, and how we think about integrating with other tools. As such, we released it as Nx 18: Project Crystal 💎.</p>
+<p>There are some published resources that go into more detail about this change:</p>
+<ul>
+<li><a href="https://www.youtube.com/watch?v=wADNsVItnsM" rel="noopener noreferrer" target="_blank">Nx Project Crystal 💎</a></li>
+<li><a href="https://nx.dev/concepts/inferred-tasks#inferred-tasks-project-crystal" rel="noopener noreferrer" target="_blank">Inferred Tasks documentation</a></li>
+</ul>
+<h2 id="conclusion">Conclusion<a class="heading-link" href="#conclusion"><div style="display:inline-block">#</div></a></h2>
+<p>Nx’s configuration has changed a lot over the years, and it’s been a long journey to get to where we are today. We’ve made a lot of changes to make Nx easier to adopt, and we’ve made a lot of changes to make Nx easier to use.</p>
+<p>Project Crystal helped slim down the Nx configuration within a workspace to only <code>nx.json</code> for many repos, and opens the doors for Nx to be used in a wider variety of repositories. We’re excited to see what the future holds for Nx, and as always, stay tuned 📺.</p>
+<h2 id="references-and-links">References and Links<a class="heading-link" href="#references-and-links"><div style="display:inline-block">#</div></a></h2>
+<ul>
+<li><a href="https://www.youtube.com/watch?v=wADNsVItnsM" rel="noopener noreferrer" target="_blank">Nx Project Crystal 💎</a></li>
+</ul></div></div><div style="position:fixed;bottom:0;right:0;display:flex;flex-direction:column;gap:8px;margin:16px;border-radius:8px;width:min(100%, 400px)"></div></div>
+        <script id="vike_pageContext" type="application/json">{"pageProps":"!undefined","urlPathname":"/blog/2024-02-05/nx-configuration-history","urlParsed":{"origin":null,"pathname":"/blog/2024-02-05/nx-configuration-history","pathnameOriginal":"/blog/2024-02-05/nx-configuration-history","search":{},"searchAll":{},"searchOriginal":null},"routeParams":{"date":"2024-02-05","slug":"nx-configuration-history"},"data":"!undefined","abortReason":"!undefined","_urlRewrite":null,"_urlRedirect":"!undefined","abortStatusCode":"!undefined","_abortCall":"!undefined","_pageContextInitIsPassedToClient":"!undefined","_pageId":"/pages/blog/view"}</script>
+        <script src="/pr/10/assets/entries/entry-server-routing.DroQU7p_.js" type="module" async></script>
+        <link rel="modulepreload" href="/pr/10/assets/entries/pages_blog_view.DnE60v3z.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/10/assets/chunks/chunk-DobrybWg.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/10/assets/chunks/chunk-hQg7z456.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/10/assets/chunks/chunk-CqwFCltl.js" as="script" type="text/javascript">
+      </body>
+    </html>
