@@ -1,8 +1,7 @@
-import { slugMap } from '@new-personal-monorepo/blog-posts';
+import { slugMap, CodeWrapper } from '@new-personal-monorepo/blog-posts';
 import { usePageContext } from 'vike-react/usePageContext';
 
 import './view.page.scss';
-import { CodeWrapper } from '../code-wrapper';
 import { useEffect, useState } from 'react';
 import { ContentMarker } from '../../../src/shared-components/content-marker';
 import { Link } from '../../../renderer/Link';

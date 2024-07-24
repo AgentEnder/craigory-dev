@@ -1,3 +1,4 @@
+import { githubPagesPreviewEnv } from './github-pages-preview-env/post';
 import { nxConfigurationHistory } from './nx-configuration-history/post';
 
 function partition<T extends unknown[]>(arr: T, size: number): T[] {
@@ -9,9 +10,9 @@ function partition<T extends unknown[]>(arr: T, size: number): T[] {
   return result;
 }
 
-export const blogPosts = [nxConfigurationHistory]
+export const blogPosts = [nxConfigurationHistory, githubPagesPreviewEnv]
   //   .filter((p) => p.publishDate.getTime() < Date.now())
-  .sort((a, b) => a.publishDate.getTime() - b.publishDate.getTime());
+  .sort((a, b) => b.publishDate.getTime() - a.publishDate.getTime());
 
 export const slugMap = Object.fromEntries(blogPosts.map((p) => [p.slug, p]));
 

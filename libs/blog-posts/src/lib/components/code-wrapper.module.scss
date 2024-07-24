@@ -5,7 +5,7 @@
 .code-wrapper code::-webkit-scrollbar-track {
   border-radius: 0 0 8px 8px;
   background-color: #282b2e;
-  border: none
+  border: none;
 }
 
 .code-wrapper code::-webkit-scrollbar-thumb {
@@ -15,15 +15,25 @@
   background-color: #3a3a5a;
 }
 
+.code-wrapper {
+  code {
+    border-radius: 8px;
+  }
+
+  &.has-filename > code {
+    border-radius: 0 0 8px 8px;
+  }
+}
+
 .code-tabs {
   display: flex;
   flex-direction: row;
   gap: 1em;
   padding: 0.5em 0.5em 0 0.5em;
-  border-radius: 8px 8px 0 0;
   border: 2px solid black;
   background-color: #3a3a5a;
   box-shadow: 0 4px 8px #000000e8;
+  border-radius: 8px 8px 0 0;
 
   .filename {
     background-color: #282b2e;
