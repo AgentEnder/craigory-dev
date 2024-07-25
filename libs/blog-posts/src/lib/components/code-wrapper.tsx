@@ -1,4 +1,4 @@
-import './code-wrapper.scss';
+import styles from './code-wrapper.module.scss';
 
 export function CodeWrapper({
   children,
@@ -15,23 +15,21 @@ export function CodeWrapper({
       }}
     >
       {props.filename ? (
-        <div
-          className='code-tabs'
-        >
+        <div className={styles['code-tabs']}>
           {props.filename ? (
-            <div
-              className='filename'
-            >
-              {props.filename}
-            </div>
+            <div className={styles['filename']}>{props.filename}</div>
           ) : null}
         </div>
       ) : null}
+
       <pre
         style={{
           marginTop: 0,
         }}
-        className={`code-wrapper ${props.filename ? 'has-filename' : ''}`}
+        className={[
+          styles['code-wrapper'],
+          props.filename ? styles['has-filename'] : '',
+        ].join(' ')}
       >
         {children}
       </pre>

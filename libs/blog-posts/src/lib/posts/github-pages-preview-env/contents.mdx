@@ -1,0 +1,218 @@
+# Setting Up Preview Environments for Github Pages
+
+Github Pages provides free hosting for static websites. It's a great way to host your personal blog, portfolio, or documentation, and is infact used to host this website. While it serves this purpose well, it is missing a feature that many newer hosting providers offer: preview environments.
+
+## Table of Contents
+
+## What are preview environments?
+
+Preview environments are temporary environments that are created for each pull request. They allow you to preview your changes before merging them into the main branch. This is especially useful for static websites, where you can't preview your changes locally. Vercel and Netlify both offer this feature, and leave a comment on the pull request with a link to the preview environment.
+
+## Prerequisite: Deploy with Github Actions
+
+Before getting into the nitty-gritty of setting up preview environments, its important to have a good understanding of how deploying to GitHub Pages works. There are a variety of ways to deploy to GitHub Pages, and some official actions blocks that can make it easier. For this tutorial, we will **not** be using the official block or even a custom one. Instead, we will be using a different method to deploy that involves pushing the build artifacts to the `gh-pages` branch.
+
+In practice, the steps will look something like this:
+
+- Build the website
+- Initialize a new git repository in the build directory
+- Commit the build artifacts
+- Force push the build artifacts to the `gh-pages` branch
+
+This creates a branch in the repository that has an unrelated history to the main branch, containing a single commit that represents the current build. This is the branch that Github Pages will use to serve the website. I typically set this up as a GitHub action that either runs on push or on workflow_dispatch. An example script that does this is below:
+
+```yaml filename=".github/workflows/deploy.yml"
+name: Nightly Deployment
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      id-token: write
+      pages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22.5.1'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Setup Git User
+        run: |
+          git config --global user.name "${GITHUB_ACTOR}"
+          git config --global user.email "${GITHUB_ACTOR}@users.noreply.github.com"
+
+      # Add your deployment steps here
+      - name: Deploy to production
+        run: |
+          node ./node_modules/.bin/nx build craigory-dev
+          node ./tools/scripts/deploy.js
+```
+
+The `deploy.js` script is a simple script that does the following:
+
+```javascript filename="tools/scripts/deploy.js"
+const { execSync } = require('child_process');
+
+const BUILD_DIR = 'dist/apps/craigory-dev';
+const GH_PAGES_BRANCH = 'gh-pages';
+const REMOTE_URL = 'https://github.com/agentender/craigory-dev.git';
+
+// Create a new git repository in build directory, pointing to this repository
+execSync(`git init`, { cwd: BUILD_DIR });
+execSync(`git remote add origin ${REMOTE_URL}`, { cwd: BUILD_DIR });
+
+// Commit the build artifacts
+execSync(`git add .`, { cwd: BUILD_DIR });
+execSync(`git commit -m "Deploy"`, { cwd: BUILD_DIR });
+
+// Force push the build artifacts to the `gh-pages` branch, overwriting any existing history
+execSync(`git push origin --force HEAD:${GH_PAGES_BRANCH}`, { cwd: BUILD_DIR });
+```
+
+When a push is made to the `gh-pages` branch, there is a built-in action that will deploy the website. This is how I typically setup "production" deployments to GitHub Pages.
+
+## Thinking About Preview Environments and Github Pages
+
+Github Pages only allows a single deployment per repository. This means that we can't strictly follow the same pattern as Vercel or Netlify, where each pull request gets its own deployment. Additionally, if we want to isolate our preview environments from the main branch we can't use the same 'gh-pages' branch for both preview environments and production.
+
+This has led me to typically deploy production build artifacts to a separate repository on GitHub. The only changes required to the above script are to change the `REMOTE_URL` to point to the new repository. This allows me to have a separate repository for the production build artifacts, and point the current `gh-pages` branch of this repository to a subdomain of the production website.
+
+GitHub pages only supports static web apps. This means that the build artifacts on disk are directly served to the user. We can use this to our advantage by pushing the build artifacts of the preview environment to a subdirectory of the `gh-pages` branch. This will surface as a url like: `${username}.github.io/${repository}/${whatever-directory-you-choose}`. By picking subdirectories based on the pull request number, we can form predictable, short urls that are human readable. This is the approach I will be outlining in this tutorial.
+
+## Setting up Preview Environments
+
+Knowing how this will be structured, we can break the problem down into a few steps:
+
+- Build the website on the PR branch
+- Create a new temporary folder called 'gh-pages-root' in the repository
+- Initialize a new git repository in the 'gh-pages-root' folder
+- Copy the build artifacts to a subdirectory of 'gh-pages-root'
+- Commit the build artifacts
+- Sync the 'gh-pages-root' folder with the 'gh-pages' branch
+- Push the changes to the 'gh-pages' branch
+
+### Building for the Preview Environment
+
+This should be **very** similar to your current build script. The main thing that needs to change is that the base url for your page will not be `/` on the preview environment. Depending on how your web app is built, this will require different changes. This website (craigory.dev) is built using [Vike](https://vike.dev), a framework built on top of Vite. Vike supports passing in the base url via the `base` property in the vite config, which can be overridden on the CLI. As such, I am building the preview environment with a command like:
+
+    ```bash
+    nx run craigory-dev:build --base /pr/${PR_NUMBER}/
+    ```
+
+Documentation about how to set the base url for different frameworks can be found here:
+
+- [Vite](https://vitejs.dev/config/shared-options.html#base)
+- [Angular](https://angular.dev/guide/routing/common-router-tasks#base-href)
+  - [Analog JS](https://analogjs.org/docs/features/data-fetching/server-side-data-fetching#setting-the-public-base-url)
+- [Jekyll](https://mademistakes.com/mastering-jekyll/site-url-baseurl/)
+- [Gatsby](https://www.gatsbyjs.com/docs/how-to/previews-deploys-hosting/path-prefix/)
+- [Next.js](https://nextjs.org/docs/api-reference/next.config.js/basepath)
+- [Hugo](https://gohugo.io/methods/site/baseurl/)
+- [Docusaurus](https://docusaurus.io/docs/deployment#configuration)
+
+For other frameworks, you'll need to find the equivalent way to pass in the base url. This is important because the base url is used to resolve assets or any relative paths, and if it is incorrect your website will not load correctly.
+
+### Deploying to the Preview Environment
+
+This is a bit more involved than the previous script, but is made up of the same basic steps. The script below will do this:
+
+```javascript filename="tools/scripts/deploy-preview.js"
+const { execSync } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+
+const BUILD_DIR = 'dist/apps/craigory-dev';
+const GH_PAGES_ROOT = 'gh-pages-root';
+const GH_PAGES_BRANCH = 'gh-pages';
+const REMOTE_URL = '...'; // This should be the url of the repository that will host the preview build artifacts
+const PR_NUMBER = process.env.PR_NUMBER; // This should be passed in as an environment variable
+
+// Create a new git repository in the 'gh-pages-root' folder, pointing to this repository
+fs.mkdirSync(GH_PAGES_ROOT, { recursive: true });
+execSync(`git init`, { cwd: GH_PAGES_ROOT });
+execSync(`git remote add origin ${REMOTE_URL}`, { cwd: GH_PAGES_ROOT });
+
+// Copy the build artifacts to a subdirectory of 'gh-pages-root'
+const dest = path.join(GH_PAGES_ROOT, `pr/${PR_NUMBER}`);
+fs.mkdirSync(dest, { recursive: true });
+fs.cpSync(BUILD_DIR, dest);
+
+// Commit the build artifacts
+execSync(`git add .`, { cwd: GH_PAGES_ROOT });
+execSync(`git commit -m "Deploy preview ${PR_NUMBER}"`, { cwd: GH_PAGES_ROOT });
+
+// Sync the 'gh-pages-root' folder with the 'gh-pages' branch
+execSync(`git fetch origin ${GH_PAGES_BRANCH}`, { cwd: GH_PAGES_ROOT });
+// The --allow-unrelated-histories flag is required because the 'gh-pages' branch has no history
+execSync(`git merge origin/${GH_PAGES_BRANCH} --allow-unrelated-histories`, {
+  cwd: GH_PAGES_ROOT,
+});
+
+// Push the changes to the 'gh-pages' branch
+execSync(`git push origin HEAD:${GH_PAGES_BRANCH}`, { cwd: GH_PAGES_ROOT });
+```
+
+This script should be run on every pull request. It will create a new subdirectory in the `gh-pages-root` folder, copy the build artifacts to it, and push the changes to the `gh-pages` branch. This is enough to have functioning preview environments for your Github Pages, minus a few nice-to-haves that other hosting providers offer.
+
+## Commenting on Pull Requests
+
+Its helpful to leave a comment on the pull request with a link to the preview environment. This can be done with the Github API, and is a nice touch that makes it easier for reviewers to see the changes. For a full example of how to do this, I'd recommend checking the script in this repository found [here](https://github.com/agentender/craigory-dev/blob/main/tools/update-preview-comment.ts).
+
+## Cleaning up Preview Environments
+
+Preview environments are temporary, and should be cleaned up after the pull request is closed. While its not paramount to do this, it can be helpful to keep the repository clean and avoid your GitHub Pages deployment size growing too large.
+
+This can be done with a simple script that deletes the subdirectory in the `gh-pages-root` folder. This script can be run on pull request close, or on a schedule. An example script that does this is below:
+
+```javascript filename="tools/scripts/cleanup-preview.js"
+const fs = require('fs');
+const path = require('path');
+const { execSync } = require('child_process');
+
+const GH_PAGES_ROOT = 'gh-pages-root';
+const PR_NUMBER = process.env.PR_NUMBER; // This should be passed in as an environment variable
+
+// Remove PR directory
+const dest = path.join(GH_PAGES_ROOT, `pr/${PR_NUMBER}`);
+fs.rmSync(dest, { recursive: true });
+
+// Commit the removal
+execSync(`git add .`, { cwd: GH_PAGES_ROOT });
+execSync(`git commit -m "Remove preview ${PR_NUMBER}"`, { cwd: GH_PAGES_ROOT });
+
+// Push the changes to the 'gh-pages' branch
+execSync(`git push origin HEAD:gh-pages`, { cwd: GH_PAGES_ROOT });
+```
+
+There are a few things to note about this script:
+
+- It should be ran in a GitHub action that runs on PR close.
+- It should be passed the PR number as an environment variable.
+- It should checkout the `gh-pages` branch before running the script.
+
+Alternatively, if you are running the job on a schedule you could remove any PR directories that are older than a certain age. This would be a bit more involved, but is a good way to keep the repository clean but give preview environments a bit more longevity. This is the path this repository has taken, and the script can be found [here](https://github.com/agentender/craigory-dev/blob/main/tools/cleanup-old-deployments.ts).
+
+Regardless of which approach you take, one caveat to keep in mind is that since the `gh-pages` branch is checked out instead of your typical `main` branch, any script that needs to be ran will need to be present inside the `gh-pages` branch. With our publishing strategy this is not a given, so you'll need to workaround it. In this repository's case I've added a command into the `cleanup-pr-deployments.yml` workflow that downloads the latest version of the `gh-pages` branch before running the cleanup script. You could also update the deployment script to include the tools folder as part of the build artifacts, but that may not be desired.
+
+## Summary and Next Steps
+
+We've covered a bit of how basic GitHub Pages deployments work, as well as how to shift that to support preview environments. This is a great way to get a bit more out of your GitHub Pages deployment without having to change hosting providers, and can be a good way to preview changes before merging them into the main branch.
