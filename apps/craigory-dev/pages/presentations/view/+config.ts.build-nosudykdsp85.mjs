@@ -1,8 +1,0 @@
-// pages/presentations/view/+config.ts
-var config_default = {
-  title: "Craigory Coppola - View Presentation"
-};
-export {
-  config_default as default
-};
-//# sourceMappingURL=data:application/json;base64,ewogICJ2ZXJzaW9uIjogMywKICAic291cmNlcyI6IFsiK2NvbmZpZy50cyJdLAogICJzb3VyY2VzQ29udGVudCI6IFsiLy8gIGNvbnN0IHRpdGxlID0gJ0NyYWlnb3J5IENvcHBvbGEgLSBWaWV3IFByZXNlbnRhdGlvbic7XG5leHBvcnQgZGVmYXVsdCB7XG4gIHRpdGxlOiAnQ3JhaWdvcnkgQ29wcG9sYSAtIFZpZXcgUHJlc2VudGF0aW9uJyxcbn07XG4iXSwKICAibWFwcGluZ3MiOiAiO0FBQ0EsSUFBTyxpQkFBUTtBQUFBLEVBQ2IsT0FBTztBQUNUOyIsCiAgIm5hbWVzIjogW10KfQo=
