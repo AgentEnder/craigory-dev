@@ -56,6 +56,10 @@ jobs:
       # Add your deployment steps here
       - name: Push changes
         run: |
+          if [ -z "$(git status --porcelain)" ]; then
+            echo "No changes to commit"
+            exit 0
+          fi
           git add .
           git commit -m "Cleanup old deployments ♼🗑️ [skip ci]"
           git push
