@@ -35,6 +35,20 @@ async function updatePrComment(number: number) {
   }
 }
 
+async function cleanupDeployment(pr: string) {
+  console.log(`Deleting ${pr}`);
+  execSync(`rm -rf pr/${pr}`);
+
+  const prNumber = Number(pr);
+  if (!Number.isNaN(prNumber)) {
+    try {
+      await updatePrComment(prNumber);
+    } catch {
+      console.log('Failed to update PR comment for PR #' + prNumber);
+    }
+  }
+}
+
 (async () => {
   const now = Date.now();
   const deployments = readdirSync('pr');
@@ -52,17 +66,7 @@ async function updatePrComment(number: number) {
       (process.env.ALL && process.env.ALL !== 'false') ||
       now - lastModified > 1000 * 60 * 60 * 24 * 7
     ) {
-      console.log(`Deleting ${folder}`);
-      execSync(`rm -rf pr/${folder}`);
-    }
-
-    const prNumber = Number(folder);
-    if (!Number.isNaN(prNumber)) {
-      try {
-        await updatePrComment(Number(folder));
-      } catch {
-        console.log('Failed to update PR comment for PR #' + folder);
-      }
+      await cleanupDeployment(folder);
     }
   }
 })();
