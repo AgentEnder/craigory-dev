@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+    <html lang='en'>
+      <head>
+        <link rel="stylesheet" type="text/css" href="/pr/12/assets/static/Layout.DyYECir4.css">
+        <link rel="stylesheet" type="text/css" href="/pr/12/assets/static/view.DM2nwsAY.css">
+        <link rel="stylesheet" type="text/css" href="/pr/12/assets/static/Head.5if0RVJt.css">
+    <meta charset="UTF-8" />
+    <title>Craigory Coppola</title><meta property="og:title" content="Craigory Coppola" />
+    <meta charSet="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="description" content="Git aliases are a powerful tool for improving your workflow. In this post, I&#x27;ll show you how to take them to the next level by using scripting to create aliases that contain control flow and more."/><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/obsidian.min.css"/><script async="" src="https://www.googletagmanager.com/gtag/js?id=G-1180FLF5RC"></script><script>window.dataLayer = window.dataLayer || [];
+        function gtag() {
+          dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+  
+        gtag('config', 'G-1180FLF5RC');
+          </script>
+    
+  </head>
+      <body>
+        <div id="root"><div class="layout"><div class="sidebar"><a href="/pr/12/" class="navitem">Home</a><a href="/pr/12/projects" class="navitem">Projects</a><a href="/pr/12/presentations" class="navitem">Speaking + Presentations</a><a href="/pr/12/blog/1" class="navitem">Blog</a></div><div class="content"><h1 id="superpowered-git-aliases-using-scripting">Superpowered Git Aliases using Scripting</h1>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#what-are-git-aliases">What are Git Aliases</a>
+<ul>
+<li><a href="#simple-aliases">Simple Aliases</a></li>
+<li><a href="#more-complex-aliases">More Complex Aliases</a></li>
+</ul>
+</li>
+<li><a href="#setting-up-aliases-with-scripts">Setting up Aliases with Scripts</a>
+<ul>
+<li><a href="#case-study-rebase-main--master">Case Study: Rebase Main / master</a></li>
+<li><a href="#case-study-amend">Case Study: Amend</a></li>
+<li><a href="#some-caveats">Some Caveats</a></li>
+</ul>
+</li>
+<li><a href="#conclusion">Conclusion</a></li>
+</ul>
+<h2 id="what-are-git-aliases">What are Git Aliases<a class="heading-link" href="#what-are-git-aliases"><div style="display:inline-block">#</div></a></h2>
+<p>Git aliases work similarly to regular aliases in the shell, but they are specific to Git commands. They allow you to create shortcuts for longer commands or to create new commands that are not available by default.</p>
+<p>Aliases run in the same shell environment as other git commands, and are mostly used to simplify common workflows.</p>
+<h3 id="simple-aliases">Simple Aliases<a class="heading-link" href="#simple-aliases"><div style="display:inline-block">#</div></a></h3>
+<p>Simple aliases call a single Git command with a set of arguments. For example, you can create an alias to show the status of the repository by running <code>git status</code> with the <code>s</code> alias:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><div class="_filename_1uasc_35">~/.gitconfig</div></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-INI"><span class="hljs-section">[alias]</span>
+  <span class="hljs-attr">s</span> = status
+</code></pre></div>
+<p>You can then run <code>git s</code> to show the status of the repository. Because we configured the alias in ~/.gitconfig, it is available for all repositories on the system.</p>
+<h3 id="more-complex-aliases">More Complex Aliases<a class="heading-link" href="#more-complex-aliases"><div style="display:inline-block">#</div></a></h3>
+<p>You can also create git aliases that run an arbitrary shell command. To do so, the alias needs to start with a <code>!</code>. This tells git to execute the alias as if it was not a git subcommand. For example, if you wanted to run two git commands in sequence, you could create an alias that runs a shell command:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><div class="_filename_1uasc_35">~/.gitconfig</div></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-INI"><span class="hljs-section">[alias]</span>
+  <span class="hljs-attr">my-alias</span> = !git fetch &amp;&amp; git rebase origin/master
+</code></pre></div>
+<p>This alias runs <code>git fetch</code> and <code>git rebase origin/main</code> in sequence when you run <code>git my-alias</code>.</p>
+<p>One limitation of git aliases is that they cannot be set to a multiline value. This means that for more complex aliases you will need to minify them.</p>
+<p>Additionally, in an INI file a <code>;</code> character is used to comment out the rest of the line. This means that you cannot use <code>;</code> in your alias commands.</p>
+<p>These two limitations can make it difficult to create more complex aliases using the standard git alias syntax, but it can still be done. For example, an alias using <code>if</code> to branch may look like this:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><div class="_filename_1uasc_35">~/.gitconfig</div></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-INI"><span class="hljs-section">[alias]</span>
+  <span class="hljs-attr">branch-if</span> = !bash -c <span class="hljs-string">&quot;&#x27;!f() { if [ -z \&quot;$1\&quot; ]; then echo \&quot;Usage: git branch-if &lt;branch-name&gt;\&quot;; else git checkout -b $1; fi; }; f&#x27;&quot;</span>
+</code></pre></div>
+<p>These limits make it way more complex to create and maintain aliases that have any form of control flow within them. This is where scripting comes in.</p>
+<h2 id="setting-up-aliases-with-scripts">Setting up Aliases with Scripts<a class="heading-link" href="#setting-up-aliases-with-scripts"><div style="display:inline-block">#</div></a></h2>
+<p>You can script a gitalias using any programming language you’d like. If you are familiar with bash scripting and would like to use it, you can create a bash script that runs the desired git commands. The truth is that I am much stronger with JavaScript, so that is what I will use.</p>
+<p>One other major benefit is that by using a scripting language, your aliases can take and operate on arguments <strong>much</strong> more easily. Git will forward any arguments you pass on the CLI to your alias by appending them to the end of your command. As such, your script should be able to read them without issue. For example, in Node JS you can access the arguments passed to the script directly on <code>process.argv</code>.</p>
+<p>The basic steps to set this up do not change based on the language choosen. You’ll need to:</p>
+<ul>
+<li>Create a script that runs the desired git commands</li>
+<li>Write an alias that runs the script</li>
+</ul>
+<h3 id="case-study-rebase-main--master">Case Study: Rebase Main / master<a class="heading-link" href="#case-study-rebase-main--master"><div style="display:inline-block">#</div></a></h3>
+<p>In recent years the default branch name for new repositories has changed from <code>master</code> to <code>main</code>. This means that when you clone a new repository, the default branch may be <code>main</code> instead of <code>master</code>. There is no longer a super consistent name, as the ecosystem is in transition. This is overall a good thing, but it means that our alias above to rebase will not work in all cases.</p>
+<p>We need to update our alias to check if the branch is <code>main</code> or <code>master</code> and then rebase the correct branch. This is a perfect use case for a script.</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><div class="_filename_1uasc_35">~/gitaliases/git-rebase-main.js</div></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-javascript"><span class="hljs-meta">#!/usr/bin/env node</span>
+
+<span class="hljs-keyword">const</span> { execSync } = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;child_process&#x27;</span>);
+
+<span class="hljs-comment">// We want to run some commands and not immediately fail if they fail</span>
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">tryExec</span>(<span class="hljs-params">command</span>) {
+  <span class="hljs-keyword">try</span> {
+    <span class="hljs-keyword">return</span> {
+      <span class="hljs-attr">status</span>: <span class="hljs-number">0</span>
+      <span class="hljs-attr">stdout</span>: <span class="hljs-title function_">execSync</span>(command);
+    }
+  } <span class="hljs-keyword">catch</span> (error) {
+    <span class="hljs-keyword">return</span> {
+      <span class="hljs-attr">status</span>: error.<span class="hljs-property">status</span>,
+      <span class="hljs-attr">stdout</span>: error.<span class="hljs-property">stdout</span>,
+      <span class="hljs-attr">stderr</span>: error.<span class="hljs-property">stderr</span>,
+    }
+  }
+}
+
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">getOriginRemoteName</span>(<span class="hljs-params"></span>) {
+  <span class="hljs-keyword">const</span> { stdout, code } = <span class="hljs-title function_">tryExec</span>(<span class="hljs-string">&quot;git remote&quot;</span>, <span class="hljs-literal">true</span>);
+  <span class="hljs-keyword">if</span> (code !== <span class="hljs-number">0</span>) {
+    <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Error</span>(<span class="hljs-string">&quot;Failed to get remote name. \n&quot;</span> + stdout);
+  }
+  <span class="hljs-comment">// If there is an upstream remote, use that, otherwise use origin</span>
+  <span class="hljs-keyword">return</span> stdout.<span class="hljs-title function_">includes</span>(<span class="hljs-string">&quot;upstream&quot;</span>) ? <span class="hljs-string">&quot;upstream&quot;</span> : <span class="hljs-string">&quot;origin&quot;</span>;
+}
+
+<span class="hljs-comment">// --verify returns code 0 if the branch exists, 1 if it does not</span>
+<span class="hljs-keyword">const</span> hasMain = <span class="hljs-title function_">tryExec</span>(<span class="hljs-string">&#x27;git show-ref --verify refs/heads/main&#x27;</span>).<span class="hljs-property">status</span> === <span class="hljs-number">0</span>;
+
+<span class="hljs-comment">// If main is present, we want to rebase main, otherwise rebase master</span>
+<span class="hljs-keyword">const</span> branch = hasMain ? <span class="hljs-string">&#x27;main&#x27;</span> : <span class="hljs-string">&#x27;master&#x27;</span>;
+
+<span class="hljs-keyword">const</span> remote = <span class="hljs-title function_">getOriginRemoteName</span>()
+
+<span class="hljs-comment">// Updates the local branch with the latest changes from the remote</span>
+<span class="hljs-title function_">execSync</span>(<span class="hljs-string">`git fetch <span class="hljs-subst">${remote}</span> <span class="hljs-subst">${branch}</span>`</span>, {<span class="hljs-attr">stdio</span>: <span class="hljs-string">&#x27;inherit&#x27;</span>});
+<span class="hljs-comment">// Rebases the current branch on top of the remote branch</span>
+<span class="hljs-title function_">execSync</span>(<span class="hljs-string">`git rebase <span class="hljs-subst">${remote}</span>/<span class="hljs-subst">${branch}</span>`</span>, {<span class="hljs-attr">stdio</span>: <span class="hljs-string">&#x27;inherit&#x27;</span>});
+</code></pre></div>
+<p>Currently, to run the script we’d need to run <code>node ~/gitaliases/git-rebase-main.js</code>. This is not ideal, and isn’t something you’d ever get in the habit of doing. We can make this easier by creating a git alias that runs the script.</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><div class="_filename_1uasc_35">~/.gitconfig</div></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-INI"><span class="hljs-section">[alias]</span>
+  <span class="hljs-attr">rebase-main</span> = !node ~/gitaliases/git-rebase-main.js
+</code></pre></div>
+<p>Now you can run <code>git rebase-main</code> to rebase the correct branch, regardless of if it is <code>main</code> or <code>master</code>.</p>
+<h3 id="case-study-amend">Case Study: Amend<a class="heading-link" href="#case-study-amend"><div style="display:inline-block">#</div></a></h3>
+<p>Another alias that I set up on all my machines is to amend the last commit. This is a super common workflow for me, and I like to have it as a single command. This is a great use case for a script, as it is a simple command that I want to run often.</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><div class="_filename_1uasc_35">~/gitaliases/git-amend.js</div></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-javascript"><span class="hljs-meta">#!/usr/bin/env node</span>
+
+<span class="hljs-comment">// Usage: git amend [undo]</span>
+<span class="hljs-keyword">const</span> tryExec = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;./utils/try-exec&#x27;</span>);
+
+<span class="hljs-keyword">async</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">getBranchesPointingAtHead</span>(<span class="hljs-params"></span>) {
+  <span class="hljs-keyword">const</span> { stdout, code } = <span class="hljs-keyword">await</span> <span class="hljs-title function_">tryExec</span>(<span class="hljs-string">&#x27;git branch --points-at HEAD&#x27;</span>, <span class="hljs-literal">true</span>);
+  <span class="hljs-keyword">if</span> (code !== <span class="hljs-number">0</span>) {
+    <span class="hljs-keyword">throw</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Error</span>(<span class="hljs-string">&#x27;Failed to get branches pointing at HEAD. \n&#x27;</span> + stdout);
+  }
+  <span class="hljs-keyword">return</span> stdout.<span class="hljs-title function_">split</span>(<span class="hljs-string">&#x27;\n&#x27;</span>).<span class="hljs-title function_">filter</span>(<span class="hljs-title class_">Boolean</span>);
+}
+
+(<span class="hljs-keyword">async</span> () =&gt; {
+  <span class="hljs-keyword">const</span> branches = <span class="hljs-keyword">await</span> <span class="hljs-title function_">getBranchesPointingAtHead</span>();
+  <span class="hljs-keyword">if</span> (branches.<span class="hljs-property">length</span> !== <span class="hljs-number">1</span>) {
+    <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(
+      <span class="hljs-string">&#x27;Current commit is relied on by other branches, avoid amending it.&#x27;</span>
+    );
+    process.<span class="hljs-title function_">exit</span>(<span class="hljs-number">1</span>);
+  }
+  <span class="hljs-keyword">if</span> (process.<span class="hljs-property">argv</span>[<span class="hljs-number">2</span>] === <span class="hljs-string">&#x27;undo&#x27;</span>) {
+    <span class="hljs-keyword">await</span> <span class="hljs-title function_">tryExec</span>(<span class="hljs-string">&#x27;git reset --soft HEAD@{1}&#x27;</span>);
+  } <span class="hljs-keyword">else</span> {
+    <span class="hljs-keyword">await</span> <span class="hljs-title function_">tryExec</span>(<span class="hljs-string">&#x27;git commit --amend --no-edit&#x27;</span>);
+  }
+})();
+</code></pre></div>
+<p>This script is a bit more complex than the last one, as it has some control flow in it. It will check if the current commit is relied on by other branches, and if it is it will exit with an error. This is to prevent you from amending a commit that is relied on by other branches, as doing so would cause issues when trying to merge whichever branch relies on the commit.</p>
+<p>To set up the alias, you can use the same method as before:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><div class="_filename_1uasc_35">~/.gitconfig</div></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-INI"><span class="hljs-section">[alias]</span>
+  <span class="hljs-attr">amend</span> = !node ~/gitaliases/git-amend.js
+</code></pre></div>
+<p>Now you can run <code>git amend</code> to amend the last commit, or <code>git amend undo</code> to undo the last amend. This is a script that I initially wrote inline in my gitconfig, but as it grew in complexity I moved it to a script file. This is a great way to manage complexity in your aliases. For comparison, here is the original alias:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><div class="_filename_1uasc_35">~/.gitconfig</div></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-INI"><span class="hljs-section">[alias]</span>
+  <span class="hljs-attr">amend</span> = !bash -c <span class="hljs-string">&quot;&#x27;f() { if [ $(git branch --points-at HEAD | wc -l) != 1 ]; then echo Current commit is relied on by other branches, avoid amending it.; exit 1; fi; if [ \&quot;$0\&quot; = &quot;</span>undo<span class="hljs-string">&quot; ]; then git reset --soft \&quot;HEAD@{1}\&quot;; else git commit --amend --no-edit; fi }; f&#x27;&quot;</span>
+</code></pre></div>
+<p>This script could have been extracted to a .sh file as well, but keeping things in node lowers the maintenance burden for me personally. In the past, anytime I needed to update this alias I would have to paste it into a bash linter, make my changes, minify it, and then paste it back into my gitconfig. This was a pain, and I would often avoid updating the alias because of it. Now that it is in a script file, I can update it like any other script.</p>
+<h3 id="some-caveats">Some Caveats<a class="heading-link" href="#some-caveats"><div style="display:inline-block">#</div></a></h3>
+<p>Setting up aliases as scripts can unlock a whole new level of power in your git aliases. However, there are some things to be aware of when doing this.</p>
+<p>When setting up aliases like this, its important to remember that the cwd of the script will be the current working directory of the shell that runs the script. Any relative file paths in the script will be treated as relative to the cwd of the shell, not the location of the script. This is super useful at times, and super painful at others. For our rebase-main script its not an issue though, and the only indication that this is happening is we used <code>~</code> in the file path to reference the script location as an absolute path.</p>
+<p>Introducing scripting into your git aliases can also make it tempting to add more and more logic to your aliases. This can make them harder to maintain and understand, but also harder to remember. Its not worth maintaining a super complex alias, as you’ll be less likely to use it anyways. Additionally, you should be careful to not intoduce anything that may take too long to run into your aliases. If you are running a script that takes a long time to run, you may want to consider if it is the right place for it.</p>
+<h2 id="conclusion">Conclusion<a class="heading-link" href="#conclusion"><div style="display:inline-block">#</div></a></h2>
+<p>I hope this article has shown you the power of scripting in your git aliases. By using scripts you can create more complex aliases that are easier to maintain and understand. This can make your git workflow more efficient and enjoyable. For more examples of git aliases, you can look at my <a href="https://github.com/agentender/dotfiles" rel="noopener noreferrer" target="_blank">dotfiles</a> project. It contains a lot of the configuration that I keep on all my machines, including my git aliases.</p></div></div><div style="position:fixed;bottom:0;right:0;display:flex;flex-direction:column;gap:8px;margin:16px;border-radius:8px;width:min(100%, 400px)"></div></div>
+        <script id="vike_pageContext" type="application/json">{"pageProps":"!undefined","urlPathname":"/blog/2024-07-30/superpowered-git-aliases","urlParsed":{"origin":null,"pathname":"/blog/2024-07-30/superpowered-git-aliases","pathnameOriginal":"/blog/2024-07-30/superpowered-git-aliases","search":{},"searchAll":{},"searchOriginal":null},"routeParams":{"date":"2024-07-30","slug":"superpowered-git-aliases"},"data":{},"abortReason":"!undefined","_urlRewrite":null,"_urlRedirect":"!undefined","abortStatusCode":"!undefined","_abortCall":"!undefined","_pageContextInitIsPassedToClient":"!undefined","_pageId":"/pages/blog/view"}</script>
+        <script src="/pr/12/assets/entries/entry-server-routing.BsUWC7hk.js" type="module" async></script>
+        <link rel="modulepreload" href="/pr/12/assets/entries/pages_blog_view.ic8zG_nF.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/12/assets/chunks/chunk-B2i7gW2R.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/12/assets/chunks/chunk-cxOtuCaR.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/12/assets/chunks/chunk-CDQ-4LUT.js" as="script" type="text/javascript">
+      </body>
+    </html>
