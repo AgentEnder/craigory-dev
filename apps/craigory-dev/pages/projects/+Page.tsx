@@ -14,6 +14,7 @@ import { FilterBar } from './components/filter-bar';
 import { PercentBar } from './components/percent-bar';
 import { ContentMarker } from '../../src/shared-components/content-marker';
 import { FormattedDate } from '@new-personal-monorepo/date-utils';
+import { differenceInDays, isBefore } from 'date-fns';
 
 export function Page() {
   const { projects } = useData<{ projects: RepoData[] }>();
@@ -23,11 +24,27 @@ export function Page() {
   );
   const [filteredProjects, setFilteredProjects] = useState(projects);
 
+  const [sortFn, setSortFn] = useState<
+    (projects: RepoData[]) => (a: RepoData, b: RepoData) => number
+  >(() => calculateRelevance);
+
+  const [sortedProjects, setSortedProjects] = useState<RepoData[]>(() => {
+    const fn = sortFn(projects);
+    return filteredProjects.sort(fn);
+  });
+
   useEffect(() => {
     setFilteredProjects(
       filterFn ? projects.filter((p) => filterFn(p)) : projects
     );
   }, [filterFn, projects]);
+
+  useEffect(() => {
+    if (filteredProjects) {
+      const fn = sortFn(filteredProjects);
+      setSortedProjects(filteredProjects.sort(fn));
+    }
+  }, [filteredProjects, sortFn]);
 
   const onSetFilter = useCallback(
     (fn: (p: RepoData) => boolean) => {
@@ -39,9 +56,8 @@ export function Page() {
   return (
     <>
       <h1>Projects</h1>
-      <p>Sorted by GitHub stars and last commit date.</p>
       <FilterBar onSetFilter={onSetFilter} repos={projects}></FilterBar>
-      {filteredProjects.map((p, idx) => (
+      {sortedProjects.map((p, idx) => (
         <div key={p.repo}>
           <div style={{ position: 'relative' }}>
             <a
@@ -236,4 +252,27 @@ export function Page() {
       ))}
     </>
   );
+}
+
+const calculateRelevance = (projects: RepoData[]) => {
+  const relevanceMap = new Map<string, number>();
+  for (const project of projects) {
+    relevanceMap.set(project.repo, calculateRelevanceForProject(project));
+  }
+  return (a: RepoData, b: RepoData) => {
+    return relevanceMap.get(b.repo)! - relevanceMap.get(a.repo)!;
+  };
+};
+
+function calculateRelevanceForProject(p: RepoData) {
+  // popularity metrics, based on stars + published package downloads
+  const stars = p.stars ?? 0;
+  const downloads = Object.values(p.publishedPackages ?? {}).reduce(
+    (acc, { downloads }) => acc + downloads,
+    0
+  );
+  // Recency metrics
+  const lastCommit = differenceInDays(new Date(), new Date(p.lastCommit ?? ''));
+
+  return stars + downloads / 100 + 100 / lastCommit;
 }

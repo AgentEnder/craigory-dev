@@ -137,7 +137,7 @@ async function getAllRepos() {
   // If not authenticated, we have extremely limited rate limits.
   // As such, we'll only fetch the additional repos to get a working
   // build.
-  if (!(process.env.GH_TOKEN + process.env.GITHUB_TOKEN).length) {
+  if (!(process.env.GH_TOKEN ?? '' + process.env.GITHUB_TOKEN ?? '').length) {
     return {
       projects: repos,
     };
@@ -154,13 +154,7 @@ async function getAllRepos() {
     );
     repos.push(...(chunk.filter(Boolean) as RepoData[]));
   }
-  return repos.sort((a, b) => {
-    const starDifference = (b.stars ?? 0) - (a.stars ?? 0);
-    if (starDifference !== 0) {
-      return starDifference > 0 ? 1 : -1;
-    }
-    return isBefore(b.lastCommit ?? '', a.lastCommit ?? '') ? -1 : 1;
-  });
+  return repos;
 }
 
 async function processRepo(repo: GithubRepo): Promise<RepoData | undefined> {

@@ -139,9 +139,13 @@ const DEFAULT_FILTERS = [ALL_FILTERS[0]];
 
 export function FilterBar({
   onSetFilter,
+  onSetSort,
   repos,
 }: {
   onSetFilter: (filter: FilterFn) => void;
+  onSetSort: (
+    fn: (projects: RepoData[]) => (a: RepoData, b: RepoData) => number
+  ) => void;
   repos: RepoData[];
 }) {
   const languages = useMemo(
