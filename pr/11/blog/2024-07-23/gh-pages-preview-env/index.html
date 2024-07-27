@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+    <html lang='en'>
+      <head>
+        <link rel="stylesheet" type="text/css" href="/pr/11/assets/static/Layout.DyYECir4.css">
+        <link rel="stylesheet" type="text/css" href="/pr/11/assets/static/view.DM2nwsAY.css">
+        <link rel="stylesheet" type="text/css" href="/pr/11/assets/static/Head.5if0RVJt.css">
+    <meta charset="UTF-8" />
+    <title>Craigory Coppola</title><meta property="og:title" content="Craigory Coppola" />
+    <meta charSet="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><meta name="description" content="Personal website of Craigory Coppola"/><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/obsidian.min.css"/><script async="" src="https://www.googletagmanager.com/gtag/js?id=G-1180FLF5RC"></script><script>window.dataLayer = window.dataLayer || [];
+        function gtag() {
+          dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+  
+        gtag('config', 'G-1180FLF5RC');
+          </script>
+    
+  </head>
+      <body>
+        <div id="root"><div class="layout"><div class="sidebar"><a href="/pr/11/" class="navitem">Home</a><a href="/pr/11/projects" class="navitem">Projects</a><a href="/pr/11/presentations" class="navitem">Speaking + Presentations</a><a href="/pr/11/blog/1" class="navitem">Blog</a></div><div class="content"><h1 id="setting-up-preview-environments-for-github-pages">Setting Up Preview Environments for Github Pages</h1>
+<p>Github Pages provides free hosting for static websites. It’s a great way to host your personal blog, portfolio, or documentation, and is infact used to host this website. While it serves this purpose well, it is missing a feature that many newer hosting providers offer: preview environments.</p>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#what-are-preview-environments">What are preview environments?</a></li>
+<li><a href="#prerequisite-deploy-with-github-actions">Prerequisite: Deploy with Github Actions</a></li>
+<li><a href="#thinking-about-preview-environments-and-github-pages">Thinking About Preview Environments and Github Pages</a></li>
+<li><a href="#setting-up-preview-environments">Setting up Preview Environments</a>
+<ul>
+<li><a href="#building-for-the-preview-environment">Building for the Preview Environment</a></li>
+<li><a href="#deploying-to-the-preview-environment">Deploying to the Preview Environment</a></li>
+</ul>
+</li>
+<li><a href="#commenting-on-pull-requests">Commenting on Pull Requests</a></li>
+<li><a href="#cleaning-up-preview-environments">Cleaning up Preview Environments</a></li>
+<li><a href="#summary-and-next-steps">Summary and Next Steps</a></li>
+</ul>
+<h2 id="what-are-preview-environments">What are preview environments?<a class="heading-link" href="#what-are-preview-environments"><div style="display:inline-block">#</div></a></h2>
+<p>Preview environments are temporary environments that are created for each pull request. They allow you to preview your changes before merging them into the main branch. This is especially useful for static websites, where you can’t preview your changes locally. Vercel and Netlify both offer this feature, and leave a comment on the pull request with a link to the preview environment.</p>
+<h2 id="prerequisite-deploy-with-github-actions">Prerequisite: Deploy with Github Actions<a class="heading-link" href="#prerequisite-deploy-with-github-actions"><div style="display:inline-block">#</div></a></h2>
+<p>Before getting into the nitty-gritty of setting up preview environments, its important to have a good understanding of how deploying to GitHub Pages works. There are a variety of ways to deploy to GitHub Pages, and some official actions blocks that can make it easier. For this tutorial, we will <strong>not</strong> be using the official block or even a custom one. Instead, we will be using a different method to deploy that involves pushing the build artifacts to the <code>gh-pages</code> branch.</p>
+<p>In practice, the steps will look something like this:</p>
+<ul>
+<li>Build the website</li>
+<li>Initialize a new git repository in the build directory</li>
+<li>Commit the build artifacts</li>
+<li>Force push the build artifacts to the <code>gh-pages</code> branch</li>
+</ul>
+<p>This creates a branch in the repository that has an unrelated history to the main branch, containing a single commit that represents the current build. This is the branch that Github Pages will use to serve the website. I typically set this up as a GitHub action that either runs on push or on workflow_dispatch. An example script that does this is below:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><div class="_filename_1uasc_35">.github/workflows/deploy.yml</div></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-yaml"><span class="hljs-attr">name:</span> <span class="hljs-string">Nightly</span> <span class="hljs-string">Deployment</span>
+
+<span class="hljs-attr">on:</span>
+  <span class="hljs-attr">schedule:</span>
+    <span class="hljs-bullet">-</span> <span class="hljs-attr">cron:</span> <span class="hljs-string">&#x27;0 0 * * *&#x27;</span>
+  <span class="hljs-attr">push:</span>
+    <span class="hljs-attr">branches:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-string">main</span>
+  <span class="hljs-attr">workflow_dispatch:</span>
+
+<span class="hljs-attr">jobs:</span>
+  <span class="hljs-attr">deploy:</span>
+    <span class="hljs-attr">runs-on:</span> <span class="hljs-string">ubuntu-latest</span>
+    <span class="hljs-attr">permissions:</span>
+      <span class="hljs-attr">contents:</span> <span class="hljs-string">write</span>
+      <span class="hljs-attr">id-token:</span> <span class="hljs-string">write</span>
+      <span class="hljs-attr">pages:</span> <span class="hljs-string">write</span>
+
+    <span class="hljs-attr">steps:</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Checkout</span> <span class="hljs-string">code</span>
+        <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/checkout@v2</span>
+        <span class="hljs-attr">with:</span>
+          <span class="hljs-attr">fetch-depth:</span> <span class="hljs-number">0</span>
+
+      <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Setup</span> <span class="hljs-string">Node.js</span>
+        <span class="hljs-attr">uses:</span> <span class="hljs-string">actions/setup-node@v4</span>
+        <span class="hljs-attr">with:</span>
+          <span class="hljs-attr">node-version:</span> <span class="hljs-string">&#x27;22.5.1&#x27;</span>
+          <span class="hljs-attr">cache:</span> <span class="hljs-string">&#x27;npm&#x27;</span>
+
+      <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Install</span> <span class="hljs-string">dependencies</span>
+        <span class="hljs-attr">run:</span> <span class="hljs-string">npm</span> <span class="hljs-string">ci</span>
+
+      <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Setup</span> <span class="hljs-string">Git</span> <span class="hljs-string">User</span>
+        <span class="hljs-attr">run:</span> <span class="hljs-string">|
+          git config --global user.name &quot;${GITHUB_ACTOR}&quot;
+          git config --global user.email &quot;${GITHUB_ACTOR}@users.noreply.github.com&quot;
+</span>
+      <span class="hljs-comment"># Add your deployment steps here</span>
+      <span class="hljs-bullet">-</span> <span class="hljs-attr">name:</span> <span class="hljs-string">Deploy</span> <span class="hljs-string">to</span> <span class="hljs-string">production</span>
+        <span class="hljs-attr">run:</span> <span class="hljs-string">|
+          node ./node_modules/.bin/nx build craigory-dev
+          node ./tools/scripts/deploy.js
+</span></code></pre></div>
+<p>The <code>deploy.js</code> script is a simple script that does the following:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><div class="_filename_1uasc_35">tools/scripts/deploy.js</div></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-javascript"><span class="hljs-keyword">const</span> { execSync } = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;child_process&#x27;</span>);
+
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">BUILD_DIR</span> = <span class="hljs-string">&#x27;dist/apps/craigory-dev&#x27;</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">GH_PAGES_BRANCH</span> = <span class="hljs-string">&#x27;gh-pages&#x27;</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">REMOTE_URL</span> = <span class="hljs-string">&#x27;https://github.com/agentender/craigory-dev.git&#x27;</span>;
+
+<span class="hljs-comment">// Create a new git repository in build directory, pointing to this repository</span>
+<span class="hljs-title function_">execSync</span>(<span class="hljs-string">`git init`</span>, { <span class="hljs-attr">cwd</span>: <span class="hljs-variable constant_">BUILD_DIR</span> });
+<span class="hljs-title function_">execSync</span>(<span class="hljs-string">`git remote add origin <span class="hljs-subst">${REMOTE_URL}</span>`</span>, { <span class="hljs-attr">cwd</span>: <span class="hljs-variable constant_">BUILD_DIR</span> });
+
+<span class="hljs-comment">// Commit the build artifacts</span>
+<span class="hljs-title function_">execSync</span>(<span class="hljs-string">`git add .`</span>, { <span class="hljs-attr">cwd</span>: <span class="hljs-variable constant_">BUILD_DIR</span> });
+<span class="hljs-title function_">execSync</span>(<span class="hljs-string">`git commit -m &quot;Deploy&quot;`</span>, { <span class="hljs-attr">cwd</span>: <span class="hljs-variable constant_">BUILD_DIR</span> });
+
+<span class="hljs-comment">// Force push the build artifacts to the `gh-pages` branch, overwriting any existing history</span>
+<span class="hljs-title function_">execSync</span>(<span class="hljs-string">`git push origin --force HEAD:<span class="hljs-subst">${GH_PAGES_BRANCH}</span>`</span>, { <span class="hljs-attr">cwd</span>: <span class="hljs-variable constant_">BUILD_DIR</span> });
+</code></pre></div>
+<p>When a push is made to the <code>gh-pages</code> branch, there is a built-in action that will deploy the website. This is how I typically setup “production” deployments to GitHub Pages.</p>
+<h2 id="thinking-about-preview-environments-and-github-pages">Thinking About Preview Environments and Github Pages<a class="heading-link" href="#thinking-about-preview-environments-and-github-pages"><div style="display:inline-block">#</div></a></h2>
+<p>Github Pages only allows a single deployment per repository. This means that we can’t strictly follow the same pattern as Vercel or Netlify, where each pull request gets its own deployment. Additionally, if we want to isolate our preview environments from the main branch we can’t use the same ‘gh-pages’ branch for both preview environments and production.</p>
+<p>This has led me to typically deploy production build artifacts to a separate repository on GitHub. The only changes required to the above script are to change the <code>REMOTE_URL</code> to point to the new repository. This allows me to have a separate repository for the production build artifacts, and point the current <code>gh-pages</code> branch of this repository to a subdomain of the production website.</p>
+<p>GitHub pages only supports static web apps. This means that the build artifacts on disk are directly served to the user. We can use this to our advantage by pushing the build artifacts of the preview environment to a subdirectory of the <code>gh-pages</code> branch. This will surface as a url like: <code>${username}.github.io/${repository}/${whatever-directory-you-choose}</code>. By picking subdirectories based on the pull request number, we can form predictable, short urls that are human readable. This is the approach I will be outlining in this tutorial.</p>
+<h2 id="setting-up-preview-environments">Setting up Preview Environments<a class="heading-link" href="#setting-up-preview-environments"><div style="display:inline-block">#</div></a></h2>
+<p>Knowing how this will be structured, we can break the problem down into a few steps:</p>
+<ul>
+<li>Build the website on the PR branch</li>
+<li>Create a new temporary folder called ‘gh-pages-root’ in the repository</li>
+<li>Initialize a new git repository in the ‘gh-pages-root’ folder</li>
+<li>Copy the build artifacts to a subdirectory of ‘gh-pages-root’</li>
+<li>Commit the build artifacts</li>
+<li>Sync the ‘gh-pages-root’ folder with the ‘gh-pages’ branch</li>
+<li>Push the changes to the ‘gh-pages’ branch</li>
+</ul>
+<h3 id="building-for-the-preview-environment">Building for the Preview Environment<a class="heading-link" href="#building-for-the-preview-environment"><div style="display:inline-block">#</div></a></h3>
+<p>This should be <strong>very</strong> similar to your current build script. The main thing that needs to change is that the base url for your page will not be <code>/</code> on the preview environment. Depending on how your web app is built, this will require different changes. This website (craigory.dev) is built using <a href="https://vike.dev" rel="noopener noreferrer" target="_blank">Vike</a>, a framework built on top of Vite. Vike supports passing in the base url via the <code>base</code> property in the vite config, which can be overridden on the CLI. As such, I am building the preview environment with a command like:</p>
+<div style="display:flex;flex-direction:column"><pre style="margin-top:0" class="_code-wrapper_1uasc_1 "><code class="hljs language-bash">nx run craigory-dev:build --base /pr/<span class="hljs-variable">${PR_NUMBER}</span>/
+</code></pre></div>
+<p>Documentation about how to set the base url for different frameworks can be found here:</p>
+<ul>
+<li><a href="https://vitejs.dev/config/shared-options.html#base" rel="noopener noreferrer" target="_blank">Vite</a></li>
+<li><a href="https://angular.dev/guide/routing/common-router-tasks#base-href" rel="noopener noreferrer" target="_blank">Angular</a>
+<ul>
+<li><a href="https://analogjs.org/docs/features/data-fetching/server-side-data-fetching#setting-the-public-base-url" rel="noopener noreferrer" target="_blank">Analog JS</a></li>
+</ul>
+</li>
+<li><a href="https://mademistakes.com/mastering-jekyll/site-url-baseurl/" rel="noopener noreferrer" target="_blank">Jekyll</a></li>
+<li><a href="https://www.gatsbyjs.com/docs/how-to/previews-deploys-hosting/path-prefix/" rel="noopener noreferrer" target="_blank">Gatsby</a></li>
+<li><a href="https://nextjs.org/docs/api-reference/next.config.js/basepath" rel="noopener noreferrer" target="_blank">Next.js</a></li>
+<li><a href="https://gohugo.io/methods/site/baseurl/" rel="noopener noreferrer" target="_blank">Hugo</a></li>
+<li><a href="https://docusaurus.io/docs/deployment#configuration" rel="noopener noreferrer" target="_blank">Docusaurus</a></li>
+</ul>
+<p>For other frameworks, you’ll need to find the equivalent way to pass in the base url. This is important because the base url is used to resolve assets or any relative paths, and if it is incorrect your website will not load correctly.</p>
+<h3 id="deploying-to-the-preview-environment">Deploying to the Preview Environment<a class="heading-link" href="#deploying-to-the-preview-environment"><div style="display:inline-block">#</div></a></h3>
+<p>This is a bit more involved than the previous script, but is made up of the same basic steps. The script below will do this:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><div class="_filename_1uasc_35">tools/scripts/deploy-preview.js</div></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-javascript"><span class="hljs-keyword">const</span> { execSync } = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;child_process&#x27;</span>);
+<span class="hljs-keyword">const</span> fs = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;fs&#x27;</span>);
+<span class="hljs-keyword">const</span> path = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;path&#x27;</span>);
+
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">BUILD_DIR</span> = <span class="hljs-string">&#x27;dist/apps/craigory-dev&#x27;</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">GH_PAGES_ROOT</span> = <span class="hljs-string">&#x27;gh-pages-root&#x27;</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">GH_PAGES_BRANCH</span> = <span class="hljs-string">&#x27;gh-pages&#x27;</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">REMOTE_URL</span> = <span class="hljs-string">&#x27;...&#x27;</span>; <span class="hljs-comment">// This should be the url of the repository that will host the preview build artifacts</span>
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">PR_NUMBER</span> = process.<span class="hljs-property">env</span>.<span class="hljs-property">PR_NUMBER</span>; <span class="hljs-comment">// This should be passed in as an environment variable</span>
+
+<span class="hljs-comment">// Create a new git repository in the &#x27;gh-pages-root&#x27; folder, pointing to this repository</span>
+fs.<span class="hljs-title function_">mkdirSync</span>(<span class="hljs-variable constant_">GH_PAGES_ROOT</span>, { <span class="hljs-attr">recursive</span>: <span class="hljs-literal">true</span> });
+<span class="hljs-title function_">execSync</span>(<span class="hljs-string">`git init`</span>, { <span class="hljs-attr">cwd</span>: <span class="hljs-variable constant_">GH_PAGES_ROOT</span> });
+<span class="hljs-title function_">execSync</span>(<span class="hljs-string">`git remote add origin <span class="hljs-subst">${REMOTE_URL}</span>`</span>, { <span class="hljs-attr">cwd</span>: <span class="hljs-variable constant_">GH_PAGES_ROOT</span> });
+
+<span class="hljs-comment">// Copy the build artifacts to a subdirectory of &#x27;gh-pages-root&#x27;</span>
+<span class="hljs-keyword">const</span> dest = path.<span class="hljs-title function_">join</span>(<span class="hljs-variable constant_">GH_PAGES_ROOT</span>, <span class="hljs-string">`pr/<span class="hljs-subst">${PR_NUMBER}</span>`</span>);
+fs.<span class="hljs-title function_">mkdirSync</span>(dest, { <span class="hljs-attr">recursive</span>: <span class="hljs-literal">true</span> });
+fs.<span class="hljs-title function_">cpSync</span>(<span class="hljs-variable constant_">BUILD_DIR</span>, dest);
+
+<span class="hljs-comment">// Commit the build artifacts</span>
+<span class="hljs-title function_">execSync</span>(<span class="hljs-string">`git add .`</span>, { <span class="hljs-attr">cwd</span>: <span class="hljs-variable constant_">GH_PAGES_ROOT</span> });
+<span class="hljs-title function_">execSync</span>(<span class="hljs-string">`git commit -m &quot;Deploy preview <span class="hljs-subst">${PR_NUMBER}</span>&quot;`</span>, { <span class="hljs-attr">cwd</span>: <span class="hljs-variable constant_">GH_PAGES_ROOT</span> });
+
+<span class="hljs-comment">// Sync the &#x27;gh-pages-root&#x27; folder with the &#x27;gh-pages&#x27; branch</span>
+<span class="hljs-title function_">execSync</span>(<span class="hljs-string">`git fetch origin <span class="hljs-subst">${GH_PAGES_BRANCH}</span>`</span>, { <span class="hljs-attr">cwd</span>: <span class="hljs-variable constant_">GH_PAGES_ROOT</span> });
+<span class="hljs-comment">// The --allow-unrelated-histories flag is required because the &#x27;gh-pages&#x27; branch has no history</span>
+<span class="hljs-title function_">execSync</span>(<span class="hljs-string">`git merge origin/<span class="hljs-subst">${GH_PAGES_BRANCH}</span> --allow-unrelated-histories`</span>, {
+  <span class="hljs-attr">cwd</span>: <span class="hljs-variable constant_">GH_PAGES_ROOT</span>,
+});
+
+<span class="hljs-comment">// Push the changes to the &#x27;gh-pages&#x27; branch</span>
+<span class="hljs-title function_">execSync</span>(<span class="hljs-string">`git push origin HEAD:<span class="hljs-subst">${GH_PAGES_BRANCH}</span>`</span>, { <span class="hljs-attr">cwd</span>: <span class="hljs-variable constant_">GH_PAGES_ROOT</span> });
+</code></pre></div>
+<p>This script should be run on every pull request. It will create a new subdirectory in the <code>gh-pages-root</code> folder, copy the build artifacts to it, and push the changes to the <code>gh-pages</code> branch. This is enough to have functioning preview environments for your Github Pages, minus a few nice-to-haves that other hosting providers offer.</p>
+<h2 id="commenting-on-pull-requests">Commenting on Pull Requests<a class="heading-link" href="#commenting-on-pull-requests"><div style="display:inline-block">#</div></a></h2>
+<p>Its helpful to leave a comment on the pull request with a link to the preview environment. This can be done with the Github API, and is a nice touch that makes it easier for reviewers to see the changes. For a full example of how to do this, I’d recommend checking the script in this repository found <a href="https://github.com/agentender/craigory-dev/blob/main/tools/update-preview-comment.ts" rel="noopener noreferrer" target="_blank">here</a>.</p>
+<h2 id="cleaning-up-preview-environments">Cleaning up Preview Environments<a class="heading-link" href="#cleaning-up-preview-environments"><div style="display:inline-block">#</div></a></h2>
+<p>Preview environments are temporary, and should be cleaned up after the pull request is closed. While its not paramount to do this, it can be helpful to keep the repository clean and avoid your GitHub Pages deployment size growing too large.</p>
+<p>This can be done with a simple script that deletes the subdirectory in the <code>gh-pages-root</code> folder. This script can be run on pull request close, or on a schedule. An example script that does this is below:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><div class="_filename_1uasc_35">tools/scripts/cleanup-preview.js</div></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-javascript"><span class="hljs-keyword">const</span> fs = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;fs&#x27;</span>);
+<span class="hljs-keyword">const</span> path = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;path&#x27;</span>);
+<span class="hljs-keyword">const</span> { execSync } = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;child_process&#x27;</span>);
+
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">GH_PAGES_ROOT</span> = <span class="hljs-string">&#x27;gh-pages-root&#x27;</span>;
+<span class="hljs-keyword">const</span> <span class="hljs-variable constant_">PR_NUMBER</span> = process.<span class="hljs-property">env</span>.<span class="hljs-property">PR_NUMBER</span>; <span class="hljs-comment">// This should be passed in as an environment variable</span>
+
+<span class="hljs-comment">// Remove PR directory</span>
+<span class="hljs-keyword">const</span> dest = path.<span class="hljs-title function_">join</span>(<span class="hljs-variable constant_">GH_PAGES_ROOT</span>, <span class="hljs-string">`pr/<span class="hljs-subst">${PR_NUMBER}</span>`</span>);
+fs.<span class="hljs-title function_">rmSync</span>(dest, { <span class="hljs-attr">recursive</span>: <span class="hljs-literal">true</span> });
+
+<span class="hljs-comment">// Commit the removal</span>
+<span class="hljs-title function_">execSync</span>(<span class="hljs-string">`git add .`</span>, { <span class="hljs-attr">cwd</span>: <span class="hljs-variable constant_">GH_PAGES_ROOT</span> });
+<span class="hljs-title function_">execSync</span>(<span class="hljs-string">`git commit -m &quot;Remove preview <span class="hljs-subst">${PR_NUMBER}</span>&quot;`</span>, { <span class="hljs-attr">cwd</span>: <span class="hljs-variable constant_">GH_PAGES_ROOT</span> });
+
+<span class="hljs-comment">// Push the changes to the &#x27;gh-pages&#x27; branch</span>
+<span class="hljs-title function_">execSync</span>(<span class="hljs-string">`git push origin HEAD:gh-pages`</span>, { <span class="hljs-attr">cwd</span>: <span class="hljs-variable constant_">GH_PAGES_ROOT</span> });
+</code></pre></div>
+<p>There are a few things to note about this script:</p>
+<ul>
+<li>It should be ran in a GitHub action that runs on PR close.</li>
+<li>It should be passed the PR number as an environment variable.</li>
+<li>It should checkout the <code>gh-pages</code> branch before running the script.</li>
+</ul>
+<p>Alternatively, if you are running the job on a schedule you could remove any PR directories that are older than a certain age. This would be a bit more involved, but is a good way to keep the repository clean but give preview environments a bit more longevity. This is the path this repository has taken, and the script can be found <a href="https://github.com/agentender/craigory-dev/blob/main/tools/cleanup-old-deployments.ts" rel="noopener noreferrer" target="_blank">here</a>.</p>
+<p>Regardless of which approach you take, one caveat to keep in mind is that since the <code>gh-pages</code> branch is checked out instead of your typical <code>main</code> branch, any script that needs to be ran will need to be present inside the <code>gh-pages</code> branch. With our publishing strategy this is not a given, so you’ll need to workaround it. In this repository’s case I’ve added a command into the <code>cleanup-pr-deployments.yml</code> workflow that downloads the latest version of the <code>gh-pages</code> branch before running the cleanup script. You could also update the deployment script to include the tools folder as part of the build artifacts, but that may not be desired.</p>
+<h2 id="summary-and-next-steps">Summary and Next Steps<a class="heading-link" href="#summary-and-next-steps"><div style="display:inline-block">#</div></a></h2>
+<p>We’ve covered a bit of how basic GitHub Pages deployments work, as well as how to shift that to support preview environments. This is a great way to get a bit more out of your GitHub Pages deployment without having to change hosting providers, and can be a good way to preview changes before merging them into the main branch.</p></div></div><div style="position:fixed;bottom:0;right:0;display:flex;flex-direction:column;gap:8px;margin:16px;border-radius:8px;width:min(100%, 400px)"></div></div>
+        <script id="vike_pageContext" type="application/json">{"pageProps":"!undefined","urlPathname":"/blog/2024-07-23/gh-pages-preview-env","urlParsed":{"origin":null,"pathname":"/blog/2024-07-23/gh-pages-preview-env","pathnameOriginal":"/blog/2024-07-23/gh-pages-preview-env","search":{},"searchAll":{},"searchOriginal":null},"routeParams":{"date":"2024-07-23","slug":"gh-pages-preview-env"},"data":"!undefined","abortReason":"!undefined","_urlRewrite":null,"_urlRedirect":"!undefined","abortStatusCode":"!undefined","_abortCall":"!undefined","_pageContextInitIsPassedToClient":"!undefined","_pageId":"/pages/blog/view"}</script>
+        <script src="/pr/11/assets/entries/entry-server-routing.BILhp3el.js" type="module" async></script>
+        <link rel="modulepreload" href="/pr/11/assets/entries/pages_blog_view.CUCkMpqf.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/11/assets/chunks/chunk-DMat7J7w.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/11/assets/chunks/chunk-bXDOWmmA.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/11/assets/chunks/chunk-BE4LgUA5.js" as="script" type="text/javascript">
+      </body>
+    </html>
