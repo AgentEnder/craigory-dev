@@ -8,7 +8,7 @@
     "noImplicitReturns": true,
     "noFallthroughCasesInSwitch": true,
     "jsx": "react-jsx",
-    "types": ["mdx"]
+    "types": ["mdx", "vite/client"]
   },
   "files": [],
   "include": [],

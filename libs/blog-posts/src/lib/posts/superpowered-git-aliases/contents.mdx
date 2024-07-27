@@ -1,0 +1,178 @@
+# Superpowered Git Aliases using Scripting
+
+## Table of Contents
+
+## What are Git Aliases
+
+Git aliases work similarly to regular aliases in the shell, but they are specific to Git commands. They allow you to create shortcuts for longer commands or to create new commands that are not available by default.
+
+Aliases run in the same shell environment as other git commands, and are mostly used to simplify common workflows.
+
+### Simple Aliases
+
+Simple aliases call a single Git command with a set of arguments. For example, you can create an alias to show the status of the repository by running `git status` with the `s` alias:
+
+```INI filename="~/.gitconfig"
+[alias]
+  s = status
+```
+
+You can then run `git s` to show the status of the repository. Because we configured the alias in ~/.gitconfig, it is available for all repositories on the system.
+
+### More Complex Aliases
+
+You can also create git aliases that run an arbitrary shell command. To do so, the alias needs to start with a `!`. This tells git to execute the alias as if it was not a git subcommand. For example, if you wanted to run two git commands in sequence, you could create an alias that runs a shell command:
+
+```INI filename="~/.gitconfig"
+[alias]
+  my-alias = !git fetch && git rebase origin/master
+```
+
+This alias runs `git fetch` and `git rebase origin/main` in sequence when you run `git my-alias`.
+
+One limitation of git aliases is that they cannot be set to a multiline value. This means that for more complex aliases you will need to minify them.
+
+Additionally, in an INI file a `;` character is used to comment out the rest of the line. This means that you cannot use `;` in your alias commands.
+
+These two limitations can make it difficult to create more complex aliases using the standard git alias syntax, but it can still be done. For example, an alias using `if` to branch may look like this:
+
+```INI filename="~/.gitconfig"
+[alias]
+  branch-if = !bash -c "'!f() { if [ -z \"$1\" ]; then echo \"Usage: git branch-if <branch-name>\"; else git checkout -b $1; fi; }; f'"
+```
+
+These limits make it way more complex to create and maintain aliases that have any form of control flow within them. This is where scripting comes in.
+
+## Setting up Aliases with Scripts
+
+You can script a gitalias using any programming language you'd like. If you are familiar with bash scripting and would like to use it, you can create a bash script that runs the desired git commands. The truth is that I am much stronger with JavaScript, so that is what I will use.
+
+One other major benefit is that by using a scripting language, your aliases can take and operate on arguments **much** more easily. Git will forward any arguments you pass on the CLI to your alias by appending them to the end of your command. As such, your script should be able to read them without issue. For example, in Node JS you can access the arguments passed to the script directly on `process.argv`.
+
+The basic steps to set this up do not change based on the language choosen. You'll need to:
+
+- Create a script that runs the desired git commands
+- Write an alias that runs the script
+
+### Case Study: Rebase Main / master
+
+In recent years the default branch name for new repositories has changed from `master` to `main`. This means that when you clone a new repository, the default branch may be `main` instead of `master`. There is no longer a super consistent name, as the ecosystem is in transition. This is overall a good thing, but it means that our alias above to rebase will not work in all cases.
+
+We need to update our alias to check if the branch is `main` or `master` and then rebase the correct branch. This is a perfect use case for a script.
+
+```javascript filename="~/gitaliases/git-rebase-main.js"
+#!/usr/bin/env node
+
+const { execSync } = require('child_process');
+
+// We want to run some commands and not immediately fail if they fail
+function tryExec(command) {
+  try {
+    return {
+      status: 0
+      stdout: execSync(command);
+    }
+  } catch (error) {
+    return {
+      status: error.status,
+      stdout: error.stdout,
+      stderr: error.stderr,
+    }
+  }
+}
+
+function getOriginRemoteName() {
+  const { stdout, code } = tryExec("git remote", true);
+  if (code !== 0) {
+    throw new Error("Failed to get remote name. \n" + stdout);
+  }
+  // If there is an upstream remote, use that, otherwise use origin
+  return stdout.includes("upstream") ? "upstream" : "origin";
+}
+
+// --verify returns code 0 if the branch exists, 1 if it does not
+const hasMain = tryExec('git show-ref --verify refs/heads/main').status === 0;
+
+// If main is present, we want to rebase main, otherwise rebase master
+const branch = hasMain ? 'main' : 'master';
+
+const remote = getOriginRemoteName()
+
+// Updates the local branch with the latest changes from the remote
+execSync(`git fetch ${remote} ${branch}`, {stdio: 'inherit'});
+// Rebases the current branch on top of the remote branch
+execSync(`git rebase ${remote}/${branch}`, {stdio: 'inherit'});
+```
+
+Currently, to run the script we'd need to run `node ~/gitaliases/git-rebase-main.js`. This is not ideal, and isn't something you'd ever get in the habit of doing. We can make this easier by creating a git alias that runs the script.
+
+```INI filename="~/.gitconfig"
+[alias]
+  rebase-main = !node ~/gitaliases/git-rebase-main.js
+```
+
+Now you can run `git rebase-main` to rebase the correct branch, regardless of if it is `main` or `master`.
+
+### Case Study: Amend
+
+Another alias that I set up on all my machines is to amend the last commit. This is a super common workflow for me, and I like to have it as a single command. This is a great use case for a script, as it is a simple command that I want to run often.
+
+```javascript filename="~/gitaliases/git-amend.js"
+#!/usr/bin/env node
+
+// Usage: git amend [undo]
+const tryExec = require('./utils/try-exec');
+
+async function getBranchesPointingAtHead() {
+  const { stdout, code } = await tryExec('git branch --points-at HEAD', true);
+  if (code !== 0) {
+    throw new Error('Failed to get branches pointing at HEAD. \n' + stdout);
+  }
+  return stdout.split('\n').filter(Boolean);
+}
+
+(async () => {
+  const branches = await getBranchesPointingAtHead();
+  if (branches.length !== 1) {
+    console.log(
+      'Current commit is relied on by other branches, avoid amending it.'
+    );
+    process.exit(1);
+  }
+  if (process.argv[2] === 'undo') {
+    await tryExec('git reset --soft HEAD@{1}');
+  } else {
+    await tryExec('git commit --amend --no-edit');
+  }
+})();
+```
+
+This script is a bit more complex than the last one, as it has some control flow in it. It will check if the current commit is relied on by other branches, and if it is it will exit with an error. This is to prevent you from amending a commit that is relied on by other branches, as doing so would cause issues when trying to merge whichever branch relies on the commit.
+
+To set up the alias, you can use the same method as before:
+
+```INI filename="~/.gitconfig"
+[alias]
+  amend = !node ~/gitaliases/git-amend.js
+```
+
+Now you can run `git amend` to amend the last commit, or `git amend undo` to undo the last amend. This is a script that I initially wrote inline in my gitconfig, but as it grew in complexity I moved it to a script file. This is a great way to manage complexity in your aliases. For comparison, here is the original alias:
+
+```INI filename="~/.gitconfig"
+[alias]
+  amend = !bash -c "'f() { if [ $(git branch --points-at HEAD | wc -l) != 1 ]; then echo Current commit is relied on by other branches, avoid amending it.; exit 1; fi; if [ \"$0\" = "undo" ]; then git reset --soft \"HEAD@{1}\"; else git commit --amend --no-edit; fi }; f'"
+```
+
+This script could have been extracted to a .sh file as well, but keeping things in node lowers the maintenance burden for me personally. In the past, anytime I needed to update this alias I would have to paste it into a bash linter, make my changes, minify it, and then paste it back into my gitconfig. This was a pain, and I would often avoid updating the alias because of it. Now that it is in a script file, I can update it like any other script.
+
+### Some Caveats
+
+Setting up aliases as scripts can unlock a whole new level of power in your git aliases. However, there are some things to be aware of when doing this.
+
+When setting up aliases like this, its important to remember that the cwd of the script will be the current working directory of the shell that runs the script. Any relative file paths in the script will be treated as relative to the cwd of the shell, not the location of the script. This is super useful at times, and super painful at others. For our rebase-main script its not an issue though, and the only indication that this is happening is we used `~` in the file path to reference the script location as an absolute path.
+
+Introducing scripting into your git aliases can also make it tempting to add more and more logic to your aliases. This can make them harder to maintain and understand, but also harder to remember. Its not worth maintaining a super complex alias, as you'll be less likely to use it anyways. Additionally, you should be careful to not intoduce anything that may take too long to run into your aliases. If you are running a script that takes a long time to run, you may want to consider if it is the right place for it.
+
+## Conclusion
+
+I hope this article has shown you the power of scripting in your git aliases. By using scripts you can create more complex aliases that are easier to maintain and understand. This can make your git workflow more efficient and enjoyable. For more examples of git aliases, you can look at my [dotfiles](https://github.com/agentender/dotfiles) project. It contains a lot of the configuration that I keep on all my machines, including my git aliases.
