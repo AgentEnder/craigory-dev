@@ -334,6 +334,13 @@ async function getPublishedPackages(repo: GithubRepo) {
     if (!packageJson.name || packageJson.private) {
       continue;
     }
+
+    packages[packageJson.name] ??= {
+      downloads: 0,
+      registry: 'npm',
+      url: `https://npmjs.com/${packageJson.name}`,
+    };
+
     const weeklyDownloadsByVersion: {
       downloads: Record<string, number>;
     } = await fetch(
@@ -345,11 +352,6 @@ async function getPublishedPackages(repo: GithubRepo) {
     for (const [, downloads] of Object.entries(
       weeklyDownloadsByVersion.downloads
     )) {
-      packages[packageJson.name] ??= {
-        downloads: 0,
-        registry: 'npm',
-        url: `https://npmjs.com/${packageJson.name}`,
-      };
       packages[packageJson.name].downloads += downloads;
     }
   }

@@ -67,7 +67,7 @@
       "executor": "@nx/eslint:lint"
     },
     "deploy": {
-      "executor": "@nx-dotnet/nx-ghpages:deploy",
+      "executor": "nx-github-pages:deploy",
       "options": {
         "directory": "dist/apps/craigory-dev/client",
         "remote": "https://github.com/AgentEnder/agentender.github.io.git"
