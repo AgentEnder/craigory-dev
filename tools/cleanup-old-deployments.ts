@@ -1,5 +1,5 @@
 import { execSync } from 'child_process';
-import { readdirSync } from 'fs';
+import { existsSync, readdirSync } from 'fs';
 
 import { Octokit } from '@octokit/rest';
 
@@ -51,6 +51,12 @@ async function cleanupDeployment(pr: string) {
 
 (async () => {
   const now = Date.now();
+  // pr folder will not exist if all PRs have been cleaned up
+  // on a previous run, so we exit early to avoid an ENOENT
+  // when reading the directory.
+  if (!existsSync('pr')) {
+    return;
+  }
   const deployments = readdirSync('pr');
   for (const folder of deployments) {
     const lastModified = new Date(
