@@ -341,13 +341,36 @@ async function getPublishedPackages(repo: GithubRepo) {
       url: `https://npmjs.com/${packageJson.name}`,
     };
 
-    const weeklyDownloadsByVersion: {
-      downloads: Record<string, number>;
-    } = await fetch(
+    // check that the package was published
+    try {
+      const response = await fetch(
+        `https://registry.npmjs.org/${encodeURIComponent(packageJson.name)}`
+      );
+      if (response.status === 404 || response.status === 405) {
+        throw new Error('Package not found');
+      }
+    } catch {
+      delete packages[packageJson.name];
+      continue;
+    }
+
+    const response = await fetch(
       `https://api.npmjs.org/versions/${encodeURIComponent(
         packageJson.name
       )}/last-week`
-    ).then((res) => res.json());
+    );
+
+    // Indicates that the package was not published.
+    if (response.status !== 200) {
+      delete packages[packageJson.name];
+      continue;
+    }
+
+    const weeklyDownloadsByVersion: {
+      downloads: Record<string, number>;
+      error?: string;
+      statusCode?: number;
+    } = await response.json();
 
     for (const [, downloads] of Object.entries(
       weeklyDownloadsByVersion.downloads
