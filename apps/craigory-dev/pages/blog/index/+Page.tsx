@@ -28,13 +28,7 @@ export function Page() {
             }}
           >
             <div id={post.slug} className={`post-container`}>
-              <h2
-                style={{
-                  margin: 0,
-                }}
-                key={post.title + 'TITLE'}
-                className="title"
-              >
+              <h2 key={post.title + 'TITLE'} className="title">
                 <Link
                   href={`/blog/${formatDateString(post.publishDate)}/${
                     post.slug
@@ -43,9 +37,9 @@ export function Page() {
                   {post.title}
                 </Link>
               </h2>
-              <div key={post.title + 'PUBLISH DATE'} className="date">
+              <p key={post.title + 'PUBLISH DATE'} className="date">
                 {format(post.publishDate, 'MMM dd, yyyy')}
-              </div>
+              </p>
               <div key={post.title + 'DESCRIPTION'} className="description">
                 {post.description.split('\n').map((line) => (
                   <p key={line}>{line}</p>

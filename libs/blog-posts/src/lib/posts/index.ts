@@ -1,4 +1,5 @@
 import { githubPagesPreviewEnv } from './github-pages-preview-env/post';
+import { multifunctionExampleFiles } from './multifunctional-example-files/post';
 import { nxConfigurationHistory } from './nx-configuration-history/post';
 import { superpoweredGitAliases } from './superpowered-git-aliases/post';
 
@@ -15,6 +16,7 @@ const ALL_BLOG_POSTS = [
   nxConfigurationHistory,
   githubPagesPreviewEnv,
   superpoweredGitAliases,
+  multifunctionExampleFiles,
 ];
 
 export const blogPosts = ALL_BLOG_POSTS.filter(

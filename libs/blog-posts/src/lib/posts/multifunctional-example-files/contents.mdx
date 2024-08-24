@@ -1,0 +1,259 @@
+# Multifunctional Example Files
+
+I've started using a technique I'm calling "multifunctional example files" in recent projects. Using this technique, I'm able to create a single example file, and each example file becomes both:
+
+- A page in the documentation
+- An actual typescript file, which can be played around with if you clone the project
+- An E2E test
+
+This technique has been awesome, because it ensures that the documentation is always up-to-date with the code. If the documentation is out-of-date, the E2E test will fail.
+
+Projects currently using this technique:
+
+- [FlexiBench](https://github.com/agentender/flexi-bench)
+- [CLI Forge](https://github.com/agentender/cli-forge)
+
+## Limitations
+
+This technique has a few limitations, but its also easy to extend so these could be worked around. Currently, as implemented, the technique only really works if your examples can easily be written in a single file. If you wish to have a more complex example that spans multiple files, you'd need to tweak the technique a bit.
+
+## How it works
+
+The technique is made up of 3 main parts:
+
+- The example files themselves
+- A simple docusaurus plugin to generate pages from the example files
+- A small script to run the E2E tests based on the example files
+
+### Example Files
+
+These are regular typescript files, with the only difference being that they have some yaml frontmatter at the top of the file. This frontmatter is used to generate the documentation page and provide data to the E2E test. As an example, consider something like below:
+
+```typescript
+// ---
+// title: Example Title
+// description: Example Description
+// ---
+export const example = 'example';
+```
+
+### Docusaurus Plugin
+
+The docusaurus plugin scans the examples directory, loads the contents of each file and parses out the frontmatter. The frontmatter is then stripped from the rest of the file, and the entire contents is then used to build a markdown file. The plugin code should look something like this:
+
+```typescript
+import { LoadContext } from '@docusaurus/types';
+import { workspaceRoot } from '@nx/devkit';
+import {
+  blockQuote,
+  codeBlock,
+  h1,
+  h2,
+  lines,
+  link,
+  ul,
+} from 'markdown-factory';
+
+import { mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
+import { basename, dirname, join, sep } from 'node:path';
+
+import { parse as loadYaml, stringify } from 'yaml';
+
+export async function ExamplesDocsPlugin(context: LoadContext) {
+  const examplesRoot = join(workspaceRoot, 'examples') + sep;
+  const examples = collectExamples(join(examplesRoot, '../examples'));
+  for (const example of examples) {
+    const relative = example.path.replace(examplesRoot, '');
+    const destination = join(
+      __dirname,
+      '../../docs/examples',
+      relative.replace('.ts', '.md')
+    );
+    ensureDirSync(dirname(destination));
+    writeFileSync(destination, formatExampleMd(example));
+  }
+  ensureDirSync(join(__dirname, '../../docs/examples'));
+  writeFileSync(
+    join(__dirname, '../../docs/examples/index.md'),
+    formatIndexMd(examples)
+  );
+  return {
+    // a unique name for this plugin
+    name: 'examples-docs-plugin',
+  };
+}
+
+type FrontMatter = {
+  id: string;
+  title: string;
+  description?: string;
+};
+
+function loadExampleFile(path: string): {
+  contents: string;
+  data: FrontMatter;
+} {
+  const contents = readFileSync(path, 'utf-8');
+  const lines = contents.split('\n');
+  const frontMatterLines = [];
+
+  let line = lines.shift();
+  if (line && line.startsWith('// ---')) {
+    while (true) {
+      line = lines.shift();
+      if (!line) {
+        throw new Error('Unexpected end of file');
+      }
+      if (line.startsWith('// ---')) {
+        break;
+      } else {
+        frontMatterLines.push(line.replace(/^\/\/\s?/, ''));
+      }
+    }
+  } else if (line) {
+    lines.unshift(line);
+  }
+
+  const yaml = frontMatterLines.join('\n');
+
+  return {
+    contents: lines.join('\n'),
+    data: yaml ? loadYaml(yaml) : {},
+  };
+}
+
+function formatExampleMd({
+  contents,
+  data,
+}: ReturnType<typeof collectExamples>[number]): string {
+  const bodyLines = [h1(data.title)];
+  if (data.description) {
+    bodyLines.push(data.description);
+  }
+  bodyLines.push(h2('Code'));
+  return `---
+${stringify(data)}hide_title: true
+---
+${lines(bodyLines)}
+\`\`\`ts title="${data.title}" showLineNumbers
+${contents}
+\`\`\`
+  `;
+}
+
+function formatIndexMd(examples: ReturnType<typeof collectExamples>): string {
+  return `---
+id: examples
+title: Examples
+---
+${h1(
+  'Examples',
+  ul(
+    examples.map((example) =>
+      link(`examples/${example.data.id}`, example.data?.title)
+    )
+  )
+)}
+`;
+}
+
+// returns all .ts files from given path
+function collectExamples(root: string): {
+  path: string;
+  contents: string;
+  data: FrontMatter;
+}[] {
+  const files = readdirSync(root, { withFileTypes: true });
+  const collected: {
+    path: string;
+    contents: string;
+    data: FrontMatter;
+  }[] = [];
+  for (const file of files) {
+    if (file.isDirectory()) {
+      collected.push(...collectExamples(join(root, file.name)));
+    } else {
+      if (file.name.endsWith('.ts')) {
+        const path = join(root, file.name);
+        const loaded = loadExampleFile(path);
+        collected.push(
+          normalizeFrontMatter({
+            path,
+            data: loaded.data,
+            contents: loaded.contents,
+          })
+        );
+      }
+    }
+  }
+  return collected;
+}
+```
+
+### E2E Tests
+
+Running the E2E tests is a simple script, which works similarly to the docusaurus plugin. It starts by scanning the examples directory for typescript files. If you have written frontmatter that would influence the E2E test, the script would then need to read the file contents and parse out front matter. Then, using that data, it would run the files. A simple version that doesnt handle frontmatter could look like this:
+
+```typescript
+import { execSync, spawnSync } from 'child_process';
+import { readdirSync } from 'fs';
+import { workspaceRoot } from 'nx/src/devkit-exports';
+import { join, sep } from 'path';
+
+// returns all .ts files from given path
+function collectExamples(path: string): string[] {
+  const files = readdirSync(path, { withFileTypes: true });
+  const collected: string[] = [];
+  for (const file of files) {
+    if (file.isDirectory()) {
+      collected.push(...collectExamples(join(path, file.name)));
+    } else {
+      if (file.name.endsWith('.ts')) {
+        collected.push(join(path, file.name));
+      }
+    }
+  }
+  return collected;
+}
+
+const examples = collectExamples(join(__dirname, '../examples'));
+
+let error = false;
+
+for (const example of examples) {
+  const label = example.replace(`${workspaceRoot}${sep}`, '');
+  try {
+    process.stdout.write('▶️ ' + label);
+    const a = performance.now();
+    spawnSync(process.execPath, ['--import=tsx', example], {});
+    const b = performance.now();
+    // move cursor to the beginning of the line
+    process.stdout.write('\r');
+
+    console.log(
+      `✅ ${label} (${Math.round((b - a) * 10) / 10}ms)`.padEnd(
+        process.stdout.columns,
+        ' '
+      )
+    );
+  } catch {
+    // move cursor to the beginning of the line
+    process.stdout.write('\r');
+    console.log(`❌ ${label}`.padEnd(process.stdout.columns, ' '));
+    error = true;
+  }
+}
+
+if (error) {
+  process.exit(1);
+}
+```
+
+## References
+
+- [FlexiBench Docusaurus Plugin](https://github.com/AgentEnder/flexi-bench/blob/main/docs-site/src/plugins/examples-plugin.ts)
+- [FlexiBench E2E Test Script](https://github.com/AgentEnder/flexi-bench/blob/main/e2e/run-e2e.ts)
+- [FlexiBench Example Files](https://github.com/AgentEnder/flexi-bench/blob/main/examples/)
+- [CLI Forge Docusaurus Plugin](https://github.com/AgentEnder/cli-forge/blob/main/docs-site/src/plugins/examples-plugin.ts)
+- [CLI Forge E2E Test Script](https://github.com/AgentEnder/cli-forge/blob/main/e2e/run-e2e.ts)
+- [CLI Forge Example Files](https://github.com/AgentEnder/cli-forge/blob/main/examples/)

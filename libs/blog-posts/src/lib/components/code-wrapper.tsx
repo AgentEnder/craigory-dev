@@ -17,7 +17,7 @@ export function CodeWrapper({
       {props.filename ? (
         <div className={styles['code-tabs']}>
           {props.filename ? (
-            <div className={styles['filename']}>{props.filename}</div>
+            <code className={styles['filename']}>{props.filename}</code>
           ) : null}
         </div>
       ) : null}

@@ -1,5 +1,5 @@
-// Consider element order: Title -> Date -> Description 
-//                         ^0       ^1      ^2          
+// Consider element order: Title -> Date -> Description
+//                         ^0       ^1      ^2
 // We want something like:
 // title       date
 // description description
@@ -19,11 +19,13 @@
   & > .date {
     text-align: right;
     margin-top: auto;
+    margin-bottom: 0;
   }
 
   & > .title {
     // Title is takes 2 rows, 1 column (see area diagram above)
     grid-area: span 1 / span 1;
+    margin: 0 0 -0.2em 0;
   }
 
   & > .description {
