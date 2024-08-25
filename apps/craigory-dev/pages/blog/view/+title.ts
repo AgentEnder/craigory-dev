@@ -3,5 +3,5 @@ import { PageContext } from 'vike/types';
 
 export default (pageContext: PageContext) => {
   const blogPost = slugMap[pageContext.routeParams?.slug];
-  return blogPost.description;
+  return blogPost.title;
 };
