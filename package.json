@@ -2,6 +2,7 @@
   "name": "@new-personal-monorepo/source",
   "version": "0.0.0",
   "license": "MIT",
+  "type": "module",
   "scripts": {
     "prepare": "patch-package",
     "start": "nx serve-static craigory-dev"
@@ -36,7 +37,7 @@
     "static-sitemap-cli": "^2.2.3",
     "tslib": "^2.3.0",
     "vike": "^0.4.160",
-    "vike-react": "^0.4.18",
+    "vike-react": "^0.5.4",
     "vite-plugin-static-copy": "^0.17.0"
   },
   "devDependencies": {
@@ -70,6 +71,7 @@
     "eslint-plugin-jsx-a11y": "6.7.1",
     "eslint-plugin-react": "7.32.2",
     "eslint-plugin-react-hooks": "4.6.0",
+    "express": "^4.19.2",
     "jest": "^29.4.1",
     "jest-environment-node": "^29.4.1",
     "jsdom": "~22.1.0",
@@ -77,6 +79,7 @@
     "nx-cloud": "19.0.0",
     "nx-github-pages": "^1.0.0",
     "patch-package": "^8.0.0",
+    "playwright": "^1.46.1",
     "prettier": "^2.6.2",
     "sass": "^1.55.0",
     "ts-jest": "^29.1.0",

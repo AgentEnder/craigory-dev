@@ -20,7 +20,11 @@
     "prepare": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "sscli -b https://craigory.dev -r dist/apps/craigory-dev/client -c '**,weekly' 'blog/**,daily'"
+        "commands": [
+          "sscli -b https://craigory.dev -r dist/apps/craigory-dev/client -c '**,weekly' 'blog/**,daily'",
+          "npx vite-node -c tools/vite.config.js tools/generate-open-graph-images.ts"
+        ],
+        "parallel": true
       },
       "dependsOn": ["build"],
       "cache": true
