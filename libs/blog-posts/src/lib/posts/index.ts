@@ -1,4 +1,5 @@
 import { githubPagesPreviewEnv } from './github-pages-preview-env/post';
+import { githubUnlistedRepos } from './github-unlisted-repos/post';
 import { multifunctionExampleFiles } from './multifunctional-example-files/post';
 import { nxConfigurationHistory } from './nx-configuration-history/post';
 import { superpoweredGitAliases } from './superpowered-git-aliases/post';
@@ -17,6 +18,7 @@ const ALL_BLOG_POSTS = [
   githubPagesPreviewEnv,
   superpoweredGitAliases,
   multifunctionExampleFiles,
+  githubUnlistedRepos,
 ];
 
 export const blogPosts = ALL_BLOG_POSTS.filter(

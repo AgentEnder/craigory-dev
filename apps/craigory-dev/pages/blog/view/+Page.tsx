@@ -1,4 +1,9 @@
-import { slugMap, CodeWrapper } from '@new-personal-monorepo/blog-posts';
+import {
+  slugMap,
+  CodeWrapper,
+  LinkToPost,
+  PostContext,
+} from '@new-personal-monorepo/blog-posts';
 import { usePageContext } from 'vike-react/usePageContext';
 
 import './view.page.scss';
@@ -31,12 +36,15 @@ export function Page() {
       {returnLink ? (
         <Link href={returnLink}>Return to previous page</Link>
       ) : null}
-      {data.mdx({
-        components: {
-          pre: CodeWrapper,
-          Anchor: ContentMarker,
-        },
-      })}
+      <PostContext.Provider value={data}>
+        {data.mdx({
+          components: {
+            pre: CodeWrapper,
+            Anchor: ContentMarker,
+            LinkToPost,
+          },
+        })}
+      </PostContext.Provider>
       {returnLink ? (
         <Link href={returnLink}>Return to previous page</Link>
       ) : null}
