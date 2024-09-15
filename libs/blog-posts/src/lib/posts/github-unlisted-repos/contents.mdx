@@ -1,0 +1,131 @@
+# Unlisted Github Repositories
+
+Services such as YouTube provide support for unlisted videos. This allows publishing a video that is publicly accessible, but only via a direct link. This is useful for sharing content with a select group of people. It be used for getting early feedback on a video draft, or for sharing a video with a client before it goes live.
+
+There is no equivalent feature for GitHub repositories, but the need still exists. Some reasons I've needed this feature include:
+
+- Sharing issue reproductions
+- Sharing more complex code snippets like multifile gists
+
+These could both technically be done as a public repository, but it clutters up the profile and makes it harder to find the repositories that are actually meaningful.
+
+## Unrelated Branches
+
+A git repository frequently has many branches of code, typically waiting to be merged into the main branch. Branches, however, do not necessarily have to be related to the main branch. As such, you can push any branch to any repository, even if they don't share a common ancestor.
+
+This is the key to our approach of creating unlisted repositories.
+
+## Steps to Create an Unlisted Repository
+
+1. Create a "host" repository that will contain all of your unlisted repositories. This repository will be public, but not contain code on the main branch. It differs from other repositories in that it will contain many branches, each representing a different unlisted repository. I'd recommend adding a README to this repository that explains the purpose of the repository and how to use it.
+
+- For example, I use https://github.com/agentender/github-issues as my host repository.
+
+2. Create or open the repository that will be published as unlisted. Only the checked out branch will be shared.
+
+3. Run the following command to push the branch to the host repository:
+
+```bash
+git push $HOST_REPO_REMOTE_URL HEAD:$BRANCH_NAME
+```
+
+You should replace `$HOST_REPO_REMOTE_URL` with the URL of the host repository and `$BRANCH_NAME` with the name you want to use when sharing the branch.
+
+4. Share the URL of the branch with the people you want to have access to it.
+
+The link should look something like this:
+
+```plaintext
+https://github.com/{user}/{host-repo}/tree/{branch-name}
+```
+
+## Supporting Infra
+
+If you plan to use this semi-frequently, I'd recommend creating a script or git alias to simplify the process. Here's an example script I use:
+
+```js
+const REMOTE_URL = 'https://github.com/agentender/github-issues';
+
+const tryExec = require('./utils/try-exec');
+
+function prompt(message) {
+  return new Promise((resolve) => {
+    const readline = require('readline').createInterface({
+      input: process.stdin,
+      output: process.stdout,
+    });
+    readline.question(message, (answer) => {
+      readline.close();
+      resolve(answer);
+    });
+    readline.on('SIGINT', () => {
+      readline.close();
+      process.stdout.write('\n');
+      console.log('Aborted.');
+      process.exit(1);
+    });
+  });
+}
+
+function isForced() {
+  return process.argv.includes('--force') || process.argv.includes('-f');
+}
+
+async function checkIfBranchAlreadyOnRemote(branch) {
+  const { code } = await tryExec(
+    `git ls-remote --exit-code ${REMOTE_URL} ${branch}`,
+    true
+  );
+  return code === 0;
+}
+
+(async () => {
+  const forced = isForced();
+  const currentBranchName = (
+    await tryExec('git rev-parse --abbrev-ref HEAD', true)
+  ).stdout.trim();
+  let branch = currentBranchName;
+  if (currentBranchName === 'master' || currentBranchName === 'main') {
+    branch = await prompt(
+      `What branch would you like to publish to?${
+        forced ? ' (Any existing contents will be overwritten)' : ''
+      }`
+    );
+  }
+  while (!forced && (await checkIfBranchAlreadyOnRemote(branch))) {
+    const next = await prompt(
+      `Branch ${branch} already exists on remote. What branch would you like to publish to?`
+    );
+    if (next === '') {
+      console.log('Aborted.');
+      process.exit(1);
+    }
+    if (branch) branch = next;
+  }
+  await tryExec(`git push ${REMOTE_URL} ${currentBranchName}:${branch}`);
+  console.log(`✅ Published branch at ${REMOTE_URL}/tree/${branch}`);
+})();
+```
+
+Wrapping the process in a script makes it easier to use, and ensures consistency. This also gives a spot to add additional checks or features in the future.
+
+The example script above for example:
+
+- Prevents accidentally overwriting an existing branch
+- Prompts for branch name if the current branch is `master` or `main`, or would otherwise overwrite an existing branch
+- Allows forcing the push with `--force` or `-f`
+
+If you setup a script like this, you can add it as a git alias to make it easier to use. I've covered how to do this in a previous post: <LinkToPost ref={props.post} slug="superpowered-git-aliases"/>
+
+## Wrapping Up
+
+This isn't quite as good as native support for unlisted repositories, but it's a good workaround. Sharing reproductions will no longer clutter up your profile, and you can share more complex code snippets without needing to create a new repository for each one. Of note, this approach has limitations that native support would not.
+
+Repo's shared with this manner:
+
+- Can not really have more than one branch
+- Can not have issues or pull requests
+  - This also makes it hard to test things like Github Actions or similar
+- Can be found by anyone with access to the host repository
+
+With that said, I still think this is a useful tool to have in your toolbox.

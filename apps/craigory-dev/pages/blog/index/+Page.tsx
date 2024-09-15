@@ -1,4 +1,4 @@
-import { pages } from '@new-personal-monorepo/blog-posts';
+import { getBlogUrl, pages } from '@new-personal-monorepo/blog-posts';
 import { usePageContext } from 'vike-react/usePageContext';
 import { formatDateString } from '@new-personal-monorepo/date-utils';
 import { format } from 'date-fns';
@@ -29,11 +29,7 @@ export function Page() {
           >
             <div id={post.slug} className={`post-container`}>
               <h2 key={post.title + 'TITLE'} className="title">
-                <Link
-                  href={`/blog/${formatDateString(post.publishDate)}/${
-                    post.slug
-                  }?ref=/blog/${page}`}
-                >
+                <Link href={getBlogUrl(post) + `?ref=/blog/${page}`}>
                   {post.title}
                 </Link>
               </h2>
