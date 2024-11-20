@@ -51,7 +51,7 @@
     "@nx/react": "19.5.1",
     "@nx/vite": "19.5.1",
     "@nx/workspace": "19.5.1",
-    "@swc/cli": "0.3.14",
+    "@swc/cli": "0.5.1",
     "@swc/core": "1.5.7",
     "@testing-library/react": "15.0.6",
     "@types/jest": "^29.4.0",
