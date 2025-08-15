@@ -1,0 +1,52 @@
+.remark-slide-content {
+  background: #6b7594;
+  background: linear-gradient(315deg, #043035, #271432);
+  color: whitesmoke;
+
+  a {
+    color: beige;
+  }
+
+  // Title + image slides - simple and working
+  &.title-image-slide {
+    h1 {
+      margin: 40px 40px 20px 40px;
+    }
+
+    img {
+      position: absolute;
+      top: 120px; // Below title
+      bottom: 120px; // Above QR code
+      left: 40px;
+      right: 40px;
+      width: calc(100% - 80px);
+      height: calc(100% - 240px);
+      object-fit: contain;
+    }
+  }
+
+  // Two column layout
+  &.two-column-slide {
+    h1 {
+      margin: 40px 40px 20px 40px;
+    }
+
+    .slide-content {
+      position: absolute;
+      top: 120px;
+      bottom: 120px;
+      left: 40px;
+      right: 40px;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      align-items: center;
+
+      img {
+        max-width: 100%;
+        max-height: 100%;
+        object-fit: contain;
+      }
+    }
+  }
+}

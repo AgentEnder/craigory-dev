@@ -1,0 +1,77 @@
+<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="affectedGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#143055;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#571452;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background -->
+  <rect width="800" height="600" fill="#1a1a2e"/>
+  
+  <!-- Title -->
+  <text x="400" y="40" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="whitesmoke" text-anchor="middle">Nx Affected Commands</text>
+  <text x="400" y="70" font-family="Arial, sans-serif" font-size="16" fill="#7ec8e3" text-anchor="middle">Only test/build what changed</text>
+  
+  <!-- Project nodes -->
+  <g id="projects">
+    <!-- Changed project (highlighted) -->
+    <circle cx="200" cy="250" r="40" fill="#ff6b6b" stroke="#ff4757" stroke-width="3"/>
+    <text x="200" y="255" font-family="Arial" font-size="14" font-weight="bold" fill="white" text-anchor="middle">auth-lib</text>
+    <text x="200" y="310" font-family="Arial" font-size="12" fill="#ff6b6b" text-anchor="middle">✏️ Changed</text>
+    
+    <!-- Affected projects -->
+    <circle cx="350" cy="180" r="35" fill="#ffa502" stroke="#ff7675" stroke-width="2"/>
+    <text x="350" y="185" font-family="Arial" font-size="13" fill="white" text-anchor="middle">frontend</text>
+    <text x="350" y="230" font-family="Arial" font-size="11" fill="#ffa502" text-anchor="middle">⚡ Affected</text>
+    
+    <circle cx="350" cy="320" r="35" fill="#ffa502" stroke="#ff7675" stroke-width="2"/>
+    <text x="350" y="325" font-family="Arial" font-size="13" fill="white" text-anchor="middle">admin</text>
+    <text x="350" y="370" font-family="Arial" font-size="11" fill="#ffa502" text-anchor="middle">⚡ Affected</text>
+    
+    <circle cx="500" cy="250" r="35" fill="#ffa502" stroke="#ff7675" stroke-width="2"/>
+    <text x="500" y="255" font-family="Arial" font-size="13" fill="white" text-anchor="middle">api</text>
+    <text x="500" y="300" font-family="Arial" font-size="11" fill="#ffa502" text-anchor="middle">⚡ Affected</text>
+    
+    <!-- Unaffected projects -->
+    <circle cx="200" cy="400" r="30" fill="#2a3f5f" stroke="#4fbdba" stroke-width="1" opacity="0.5"/>
+    <text x="200" y="405" font-family="Arial" font-size="12" fill="#888" text-anchor="middle">payment</text>
+    
+    <circle cx="350" cy="450" r="30" fill="#2a3f5f" stroke="#4fbdba" stroke-width="1" opacity="0.5"/>
+    <text x="350" y="455" font-family="Arial" font-size="12" fill="#888" text-anchor="middle">reporting</text>
+    
+    <circle cx="500" cy="400" r="30" fill="#2a3f5f" stroke="#4fbdba" stroke-width="1" opacity="0.5"/>
+    <text x="500" y="405" font-family="Arial" font-size="12" fill="#888" text-anchor="middle">analytics</text>
+    
+    <circle cx="600" cy="320" r="30" fill="#2a3f5f" stroke="#4fbdba" stroke-width="1" opacity="0.5"/>
+    <text x="600" y="325" font-family="Arial" font-size="12" fill="#888" text-anchor="middle">mobile</text>
+    
+    <circle cx="600" cy="180" r="30" fill="#2a3f5f" stroke="#4fbdba" stroke-width="1" opacity="0.5"/>
+    <text x="600" y="185" font-family="Arial" font-size="12" fill="#888" text-anchor="middle">docs</text>
+  </g>
+  
+  <!-- Dependency arrows -->
+  <g id="dependencies">
+    <!-- From auth-lib to affected projects -->
+    <path d="M 235 235 L 315 195" stroke="#ffa502" stroke-width="2" marker-end="url(#arrowhead-affected)"/>
+    <path d="M 235 265 L 315 305" stroke="#ffa502" stroke-width="2" marker-end="url(#arrowhead-affected)"/>
+    <path d="M 240 250 L 460 250" stroke="#ffa502" stroke-width="2" marker-end="url(#arrowhead-affected)"/>
+    
+    <!-- Unaffected dependencies (faded) -->
+    <path d="M 230 390 L 320 440" stroke="#4fbdba" stroke-width="1" opacity="0.3"/>
+    <path d="M 380 440 L 470 410" stroke="#4fbdba" stroke-width="1" opacity="0.3"/>
+    <path d="M 530 390 L 570 330" stroke="#4fbdba" stroke-width="1" opacity="0.3"/>
+  </g>
+  
+  <!-- Arrow markers -->
+  <defs>
+    <marker id="arrowhead-affected" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#ffa502"/>
+    </marker>
+  </defs>
+  
+  <!-- Command example -->
+  <rect x="100" y="500" width="600" height="60" fill="#0f1620" stroke="#4fbdba" stroke-width="2" rx="5"/>
+  <text x="400" y="525" font-family="monospace" font-size="16" fill="#4fbdba" text-anchor="middle">$ nx affected:test</text>
+  <text x="400" y="547" font-family="monospace" font-size="14" fill="#7ec8e3" text-anchor="middle">✓ Running tests for: auth-lib, frontend, admin, api</text>
+</svg>
