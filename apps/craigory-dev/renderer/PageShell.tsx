@@ -26,7 +26,7 @@ export function PageShell({
           <Link className="navitem" href="/presentations">
             Speaking + Presentations
           </Link>
-          <Link className="navitem" href={`/blog/${pageCount}`}>
+          <Link className="navitem" href={`/blog/${1}`}>
             Blog
           </Link>
         </Sidebar>

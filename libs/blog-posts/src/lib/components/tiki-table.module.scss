@@ -1,0 +1,260 @@
+.tableContainer {
+  width: 100%;
+  margin: 2rem 0;
+  border-radius: 12px;
+  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.tikiTable {
+  width: 100%;
+  border-collapse: separate;
+  border-spacing: 0;
+  background: white;
+  font-size: 0.95rem;
+
+  thead {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+
+    tr th {
+      padding: 0.75rem 0.5rem;
+      text-align: left;
+      font-weight: 600;
+      border-bottom: 2px solid rgba(255, 255, 255, 0.2);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      white-space: nowrap;
+
+      &:first-child {
+        border-top-left-radius: 12px;
+        padding-left: 1rem;
+      }
+
+      &:last-child {
+        border-top-right-radius: 12px;
+        padding-right: 1rem;
+      }
+    }
+  }
+
+  tbody {
+    tr {
+      transition: all 0.3s ease;
+      border-bottom: 1px solid #e2e8f0;
+
+      &:hover {
+        background-color: #f7fafc;
+        transform: scale(1.01);
+        box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+      }
+
+      &:last-child td {
+        border-bottom: none;
+
+        &:first-child {
+          border-bottom-left-radius: 12px;
+        }
+
+        &:last-child {
+          border-bottom-right-radius: 12px;
+        }
+      }
+
+      td {
+        padding: 0.75rem 0.5rem;
+        border-bottom: 1px solid #e2e8f0;
+
+        &:first-child {
+          padding-left: 1rem;
+        }
+
+        &:last-child {
+          padding-right: 1rem;
+        }
+      }
+    }
+  }
+}
+
+.sortable {
+  cursor: pointer;
+  user-select: none;
+  transition: background-color 0.2s ease;
+
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.1);
+  }
+}
+
+.barName {
+  font-weight: 600;
+  color: #2d3748;
+}
+
+.blogLink {
+  color: #667eea;
+  text-decoration: none;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #764ba2;
+    text-decoration: underline;
+  }
+}
+
+.description {
+  color: #4a5568;
+  font-size: 0.9rem;
+  max-width: 300px;
+}
+
+.starRating {
+  display: flex;
+  align-items: center;
+  gap: 0.125rem;
+  flex-direction: column;
+}
+
+.stars {
+  display: flex;
+  gap: 0;
+}
+
+.star {
+  color: #f6d55c;
+  font-size: 1rem;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+}
+
+.halfStar {
+  color: #f6d55c;
+  font-size: 1rem;
+  position: relative;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+
+  &::after {
+    content: '☆';
+    position: absolute;
+    left: 0;
+    color: #e2e8f0;
+    overflow: hidden;
+    width: 50%;
+  }
+}
+
+.emptyStar {
+  color: #e2e8f0;
+  font-size: 1rem;
+}
+
+.ratingValue {
+  font-size: 0.75rem;
+  color: #718096;
+  font-weight: 500;
+}
+
+.na {
+  color: #a0aec0;
+  font-style: italic;
+  font-size: 0.9rem;
+}
+
+.links {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.mapLink,
+.reviewLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.25rem 0.75rem;
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.mapLink {
+  color: #667eea;
+  text-decoration: none;
+  transition: color 0.2s ease;
+
+  &:hover {
+    color: #764ba2;
+    text-decoration: underline;
+  }
+}
+
+.reviewLink {
+  background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%);
+  color: white;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(245, 87, 108, 0.4);
+  }
+}
+
+.ratingColumn {
+  vertical-align: center;
+  text-align: center;
+}
+
+@media (max-width: 768px) {
+  .tikiTable {
+    font-size: 0.85rem;
+
+    thead tr th,
+    tbody tr td {
+      padding: 0.75rem 0.5rem;
+    }
+  }
+
+  .description {
+    max-width: 200px;
+  }
+
+  .star,
+  .halfStar,
+  .emptyStar {
+    font-size: 1rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .tableContainer {
+    margin: 1rem 0;
+  }
+
+  .tikiTable {
+    font-size: 0.8rem;
+
+    thead tr th,
+    tbody tr td {
+      padding: 0.5rem 0.25rem;
+
+      &:first-child {
+        padding-left: 0.5rem;
+      }
+
+      &:last-child {
+        padding-right: 0.5rem;
+      }
+    }
+  }
+
+  .star,
+  .halfStar,
+  .emptyStar {
+    font-size: 0.85rem;
+  }
+
+  .ratingValue {
+    font-size: 0.65rem;
+  }
+}

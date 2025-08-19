@@ -9,9 +9,11 @@
   display: grid;
   // Wide area for title, slim area for location and date
   grid-template-columns: 2fr 1fr;
-  // First rows are sized to be consistent, second row is sized to fit content.
-  grid-auto-rows: 1fr min-content;
+  // First rows are sized to be consistent, subsequent rows sized to content
+  grid-auto-rows: 1fr min-content min-content;
   grid-auto-flow: dense;
+  row-gap: 0.5rem;
+  width: 100%;
 
   margin-bottom: 1.5rem;
   padding: 0.5rem;
@@ -31,6 +33,73 @@
   & > .description {
     // Description is takes 1 row, 2 columns (see area diagram above)
     grid-area: span 1 / span 2;
+  }
+}
+
+.tags {
+  margin-top: 0.75rem;
+  margin-bottom: 0;
+  grid-area: span 1 / span 2;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  align-items: flex-start;
+  min-height: 28px;
+
+  .tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.25rem 0.75rem;
+    background: #f0f0f0;
+    border-radius: 16px;
+    font-size: 0.85rem;
+    color: #555;
+    line-height: 1;
+    height: 28px;
+
+    &:hover {
+      background: #e0e0e0;
+    }
+  }
+}
+
+.pagination {
+  margin-top: 2rem;
+  text-align: center;
+  color: #666;
+
+  .pagination-controls {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .pagination-info {
+    margin: 0;
+    min-width: 200px;
+    text-align: center;
+  }
+
+  .pagination-button {
+    padding: 0.5rem 1rem;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    transition: all 0.2s ease;
+    font-weight: 500;
+
+    &:hover:not(.disabled) {
+      transform: translateY(-2px);
+      box-shadow: 0 4px 8px rgba(102, 126, 234, 0.3);
+    }
+
+    &.disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+      pointer-events: none;
+    }
   }
 }
 

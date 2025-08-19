@@ -1,0 +1,41 @@
+.filter-table {
+  width: 100%;
+  margin-bottom: 2rem;
+  border-collapse: collapse;
+
+  td {
+    padding: 0.5rem;
+    vertical-align: middle;
+  }
+
+  select,
+  input {
+    padding: 0.5rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 1rem;
+    background: white;
+
+    &:focus {
+      outline: none;
+      border-color: #007bff;
+      box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.1);
+    }
+  }
+
+  select[multiple] {
+    padding: 0.25rem;
+    
+    option {
+      padding: 0.25rem;
+    }
+  }
+
+  button {
+    transition: color 0.2s;
+    
+    &:hover {
+      color: #333 !important;
+    }
+  }
+}

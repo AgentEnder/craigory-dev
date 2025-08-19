@@ -40,7 +40,7 @@ export function ViewPresentation(props: PresentationsProps) {
     }
     if (p?.scssUrl) {
       const scssFiles = import.meta.glob('../presentation-data/**/*.scss', {
-        as: 'inline',
+        query: '?inline',
       });
       scssFiles[`../presentation-data/${p.slug}/${p.scssUrl}.scss`]().then(
         (scss) => {
