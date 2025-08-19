@@ -1,0 +1,5 @@
+{
+  "name": "QR Code Generator",
+  "description": "A simple and elegant QR code generator built with Vite, TypeScript, and Tailwind CSS. Enter any text and instantly generate a downloadable QR code.",
+  "technologies": ["TypeScript", "HTML", "CSS"]
+}

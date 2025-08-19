@@ -14,7 +14,7 @@ import { FilterBar } from './components/filter-bar';
 import { PercentBar } from './components/percent-bar';
 import { ContentMarker } from '../../src/shared-components/content-marker';
 import { FormattedDate } from '@new-personal-monorepo/date-utils';
-import { differenceInDays, isBefore } from 'date-fns';
+import { differenceInDays } from 'date-fns';
 
 export function Page() {
   const { projects } = useData<{ projects: RepoData[] }>();
@@ -56,7 +56,11 @@ export function Page() {
   return (
     <>
       <h1>Projects</h1>
-      <FilterBar onSetFilter={onSetFilter} repos={projects}></FilterBar>
+      <FilterBar
+        onSetFilter={onSetFilter}
+        repos={projects}
+        onSetSort={setSortFn}
+      ></FilterBar>
       {sortedProjects.map((p, idx) => (
         <div key={p.repo}>
           <div style={{ position: 'relative' }}>
@@ -111,7 +115,9 @@ export function Page() {
                 </td>
                 <td>
                   <a href={p.url} target="_blank" rel="noreferrer">
-                    {p.data.full_name}
+                    {'type' in p && p.type === 'github'
+                      ? p.data.full_name
+                      : p.repo}
                   </a>
                 </td>
               </tr>
@@ -260,7 +266,7 @@ const calculateRelevance = (projects: RepoData[]) => {
     relevanceMap.set(project.repo, calculateRelevanceForProject(project));
   }
   return (a: RepoData, b: RepoData) => {
-    return relevanceMap.get(b.repo)! - relevanceMap.get(a.repo)!;
+    return relevanceMap.get(b.repo) ?? 0 - (relevanceMap.get(a.repo) ?? 0);
   };
 };
 

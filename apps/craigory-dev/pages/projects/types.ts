@@ -1,6 +1,8 @@
 import type { Octokit } from '@octokit/rest';
 
-export type RepoData = {
+export type ProjectData = GithubProjectData | LocalProjectData;
+
+export type BaseProjectData = {
   repo: string;
   deployment?: string | null;
   description?: string | null;
@@ -8,7 +10,6 @@ export type RepoData = {
   lastCommit?: string | null;
   stars?: number;
   readme?: string | null;
-  data: GithubRepo;
   publishedPackages?: Record<
     string,
     {
@@ -19,6 +20,27 @@ export type RepoData = {
   >;
   languages?: Record<string, number>;
 };
+
+export type GithubProjectData = BaseProjectData & {
+  type: 'github';
+  data: GithubRepo;
+};
+
+export type LocalProjectData = BaseProjectData & {
+  type: 'local';
+  projectPath: string;
+  metadata: LocalProjectMetadata;
+};
+
+export type LocalProjectMetadata = {
+  name: string;
+  description?: string;
+  technologies?: string[];
+  featured?: boolean;
+  order?: number;
+};
+
+export type RepoData = ProjectData;
 
 export type GithubRepo = Awaited<
   ReturnType<Octokit['rest']['repos']['listForUser']>
