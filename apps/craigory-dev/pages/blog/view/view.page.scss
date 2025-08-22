@@ -1,32 +1,814 @@
-code.hljs {
-  box-shadow: 0 4px 8px #000000e8;
-  padding: 16px;
+// Enhanced typography and readability
+.blog-post-container {
+  position: relative;
+  max-width: 100ch;
+  margin: 0 auto;
+  padding: 2rem 1rem;
+
+  @media (min-width: 768px) {
+    padding: 3rem 2rem;
+  }
+}
+
+// Blog header - works whether it's in BlogPostEnhanced or comes from MDX h1
+.blog-header,
+.blog-content .blog-header {
+  margin-bottom: 3rem;
+  padding-bottom: 2rem;
+  border-bottom: 2px solid #e5e5e5;
+  margin-top: 0;
+
+  h1 {
+    font-size: 3.5rem;
+    line-height: 1.1;
+    margin-bottom: 1rem;
+    letter-spacing: -0.02em;
+
+    @media (max-width: 768px) {
+      font-size: 2.5rem;
+    }
+  }
+
+  .meta-info {
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    color: #666;
+    font-size: 0.95rem;
+
+    .reading-time {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .publish-date {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+
+      &::before {
+        content: '📅';
+      }
+    }
+  }
+}
+
+// Reading progress bar
+.reading-progress {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  transform-origin: left;
+  z-index: 1000;
+  transition: transform 0.1s ease-out;
+}
+
+// Table of contents
+.toc-container {
+  position: fixed;
+  top: 120px;
+  right: 2rem;
+  width: 250px;
+  max-height: calc(100vh - 200px);
+  overflow-y: auto;
+  padding: 1rem;
+  background: #f9f9f9;
+  border-radius: 8px;
+  opacity: 0;
+  transform: translateX(20px);
+  animation: slideIn 0.3s ease forwards;
+  animation-delay: 0.5s;
+
+  @media (max-width: 1400px) {
+    display: none;
+  }
+
+  h3 {
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    margin-bottom: 1rem;
+    color: #666;
+  }
+
+  ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+
+    li {
+      margin-bottom: 0.5rem;
+
+      a {
+        color: #666;
+        text-decoration: none;
+        font-size: 0.9rem;
+        display: block;
+        padding: 0.25rem 0;
+        border-left: 2px solid transparent;
+        padding-left: 0.75rem;
+        transition: all 0.2s ease;
+
+        &:hover {
+          color: #667eea;
+          border-left-color: #667eea;
+        }
+
+        &.active {
+          color: #764ba2;
+          border-left-color: #764ba2;
+          font-weight: 600;
+        }
+      }
+
+      ul {
+        margin-left: 1rem;
+        margin-top: 0.25rem;
+      }
+    }
+  }
+}
+
+@keyframes slideIn {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+// Scroll to top button
+.scroll-to-top {
+  position: fixed;
+  bottom: 2rem;
+  right: 2rem;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  visibility: hidden;
+  transition: all 0.3s ease;
+  box-shadow: 0 4px 12px rgba(102, 126, 234, 0.3);
+  z-index: 999;
+
+  &.visible {
+    opacity: 1;
+    visibility: visible;
+  }
+
+  &:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
+  }
+
+  svg {
+    width: 24px;
+    height: 24px;
+  }
+}
+
+// Enhanced code blocks
+pre {
+  position: relative;
+  margin: 2rem 0;
+
+  code.hljs {
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1);
+    padding: 1.5rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    overflow-x: auto;
+  }
+
+  .copy-button {
+    position: absolute;
+    top: 0.75rem;
+    right: 0.75rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(255, 255, 255, 0.9);
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s ease;
+
+    &:hover {
+      background: white;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+
+    &.copied {
+      background: #4caf50;
+      color: white;
+      border-color: #4caf50;
+    }
+  }
 }
 
 code {
-  // Styling for inline code blocks
   background-color: #f4f4f4;
   border-radius: 4px;
   font-size: 0.9em;
   padding: 0.2em 0.4em;
+  color: #d63384;
+}
+
+// Typography improvements
+.blog-content {
+  p {
+    margin-bottom: 1.75rem;
+    line-height: 1.8;
+    color: #333;
+  }
+
+  blockquote {
+    margin: 2rem 0;
+    padding: 1.5rem;
+    padding-left: 2rem;
+    background: linear-gradient(to right, #f9f9f9 0%, #ffffff 100%);
+    border-left: 4px solid #667eea;
+    font-style: italic;
+    color: #555;
+
+    p {
+      margin-bottom: 0;
+    }
+  }
+
+  img {
+    max-width: 100%;
+    height: auto;
+    margin: 2rem 0;
+    border-radius: 8px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  }
+
+  ul,
+  ol {
+    margin-bottom: 1.75rem;
+
+    li {
+      margin-bottom: 0.5rem;
+    }
+  }
+
+  h2,
+  h3,
+  h4,
+  h5,
+  h6 {
+    margin-top: 2.5rem;
+    margin-bottom: 1rem;
+    position: relative;
+
+    .heading-link {
+      position: absolute;
+      left: -2.5rem;
+      color: transparent;
+      text-decoration: none;
+      font-weight: normal;
+      transition: opacity 0.2s ease;
+      opacity: 0;
+      background: none;
+
+      div {
+        cursor: pointer;
+      }
+    }
+
+    &:hover .heading-link {
+      color: #667eea;
+      opacity: 1;
+    }
+  }
+
+  h2 {
+    font-size: 2.25rem;
+    margin-top: 3rem;
+  }
+
+  h3 {
+    font-size: 1.75rem;
+  }
+
+  h4 {
+    font-size: 1.4rem;
+  }
+
+  hr {
+    margin: 3rem 0;
+    border: none;
+    height: 1px;
+    background: linear-gradient(to right, transparent, #ddd, transparent);
+  }
 }
 
 div {
   min-width: 0;
 }
 
-h2,
-h3,
-h4 {
-  .heading-link {
-    color: #00000000;
-    margin-left: 0.5em;
+// 🏝️ TIKI THEME - Fun, vibrant, but readable tropical paradise
+.blog-post-theme.theme-tiki {
+  // Main container with tropical vibes
+  .blog-post-container {
+    background: radial-gradient(
+        circle at 20% 80%,
+        rgba(255, 107, 71, 0.1) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 80% 20%,
+        rgba(255, 193, 7, 0.1) 0%,
+        transparent 50%
+      ),
+      radial-gradient(
+        circle at 40% 40%,
+        rgba(76, 175, 80, 0.05) 0%,
+        transparent 50%
+      ),
+      linear-gradient(135deg, #fff8e1 0%, #fff3e0 100%);
+    border-radius: 20px;
+    box-shadow: 0 20px 60px rgba(255, 107, 71, 0.1),
+      0 0 0 1px rgba(255, 138, 101, 0.2);
+    position: relative;
+    overflow: hidden;
+
+    // Floating tropical elements
+    &::before {
+      content: '🌺';
+      position: absolute;
+      top: 2rem;
+      right: 2rem;
+      font-size: 2rem;
+      opacity: 0.3;
+      animation: float 6s ease-in-out infinite;
+      z-index: 1;
+    }
+
+    &::after {
+      content: '🥥';
+      position: absolute;
+      bottom: 2rem;
+      left: 2rem;
+      font-size: 1.5rem;
+      opacity: 0.2;
+      animation: float 8s ease-in-out infinite reverse;
+      z-index: 1;
+    }
   }
 
+  // Epic tropical header
+  .blog-header {
+    background: linear-gradient(
+      45deg,
+      #ff5722 0%,
+      #ff9800 25%,
+      #ffc107 50%,
+      #ff9800 75%,
+      #ff5722 100%
+    );
+    background-size: 400% 400%;
+    animation: tropical-gradient 10s ease infinite;
+    color: white;
+    border-radius: 16px;
+    margin: -3rem -2rem 3rem -2rem;
+    padding: 4rem 3rem 3rem 3rem;
+    position: relative;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(255, 87, 34, 0.3);
+
+    // Animated tropical pattern overlay
+    &::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: radial-gradient(
+          circle at 25% 25%,
+          rgba(255, 255, 255, 0.1) 0%,
+          transparent 50%
+        ),
+        radial-gradient(
+          circle at 75% 75%,
+          rgba(255, 255, 255, 0.05) 0%,
+          transparent 50%
+        );
+      animation: shimmer 4s ease-in-out infinite alternate;
+    }
+
+    // Tropical emoji decoration that moves
+    &::after {
+      content: '🍹 🌴 🏖️ 🌺 🥥 🍍 🗿 🌊';
+      position: absolute;
+      top: 1rem;
+      right: 0;
+      left: 0;
+      text-align: center;
+      font-size: 1.5rem;
+      opacity: 0.2;
+      letter-spacing: 1rem;
+      animation: wave-emojis 12s ease-in-out infinite;
+      z-index: 0;
+    }
+
+    h1 {
+      color: white !important;
+      text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3),
+        0 0 20px rgba(255, 255, 255, 0.1);
+      position: relative;
+      z-index: 2;
+      filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.1));
+    }
+
+    .meta-info {
+      position: relative;
+      z-index: 2;
+
+      .publish-date,
+      .reading-time {
+        color: rgba(255, 255, 255, 0.95) !important;
+        font-weight: 600;
+        text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.2);
+        background: rgba(255, 255, 255, 0.1);
+        padding: 0.25rem 0.75rem;
+        border-radius: 20px;
+        backdrop-filter: blur(5px);
+      }
+    }
+  }
+
+  // Enhanced content styling
+  .blog-content {
+    position: relative;
+    z-index: 2;
+
+    h2,
+    h3,
+    h4,
+    h5,
+    h6 {
+      color: #d84315;
+      position: relative;
+      padding-bottom: 1rem;
+      margin-bottom: 2rem;
+
+      // Hide hash links by default, show on hover
+      .heading-link {
+        opacity: 0 !important;
+        color: transparent !important;
+        transition: opacity 0.2s ease !important;
+        background: none !important;
+        left: -2.5rem !important;
+      }
+
+      &:hover .heading-link {
+        opacity: 1 !important;
+        color: #d84315 !important;
+        box-shadow: none;
+      }
+
+      // Simple tropical underline (no animation)
+      &::after {
+        content: '';
+        position: absolute;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        height: 2px;
+        background: #ff8a65;
+        border-radius: 1px;
+      }
+    }
+
+    h2 {
+      color: #d84315;
+      font-size: 2.75rem;
+    }
+
+    h3 {
+      color: #ff5722;
+      font-size: 2rem;
+    }
+
+    // Tropical blockquotes
+    blockquote {
+      background: linear-gradient(
+        135deg,
+        rgba(255, 248, 225, 0.8) 0%,
+        rgba(255, 243, 224, 0.9) 100%
+      ) !important;
+      border-left: 6px solid #ff5722 !important;
+      color: #3e2723 !important;
+      box-shadow: 0 8px 32px rgba(255, 87, 34, 0.15),
+        inset 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+      position: relative;
+      border-radius: 0 12px 12px 0;
+
+      &::before {
+        content: '🌴';
+        position: absolute;
+        top: -0.5rem;
+        left: -0.5rem;
+        font-size: 1.2rem;
+        background: #ff5722;
+        width: 2rem;
+        height: 2rem;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 12px rgba(255, 87, 34, 0.3);
+      }
+    }
+
+    // Juicy links
+    a {
+      color: #d84315;
+      text-decoration: none;
+      background: linear-gradient(135deg, #ff5722, #ff9800);
+      background-size: 0% 2px;
+      background-repeat: no-repeat;
+      background-position: bottom left;
+      transition: all 0.3s ease;
+      border-radius: 2px;
+      padding: 0.1em 0.2em;
+
+      &:hover {
+        color: #fff;
+        background: linear-gradient(135deg, #ff5722, #ff9800);
+        background-size: 100% 100%;
+        box-shadow: 0 4px 15px rgba(255, 87, 34, 0.4);
+        transform: translateY(-1px);
+      }
+    }
+
+    // Enhanced lists
+    ul,
+    ol {
+      li {
+        position: relative;
+
+        &::marker {
+          color: #ff5722;
+        }
+      }
+    }
+
+    ul li::before {
+      content: '🥥';
+      position: absolute;
+      left: -2rem;
+      font-size: 0.8rem;
+    }
+
+    // Code blocks with tiki flair
+    pre {
+      border-radius: 12px;
+      box-shadow: 0 8px 32px rgba(255, 87, 34, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 138, 101, 0.2);
+    }
+
+    code:not(pre code) {
+      background: linear-gradient(
+        135deg,
+        rgba(255, 87, 34, 0.1),
+        rgba(255, 152, 0, 0.1)
+      ) !important;
+      color: #d84315 !important;
+      border-radius: 6px;
+      padding: 0.2em 0.5em;
+      font-weight: 500;
+    }
+  }
+
+  // Enhanced UI elements
+  .reading-progress {
+    background: linear-gradient(
+      90deg,
+      #ff5722,
+      #ff9800,
+      #ffc107,
+      #ff9800,
+      #ff5722
+    ) !important;
+    background-size: 300% 100%;
+    animation: progress-flow 6s linear infinite;
+    height: 4px !important;
+    box-shadow: 0 0 10px rgba(255, 87, 34, 0.5);
+  }
+
+  .toc-container {
+    background: linear-gradient(
+      135deg,
+      rgba(255, 248, 225, 0.95) 0%,
+      rgba(255, 243, 224, 0.95) 100%
+    ) !important;
+    border: 2px solid #ff8a65 !important;
+    border-radius: 16px;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 8px 32px rgba(255, 87, 34, 0.1);
+
+    h3 {
+      color: #d84315 !important;
+      text-align: center;
+
+      &::after {
+        content: ' 🗺️';
+      }
+    }
+
+    a {
+      color: #5d4037 !important;
+      border-radius: 8px;
+      transition: all 0.2s ease;
+
+      &:hover {
+        color: #fff !important;
+        background: linear-gradient(135deg, #ff5722, #ff9800);
+        border-left-color: transparent !important;
+        box-shadow: 0 4px 12px rgba(255, 87, 34, 0.3);
+      }
+
+      &.active {
+        color: #fff !important;
+        background: linear-gradient(135deg, #d84315, #ff5722);
+        border-left-color: transparent !important;
+        box-shadow: 0 4px 12px rgba(216, 67, 21, 0.3);
+      }
+    }
+  }
+
+  .scroll-to-top {
+    background: linear-gradient(135deg, #ff5722 0%, #ff9800 100%) !important;
+    box-shadow: 0 8px 25px rgba(255, 87, 34, 0.4);
+
+    &:hover {
+      background: linear-gradient(135deg, #d84315 0%, #ff5722 100%) !important;
+      box-shadow: 0 12px 35px rgba(255, 87, 34, 0.6) !important;
+      transform: translateY(-6px) scale(1.05);
+    }
+
+    &::before {
+      content: '🏝️';
+      position: absolute;
+      inset: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.2rem;
+      opacity: 0;
+      transition: opacity 0.2s ease;
+    }
+
+    &:hover::before {
+      opacity: 1;
+    }
+
+    &:hover svg {
+      opacity: 0;
+    }
+  }
+}
+
+// 🌊 Tropical Animations
+@keyframes tropical-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes float {
+  0%,
+  100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-10px) rotate(5deg);
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    opacity: 0.5;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+@keyframes wave-emojis {
+  0%,
+  100% {
+    transform: translateX(0px);
+  }
+  25% {
+    transform: translateX(-10px);
+  }
+  75% {
+    transform: translateX(10px);
+  }
+}
+
+@keyframes glow-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(255, 87, 34, 0.3);
+  }
+  50% {
+    box-shadow: 0 0 15px rgba(255, 87, 34, 0.6);
+  }
+}
+
+@keyframes text-gradient {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+@keyframes progress-flow {
+  0% {
+    background-position: 0% 50%;
+  }
+  100% {
+    background-position: 300% 50%;
+  }
+}
+
+@keyframes tiki-border {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+// Return link styles
+.return-link-top {
+  a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: #764ba2;
+    }
+  }
+}
+
+// Tiki theme return links
+.blog-post-theme.theme-tiki .return-link-top a,
+.blog-post-theme.theme-tiki .return-link-bottom a {
+  color: #d84315 !important;
+
   &:hover {
-    .heading-link {
-      color: #889;
-      display: inline-block;
+    color: #bf360c !important;
+  }
+}
+
+.return-link-bottom {
+  margin-top: 3rem;
+  padding-top: 2rem;
+  border-top: 1px solid #e5e5e5;
+
+  a {
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+
+    &:hover {
+      color: #764ba2;
     }
   }
 }

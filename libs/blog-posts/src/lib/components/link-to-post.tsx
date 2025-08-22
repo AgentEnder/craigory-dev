@@ -23,8 +23,11 @@ export function LinkToPost({
 
   const post = slugMap[slug];
   return (
-    <a href={`${getBlogUrl(post)}${ref ? `?ref=${ref}` : ''}`}>
-      <a className="text-blue-600 hover:underline">{title ?? post.title}</a>
+    <a
+      href={`${getBlogUrl(post)}${ref ? `?ref=${ref}` : ''}`}
+      className="text-blue-600 hover:underline"
+    >
+      {title ?? post.title}
     </a>
   );
 }

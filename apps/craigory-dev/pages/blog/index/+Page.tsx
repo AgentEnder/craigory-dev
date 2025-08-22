@@ -10,13 +10,24 @@ import { BlogFilterBar } from '../components/blog-filter-bar';
 
 export function Page() {
   const pageContext = usePageContext();
+  const hookData = pageContext.data as { readingTimes?: Record<string, number> } | undefined;
+  const { readingTimes } = hookData || {};
   const pageNumber = tryOr(
     () => parseInt(pageContext.routeParams?.pageNumber ?? '1'),
     1
   );
 
+  // Memoize posts with reading times to prevent infinite re-renders
+  const allPosts = useMemo(() => 
+    blogPosts.map(post => ({
+      ...post,
+      readingTimeMinutes: readingTimes?.[post.slug]
+    })), 
+    [readingTimes]
+  );
+  
   const [filterFn, setFilterFn] = useState<((p: BlogPost) => boolean) | null>(null);
-  const [filteredPosts, setFilteredPosts] = useState(blogPosts);
+  const [filteredPosts, setFilteredPosts] = useState<BlogPost[]>([]);
   
   const filteredPages = useMemo(() => {
     const pageSize = 10;
@@ -27,11 +38,12 @@ export function Page() {
     return result.length > 0 ? result : [[]];
   }, [filteredPosts]);
 
+  // Update filtered posts when allPosts or filter changes
   useEffect(() => {
     setFilteredPosts(
-      filterFn ? blogPosts.filter((p) => filterFn(p)) : blogPosts
+      filterFn ? allPosts.filter((p) => filterFn(p)) : allPosts
     );
-  }, [filterFn]);
+  }, [filterFn, allPosts]);
 
   const onSetFilter = useCallback(
     (fn: (p: BlogPost) => boolean) => {
@@ -44,36 +56,35 @@ export function Page() {
 
   return (
     <>
-      <h1>Blog</h1>
+      <div className="blog-index-header">
+        <h1>Blog</h1>
+      </div>
       <BlogFilterBar
         onSetFilter={onSetFilter}
-        posts={blogPosts}
+        posts={allPosts}
       />
       <div className="posts-container">
         {currentPagePosts.map((post) => (
-          <div
-            key={post.slug}
-            style={{
-              display: 'flex',
-              flexDirection: 'row',
-              gap: '1em',
-              alignItems: 'top',
-            }}
-          >
-            <div id={post.slug} className={`post-container`}>
-              <h2 key={post.title + 'TITLE'} className="title">
-                <Link href={getBlogUrl(post) + `?ref=/blog/${pageNumber}`}>
-                  {post.title}
-                </Link>
-              </h2>
-              <p key={post.title + 'PUBLISH DATE'} className="date">
-                {format(post.publishDate, 'MMM dd, yyyy')}
-              </p>
-              <div key={post.title + 'DESCRIPTION'} className="description">
-                {post.description.split('\n').map((line) => (
-                  <p key={line}>{line}</p>
-                ))}
-              </div>
+          <div id={post.slug} key={post.slug} className="post-container">
+            <p key={post.title + 'PUBLISH DATE'} className="date">
+              {format(post.publishDate, 'MMM dd, yyyy')}
+            </p>
+            <h2 key={post.title + 'TITLE'} className="title">
+              <Link href={getBlogUrl(post) + `?ref=/blog/${pageNumber}`}>
+                {post.title}
+              </Link>
+            </h2>
+            <div key={post.title + 'DESCRIPTION'} className="description">
+              {post.description.split('\n').map((line) => (
+                <p key={line}>{line}</p>
+              ))}
+            </div>
+            <div className="post-meta">
+              {post.readingTimeMinutes && (
+                <span className="reading-time">
+                  <span role="img" aria-label="reading time">📖</span> {post.readingTimeMinutes} min read
+                </span>
+              )}
               <div className="tags">
                 {post.tags.map(tag => (
                   <span key={tag} className="tag">
@@ -97,7 +108,7 @@ export function Page() {
             </Link>
             <p className="pagination-info">
               Page {pageNumber} of {filteredPages.length}
-              {filteredPosts.length !== blogPosts.length && 
+              {filteredPosts.length !== allPosts.length && 
                 ` (${filteredPosts.length} posts matching filter)`
               }
             </p>

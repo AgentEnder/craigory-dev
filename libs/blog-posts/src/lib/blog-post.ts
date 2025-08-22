@@ -21,4 +21,5 @@ export interface BlogPost {
   title: string;
   description: string;
   tags: BlogTag[];
+  readingTimeMinutes?: number;
 }

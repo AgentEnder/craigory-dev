@@ -164,18 +164,28 @@ async function getLastCommitDate(
   workspaceRoot: string
 ): Promise<Date | null> {
   try {
-    // Get the last commit date in ISO format
-    const result = execSync('git log -1 --format=%cI -- ' + projectPath, {
+    // Use %ct to get Unix timestamp - more reliable across platforms
+    const result = execSync('git log -1 --format=%ct -- ' + projectPath, {
       cwd: workspaceRoot,
       encoding: 'utf8',
       timeout: 5000, // 5 second timeout
     });
 
     const trimmed = result.trim();
-    const ms = trimmed.length ? parseInt(trimmed) * 1000 : Date.now();
-    console.log('Last commit date (ms):', ms);
-    console.log('Last commit date (ISO):', new Date(ms).toISOString());
-    return new Date(ms);
+    if (!trimmed.length) {
+      return null;
+    }
+    
+    const timestamp = parseInt(trimmed, 10);
+    if (isNaN(timestamp)) {
+      console.warn('Invalid timestamp from git:', trimmed);
+      return null;
+    }
+    
+    const date = new Date(timestamp * 1000);
+    console.log('Last commit timestamp:', timestamp);
+    console.log('Last commit date:', date.toISOString());
+    return date;
   } catch (error) {
     console.log('ERROR:', error);
     // If git command fails, return null (could be no commits, not a git repo, etc.)
