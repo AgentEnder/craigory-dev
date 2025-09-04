@@ -2,7 +2,7 @@
 import mdx from '@mdx-js/rollup';
 import react from '@vitejs/plugin-react';
 
-import { ssr } from 'vike/plugin';
+import vike from 'vike/plugin';
 import { defineConfig } from 'vite';
 import { viteStaticCopy } from 'vite-plugin-static-copy';
 import viteTsConfigPaths from 'vite-tsconfig-paths';
@@ -44,12 +44,7 @@ export default defineConfig({
         },
       ],
     }),
-    ssr({
-      prerender: {
-        partial: false,
-      },
-      trailingSlash: false,
-    }),
+    vike(),
     mdx({
       remarkPlugins: REMARK_PLUGINS,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any

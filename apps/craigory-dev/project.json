@@ -9,14 +9,14 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "commands": ["vite build", "node ../../tools/copy-local-projects.cjs"],
+        "commands": ["vike build", "node ../../tools/copy-local-projects.cjs"],
         "cwd": "apps/craigory-dev",
         "parallel": false
       },
       "configurations": {
         "development": {
           "commands": [
-            "vite build --mode development",
+            "vike build --mode development",
             "node ../../tools/copy-local-projects.cjs"
           ]
         }
@@ -38,7 +38,7 @@
     "serve": {
       "executor": "nx:run-commands",
       "options": {
-        "command": "vite",
+        "command": "vike dev",
         "cwd": "apps/craigory-dev"
       }
     },
