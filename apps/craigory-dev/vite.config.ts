@@ -1,13 +1,15 @@
 /// <reference types="vitest" />
+/// <reference types="vite/client" />
 import mdx from '@mdx-js/rollup';
 import react from '@vitejs/plugin-react';
 
 import vike from 'vike/plugin';
-import { defineConfig } from 'vite';
-import { viteStaticCopy } from 'vite-plugin-static-copy';
+import { defineConfig } from 'vitest/config';
 import viteTsConfigPaths from 'vite-tsconfig-paths';
 
 import { REMARK_PLUGINS, REHYPE_PLUGINS } from './plugins';
+import { copyAssetsPlugin } from './vite-plugin-copy-assets';
+import { rawMarkdownPlugin } from './vite-plugin-raw-markdown';
 
 export default defineConfig({
   cacheDir: '../../node_modules/.vite/craigory-dev',
@@ -19,7 +21,7 @@ export default defineConfig({
 
   base: process.env.PUBLIC_ENV__BASE_URL || '/',
 
-  assetsInclude: ['../../libs/presentations/**/*.md', './static/**/*'],
+  assetsInclude: ['./static/**/*'],
 
   preview: {
     port: 4300,
@@ -29,26 +31,17 @@ export default defineConfig({
   plugins: [
     viteTsConfigPaths(),
     react(),
-    viteStaticCopy({
-      targets: [
-        {
-          src: [
-            `../../libs/presentations/assets/*`,
-            `../../libs/presentations/assets/**/*`,
-          ],
-          dest: '.',
-          rename: (_1, _2, filePath) => {
-            const dest = filePath.replace('../../libs/presentations', '');
-            return dest;
-          },
-        },
-      ],
+    rawMarkdownPlugin(),
+    copyAssetsPlugin({
+      src: '../../libs/presentations/assets',
+      dest: 'assets',
     }),
     vike(),
     mdx({
       remarkPlugins: REMARK_PLUGINS,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       rehypePlugins: REHYPE_PLUGINS as any,
+      include: ['**/*.mdx'],
     }),
   ],
 

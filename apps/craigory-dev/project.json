@@ -28,7 +28,7 @@
       "options": {
         "commands": [
           "sscli -b https://craigory.dev -r dist/apps/craigory-dev/client -c '**,weekly' 'blog/**,daily' --slash",
-          "npx vite-node -c tools/vite.config.js tools/generate-open-graph-images.ts"
+          "pnpm dlx vite-node -c tools/vite.config.js tools/generate-open-graph-images.ts"
         ],
         "parallel": true
       },

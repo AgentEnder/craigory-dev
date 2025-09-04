@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { PRESENTATIONS } from './presentations';
 import afterRemarkLoaded from './post-remark-load.js?raw';
+import remark from './remark.js?raw';
 
 import './view-presentation.scss';
 
@@ -17,10 +18,18 @@ export function ViewPresentation(props: PresentationsProps) {
     const p = PRESENTATIONS[props.presentationSlug];
     if (p?.mdUrl) {
       (async function () {
-        const res = await import(
-          `../presentation-data/${p.slug}/${p.mdUrl}.md?raw`
-        ).then((m) => m.default);
-        setMd(res.replace(/`/g, '\\`').replace(/\${/g, '\\${'));
+        try {
+          const mdModule = await import(
+            `../presentation-data/${p.slug}/${p.mdUrl}.md?raw`
+          );
+          const res = mdModule.default as string;
+          console.log('Raw markdown:', res);
+          const normalized = res.replace(/`/g, '\\`').replace(/\${/g, '\\${');
+          console.log('Normalized markdown:', normalized);
+          setMd(normalized);
+        } catch (error) {
+          console.error('Failed to load markdown:', error);
+        }
       })();
     }
 
@@ -61,53 +70,83 @@ export function ViewPresentation(props: PresentationsProps) {
     }
   }, [props.presentationSlug]);
 
+  // useScript({ body: remark }, () => {
+  //   setRemarkedLoaded(true);
+  // });
+
   useScript(
     { url: 'https://remarkjs.com/downloads/remark-latest.min.js' },
     () => {
+      console.log('remark script loaded');
       setRemarkedLoaded(true);
     }
   );
 
-  useScript({
-    // eslint-disable-next-line no-template-curly-in-string
-    body: afterRemarkLoaded.replace('`${md}`', `\`${md}\``),
-    waitFor: !!(remarkLoaded && md),
-  });
+  useScript(
+    {
+      // eslint-disable-next-line no-template-curly-in-string
+      body: afterRemarkLoaded.replace('`${md}`', `\`${md}\``),
+      waitFor: [remarkLoaded, md],
+    },
+    () => {
+      console.log('afterRemarkLoaded executed');
+    }
+  );
 
   // eslint-disable-next-line react/jsx-no-useless-fragment
   return <></>;
 }
 
 function useScript(
-  options: { body: string; waitFor?: boolean },
+  options: { body: string; waitFor?: unknown[] },
   onReady?: () => void
 ): void;
 function useScript(
-  options: { url: string; waitFor?: boolean },
+  options: { url: string; waitFor?: unknown[] },
   onReady?: () => void
 ): void;
 function useScript(
-  { url, body, waitFor }: { url?: string; body?: string; waitFor?: boolean },
+  { url, body, waitFor }: { url?: string; body?: string; waitFor?: unknown[] },
   onReady?: () => void
 ): void {
   useEffect(() => {
     const cleanupTasks: Array<() => void> = [];
-    if (waitFor === undefined || waitFor) {
+    console.log('waitFor:', waitFor);
+    if (waitFor === undefined || waitFor.every((w) => !!w)) {
+      console.log('Inserting script:', { url, body, waitFor });
       const script = document.createElement('script');
+      script.className = 'dynamic-script';
+
       if (url) {
+        console.log('Setting up external script:', url);
         script.src = url;
+        if (onReady) {
+          script.onload = () => {
+            console.log('External script loaded:', url);
+            onReady();
+          };
+          script.onerror = (error) => {
+            console.error('Failed to load external script:', url, error);
+          };
+        }
+        console.log('Script element created with src:', script.src);
       } else if (body) {
-        script.innerHTML = body;
+        console.log('Setting up inline script, length:', body.length);
+        // Escape </script> tags to prevent HTML parser issues
+        const escapedBody = body.replace(/<\/script>/gi, '<\\/script>');
+        script.innerHTML = escapedBody;
       }
 
+      console.log('Appending script to body...');
       document.body.appendChild(script);
 
-      if (onReady) {
-        script.onload = onReady;
+      // For inline scripts, call onReady after a brief delay to ensure execution
+      if (body && onReady) {
+        setTimeout(onReady, 0);
       }
 
       cleanupTasks.push(() => {
-        document.body.removeChild(script);
+        script.remove();
       });
     }
 

@@ -1,0 +1,9 @@
+packages:
+  # Apps directory - contains all applications
+  - 'apps/*'
+
+  # Libs directory - contains all libraries/packages
+  - 'libs/*'
+
+  # Tools directory if it contains packages
+  - 'tools'

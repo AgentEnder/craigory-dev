@@ -1,0 +1,14 @@
+diff --git a/package.json b/package.json
+index 7d47982470a329af6abca8962f69bdd7a81fcaa9..f4cfc96ce8a49789b18444c7c3122035eb594fee 100644
+--- a/package.json
++++ b/package.json
+@@ -16,7 +16,8 @@
+       "types": "./dist/esm/client/runtime-server-routing/index.d.ts"
+     },
+     "./types": {
+-      "types": "./dist/esm/types/index.d.ts"
++      "types": "./dist/esm/types/index.d.ts",
++      "default": "./dist/esm/types/index.d.ts"
+     },
+     "./client/router": {
+       "worker": "./dist/esm/node/client/router.js",

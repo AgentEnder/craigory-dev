@@ -1,12 +1,12 @@
-let initialized = false;
+this.initialized = false;
 
 // eslint-disable-next-line no-undef
 remark
   // eslint-disable-next-line no-undef
   .create({ source: `${md}`, ratio: '16:9' })
   .on('showSlide', function (slide) {
-    if (initialized) return;
-    initialized = true;
+    if (this.initialized) return;
+    this.initialized = true;
     const observer = new IntersectionObserver(
       (entries) => {
         entries.forEach((entry) => {
