@@ -1,0 +1,5 @@
+{
+  "name": "QBCheck ADHD Assessment Simulator",
+  "description": "A simulation of the QBCheck ADHD assessment test. Features practice modes, full assessment with shape recognition tasks, webcam movement tracking, and detailed performance analysis.",
+  "technologies": ["TypeScript", "HTML", "CSS"]
+}
