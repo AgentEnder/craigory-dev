@@ -1,0 +1,15 @@
+diff --git a/node_modules/vike/package.json b/node_modules/vike/package.json
+index 1234567..abcdefg 100644
+--- a/node_modules/vike/package.json
++++ b/node_modules/vike/package.json
+@@ -15,7 +15,8 @@
+     "./client": {
+       "types": "./dist/esm/client/runtime-server-routing/index.d.ts"
+     },
+     "./types": {
+-      "types": "./dist/esm/types/index.d.ts"
++      "types": "./dist/esm/types/index.d.ts",
++      "default": "./dist/esm/types/index.d.ts"
+     },
+     "./client/router": {
+       "worker": "./dist/esm/node/client/router.js",
