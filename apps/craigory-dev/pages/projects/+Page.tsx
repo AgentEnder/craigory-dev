@@ -136,7 +136,7 @@ export function Page() {
                     </div>
                   </td>
                   <td>
-                    <div>{DeploymentLink(p)}</div>
+                    <div><DeploymentLink project={p} /></div>
                   </td>
                 </tr>
               ) : null}
@@ -266,25 +266,25 @@ const calculateRelevance = (projects: RepoData[]) => {
   };
 };
 
-function DeploymentLink(p: ProjectData) {
-  const [displayName, setDisplayName] = useState(p.deployment);
+function DeploymentLink({ project }: { project: ProjectData }) {
+  const [displayName, setDisplayName] = useState(project.deployment);
   useEffect(() => {
-    if (!p.deployment) return;
+    if (!project.deployment) return;
 
     try {
-      const url = p.deployment.startsWith('/')
-        ? new URL(p.deployment, window.location.origin)
-        : p.deployment;
+      const url = project.deployment.startsWith('/')
+        ? new URL(project.deployment, window.location.origin)
+        : project.deployment;
       setDisplayName(url.toString());
     } catch {
-      setDisplayName(p.deployment);
+      setDisplayName(project.deployment);
     }
-  }, [p.deployment]);
+  }, [project.deployment]);
 
-  if (!p.deployment) return;
+  if (!project.deployment) return null;
 
   return (
-    <a href={p.deployment} target="_blank" rel="noreferrer">
+    <a href={project.deployment} target="_blank" rel="noreferrer">
       {displayName}
     </a>
   );

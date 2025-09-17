@@ -38,7 +38,7 @@
         display: grid;
 
         &::after {
-          content: 'X';
+          content: '✓';
           color: white;
           font-size: 1em;
           place-self: center;

@@ -18,6 +18,9 @@
     "prepare": {
       "cache": true
     },
+    "deploy": {
+      "dependsOn": ["build"]
+    },
     "@nx/jest:jest": {
       "inputs": ["default", "^production", "{workspaceRoot}/jest.preset.js"],
       "cache": true,

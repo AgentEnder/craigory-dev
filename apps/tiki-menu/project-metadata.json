@@ -1,0 +1,5 @@
+{
+  "name": "Tiki Menu",
+  "description": "A Firebase-based tiki bar management app with ingredient inventory tracking, drink menu display, and admin controls for toggling ingredient availability.",
+  "technologies": ["TypeScript", "React", "Firebase", "Tailwind CSS", "Zustand"]
+}

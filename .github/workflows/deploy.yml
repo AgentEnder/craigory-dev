@@ -61,4 +61,5 @@ jobs:
           npx nx deploy craigory-dev -c $ENV
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
           ENV: ${{ github.event.inputs.environment || github.ref_name }}
