@@ -93,7 +93,7 @@
           "baseBranch": "gh-pages"
         }
       },
-      "dependsOn": ["prepare"]
+      "dependsOn": ["prepare", "^deploy"]
     }
   }
 }

@@ -4,7 +4,7 @@ const path = require('path');
 const workspaceRoot = path.join(__dirname, '..');
 const appsDir = path.join(workspaceRoot, 'apps');
 const distDir = path.join(workspaceRoot, 'dist', 'apps');
-const targetDir = path.join(distDir, 'craigory-dev', 'client', 'projects');
+const targetDir = path.join(distDir, 'craigory-dev', 'client');
 
 // Create target directory if it doesn't exist
 if (!fs.existsSync(targetDir)) {
@@ -60,8 +60,7 @@ for (const appDir of appDirs) {
 const serverTargetDir = path.join(
   distDir,
   'craigory-dev',
-  'server',
-  'projects'
+  'server'
 );
 if (!fs.existsSync(serverTargetDir)) {
   fs.mkdirSync(serverTargetDir, { recursive: true });
