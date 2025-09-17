@@ -1,0 +1,200 @@
+@import 'tailwindcss';
+
+:root {
+  --tiki-dark: #1a0f0a;
+  --tiki-wood: #8b4513;
+  --tiki-bamboo: #d2b48c;
+  --tiki-carved: #654321;
+  --tiki-warm: #ff8c42;
+  --tiki-parchment: #f4e8c1;
+  --tiki-jade: #4a8b3b;
+  --tiki-light: #f5e6d3;
+  --tiki-cream: #faf5e6;
+}
+
+body {
+  font-family: 'Kalam', cursive;
+  background: var(--tiki-dark);
+  min-height: 100vh;
+  position: relative;
+  overflow-x: hidden;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-image: 
+    repeating-linear-gradient(
+      0deg,
+      transparent,
+      transparent 2px,
+      rgba(139, 69, 19, 0.1) 2px,
+      rgba(139, 69, 19, 0.1) 4px
+    ),
+    repeating-linear-gradient(
+      90deg,
+      transparent,
+      transparent 8px,
+      rgba(139, 69, 19, 0.05) 8px,
+      rgba(139, 69, 19, 0.05) 16px
+    );
+  pointer-events: none;
+  z-index: 1;
+}
+
+.tiki-container {
+  position: relative;
+  z-index: 10;
+}
+
+.tiki-header {
+  font-family: 'Pacifico', cursive;
+  color: var(--tiki-warm);
+  text-shadow: 
+    2px 2px 0 var(--tiki-carved),
+    4px 4px 8px rgba(0, 0, 0, 0.8);
+}
+
+.tiki-card {
+  background: 
+    linear-gradient(145deg, var(--tiki-parchment), #ede0c8),
+    radial-gradient(circle at 20% 20%, rgba(139, 69, 19, 0.1) 0%, transparent 50%);
+  border: 2px solid var(--tiki-carved);
+  border-radius: 8px;
+  box-shadow: 
+    0 8px 24px rgba(0, 0, 0, 0.4),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3);
+  position: relative;
+  overflow: hidden;
+}
+
+.tiki-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: 
+    repeating-linear-gradient(
+      45deg,
+      transparent,
+      transparent 1px,
+      rgba(139, 69, 19, 0.05) 1px,
+      rgba(139, 69, 19, 0.05) 2px
+    );
+  pointer-events: none;
+}
+
+.drink-category {
+  color: var(--tiki-warm);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+}
+
+.drink-name {
+  color: var(--tiki-carved);
+  font-weight: 700;
+}
+
+.price-tag {
+  background: 
+    radial-gradient(circle at 30% 30%, var(--tiki-warm), #cc6a2a);
+  color: var(--tiki-parchment);
+  border-radius: 8px;
+  padding: 0.5rem;
+  font-weight: 700;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
+  box-shadow: 
+    0 4px 8px rgba(0, 0, 0, 0.3),
+    inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+
+.bamboo-divider {
+  height: 2px;
+  background: 
+    linear-gradient(90deg, 
+      var(--tiki-bamboo) 0%, 
+      var(--tiki-wood) 25%, 
+      var(--tiki-bamboo) 50%, 
+      var(--tiki-wood) 75%, 
+      var(--tiki-bamboo) 100%
+    );
+  border-radius: 1px;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.tiki-accent {
+  color: var(--tiki-jade);
+  font-weight: 600;
+}
+
+
+.text-readable {
+  color: var(--tiki-light);
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.8);
+}
+
+.text-readable-dark {
+  color: var(--tiki-carved);
+  text-shadow: none;
+}
+
+.category-header {
+  background: rgba(139, 69, 19, 0.3);
+  border: 1px solid rgba(101, 67, 33, 0.5);
+  backdrop-filter: blur(4px);
+}
+
+/* Additional utility classes for tiki theme */
+.bg-tiki-surface {
+  background: linear-gradient(145deg, var(--tiki-parchment), #ede0c8);
+}
+
+.text-tiki-text {
+  color: var(--tiki-carved);
+}
+
+.border-tiki-carved {
+  border-color: var(--tiki-carved);
+}
+
+.bg-tiki-accent {
+  background-color: var(--tiki-jade);
+}
+
+.text-tiki-accent {
+  color: var(--tiki-jade);
+}
+
+.hover\:bg-tiki-accent:hover {
+  background-color: var(--tiki-jade);
+}
+
+.hover\:text-tiki-accent:hover {
+  color: var(--tiki-jade);
+}
+
+/* Progress bar animation */
+@keyframes progress-indeterminate {
+  0% {
+    transform: translateX(-100%) scaleX(0.5);
+  }
+  50% {
+    transform: translateX(0%) scaleX(1);
+  }
+  100% {
+    transform: translateX(100%) scaleX(0.5);
+  }
+}
+
+.animate-progress-indeterminate {
+  animation: progress-indeterminate 1.5s ease-in-out infinite;
+  transform-origin: left;
+}

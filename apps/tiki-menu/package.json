@@ -1,0 +1,45 @@
+{
+  "name": "tiki-menu",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vike dev",
+    "build": "vike build",
+    "preview": "vike preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "dependsOn": [
+          "typecheck"
+        ]
+      },
+      "deploy": {
+        "command": "pnpm exec firebase deploy --only firestore:rules",
+        "options": {
+          "cwd": "{projectRoot}"
+        }
+      }
+    }
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.12",
+    "@types/react": "^19.1.6",
+    "@types/react-dom": "^19.1.6",
+    "@vitejs/plugin-react": "^5.0.0",
+    "autoprefixer": "^10.4.21",
+    "firebase": "^12.2.1",
+    "postcss": "^8.5.6",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "tailwindcss": "^4.1.12",
+    "vike": "0.4.239-commit-9dcde6d",
+    "vike-react": "^0.6.5",
+    "zustand": "^5.0.8"
+  },
+  "devDependencies": {
+    "firebase-tools": "^14.16.0"
+  }
+}

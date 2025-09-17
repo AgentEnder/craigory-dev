@@ -1,0 +1,126 @@
+@startuml firestore-schema
+
+title Tiki Menu - Firestore NoSQL Schema (Flattened Structure)
+
+class Categories <<collection>> #LightBlue {
+  + id: string // e.g., "cat_1", "cat_2"
+  + name: string // "Rum", "Vodka", "Aged Jamaican Rum"
+  + parentId: string | null // Reference to parent category
+  + path: string[] // ["rum", "jamaican", "aged"] for hierarchy
+  + level: number // 0 for root, 1 for subcategory, etc.
+  + order: number
+  + description?: string
+  + createdAt: timestamp
+  + updatedAt: timestamp
+}
+
+class Ingredients <<collection>> #LightCyan {
+  + id: string // e.g., "ing_1", "ing_2"
+  + name: string // "Appleton Estate 12yr"
+  + displayName: string // "Aged Rum (Appleton Estate 12yr)"
+  + categoryId: string // Reference to category
+  + categoryPath: string[] // ["rum", "jamaican", "aged"]
+  + brand: string
+  + available: boolean
+  + inStock: boolean
+  + abv?: number
+  + description?: string
+  + order: number
+  + createdAt: timestamp
+  + updatedAt: timestamp
+}
+
+class Recipes <<collection>> #LightBlue {
+  + id: string <<auto>>
+  + name: string // "Mai Tai"
+  + category: string // "Classic Tiki"
+  + description: string
+  + ingredients: IngredientSpec[]
+  + instructions: string[]
+  + strength: "light" | "medium" | "strong" | null
+  + isSpecial: boolean
+  + isBitter: boolean
+  + servingSize: number // Number of people
+  + glassType: string
+  + garnish?: string[]
+  + notes?: string
+  + order: number
+  + active: boolean
+  + createdAt: timestamp
+  + updatedAt: timestamp
+}
+
+class IngredientSpec <<embedded>> #LightYellow {
+  + categoryId?: string // Reference to category for flexible selection
+  + ingredientId?: string // Reference to specific ingredient
+  + customName?: string // For custom/non-library ingredients
+  + amount: number
+  + unit: string // "oz", "ml", "dash", etc
+  + optional: boolean
+  + notes?: string
+}
+
+class Users <<collection>> #LightBlue {
+  + id: string <<uid>>
+  + email: string
+  + displayName?: string
+  + role: "admin" | "viewer"
+  + createdAt: timestamp
+  + lastLogin: timestamp
+}
+
+note right of Categories
+  Flat structure with parentId references
+  Build hierarchy client-side using path
+  Single query loads all categories
+
+  Example categories:
+  - id: "cat_rum", name: "Rum", parentId: null, path: ["rum"]
+  - id: "cat_rum_jam", name: "Jamaican", parentId: "cat_rum", path: ["rum", "jamaican"]
+  - id: "cat_rum_jam_aged", name: "Aged", parentId: "cat_rum_jam", path: ["rum", "jamaican", "aged"]
+end note
+
+note right of Ingredients
+  Flat structure with category references
+  Single query loads all ingredients
+  Filter and organize client-side
+
+  Example ingredient:
+  - id: "ing_app12",
+  - name: "Appleton Estate 12yr",
+  - categoryId: "cat_rum_jam_aged",
+  - categoryPath: ["rum", "jamaican", "aged"]
+end note
+
+note bottom
+  Optimized Query Examples:
+  1. Load all categories (single query):
+     db.collection('categories').orderBy('order')
+
+  2. Load all ingredients (single query):
+     db.collection('ingredients').orderBy('order')
+
+  3. Load all recipes (single query):
+     db.collection('recipes').where('active', '==', true).orderBy('order')
+
+  4. Client-side operations:
+     - Build category tree from flat list using parentId
+     - Group ingredients by categoryId
+     - Filter ingredients by availability/stock
+     - Search across all ingredients in memory
+
+  Benefits:
+  - Eliminates N+1 queries from nested subcollections
+  - 3 queries load entire app data
+  - Faster initial load time
+  - Simpler client-side caching
+  - Easier to implement search/filter
+end note
+
+' Relationships
+Categories "1" --> "0..*" Categories : parentId reference
+Ingredients "*" --> "1" Categories : categoryId reference
+Recipes "*" --> "*" Ingredients : references via IngredientSpec
+Recipes "*" --> "*" Categories : references via IngredientSpec
+
+@enduml

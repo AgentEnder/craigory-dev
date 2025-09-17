@@ -1,0 +1,47 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Helper function to check if user is admin
+    function isAdmin() {
+      return request.auth != null &&
+             request.auth.uid != null &&
+             get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+
+    // Categories collection - flat structure
+    match /categories/{document} {
+      allow read: if true; // Public read access for menu viewing
+      allow write: if isAdmin(); // Only admin can modify
+    }
+
+    // Ingredients collection - flat structure
+    match /ingredients/{document} {
+      allow read: if true; // Public read access for menu viewing
+      allow write: if isAdmin(); // Only admin can modify
+    }
+
+    // Recipes collection - drink recipes
+    match /recipes/{document} {
+      allow read: if true; // Public read access
+      allow write: if isAdmin(); // Only admin can modify
+    }
+
+    // Recipe categories
+    match /recipe-categories/{document} {
+      allow read: if true; // Public read access
+      allow write: if isAdmin(); // Only admin can modify
+    }
+
+    // Users collection - user profiles and roles
+    match /users/{userId} {
+      allow read: if request.auth != null &&
+                     (request.auth.uid == userId || isAdmin());
+      allow create: if false; // Users can't self-register
+      allow update: if request.auth != null &&
+                      request.auth.uid == userId &&
+                      !request.resource.data.diff(resource.data).affectedKeys().hasAny(['role']);
+      allow delete: if isAdmin();
+    }
+  }
+}
