@@ -9,5 +9,5 @@ export default defineConfig({
     // outDir: '../../dist/apps/qr-generator',
     // emptyOutDir: true,
   },
-  base: (process.env.PUBLIC_ENV__BASE_URL ?? '') + '/projects/qr-generator/',
+  base: (process.env.PUBLIC_ENV__BASE_URL ?? '') + '/qr-generator/',
 });

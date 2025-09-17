@@ -7,4 +7,8 @@ export default {
   ssr: true,
   trailingSlash: false,
   clientRouting: false,
+  redirects: {
+    '/projects/qbcheck-simulator': '/qbcheck-simulator',
+    '/projects/qr-generator': '/qr-generator',
+  },
 } satisfies Config;

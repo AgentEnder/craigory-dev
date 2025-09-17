@@ -175,13 +175,13 @@ async function getLastCommitDate(
     if (!trimmed.length) {
       return null;
     }
-    
+
     const timestamp = parseInt(trimmed, 10);
     if (isNaN(timestamp)) {
       console.warn('Invalid timestamp from git:', trimmed);
       return null;
     }
-    
+
     const date = new Date(timestamp * 1000);
     console.log('Last commit timestamp:', timestamp);
     console.log('Last commit date:', date.toISOString());
@@ -572,7 +572,7 @@ async function getLocalProjects(
       const projectDistPath = join(projectPath, 'dist', 'client');
       const deployment =
         existsSync(monorepoDistPath) || existsSync(projectDistPath)
-          ? `/projects/${appDir}`
+          ? `/${appDir}`
           : undefined;
 
       // Get README if exists
@@ -657,7 +657,7 @@ async function getLocalProjects(
         projectPath: projectPath,
         metadata,
         description: metadata.description,
-        url: `/projects/${appDir}`,
+        url: `https://github.com/AgentEnder/craigory-dev/tree/main/apps/${appDir}`,
         deployment,
         readme,
         languages,

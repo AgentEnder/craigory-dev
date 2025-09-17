@@ -9,5 +9,5 @@ export default defineConfig({
     // outDir: '../../dist/apps/qr-generator',
     // emptyOutDir: true,
   },
-  base: (process.env.PUBLIC_ENV__BASE_URL ?? '') + '/projects/qbcheck-simulator/',
+  base: (process.env.PUBLIC_ENV__BASE_URL ?? '') + '/qbcheck-simulator/',
 });
