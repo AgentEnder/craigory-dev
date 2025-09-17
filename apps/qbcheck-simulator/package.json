@@ -29,7 +29,7 @@
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "tailwindcss": "^4.1.12",
-    "vike": "^0.4.239",
+    "vike": "0.4.239-commit-9dcde6d",
     "vike-react": "^0.6.5"
   }
 }
