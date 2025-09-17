@@ -9,7 +9,7 @@ import { FaCalendar, FaGithub, FaGlobe, FaStar } from 'react-icons/fa';
 // Local Deps
 import { getLanguageLogo } from './language-logos';
 import './styles.scss';
-import { RepoData } from './types';
+import { ProjectData, RepoData } from './types';
 import { FilterBar } from './components/filter-bar';
 import { PercentBar } from './components/percent-bar';
 import { ContentMarker } from '../../src/shared-components/content-marker';
@@ -136,11 +136,7 @@ export function Page() {
                     </div>
                   </td>
                   <td>
-                    <div>
-                      <a href={p.deployment} target="_blank" rel="noreferrer">
-                        {p.deployment}
-                      </a>
-                    </div>
+                    <div>{DeploymentLink(p)}</div>
                   </td>
                 </tr>
               ) : null}
@@ -269,6 +265,30 @@ const calculateRelevance = (projects: RepoData[]) => {
     return relevanceMap.get(b.repo) ?? 0 - (relevanceMap.get(a.repo) ?? 0);
   };
 };
+
+function DeploymentLink(p: ProjectData) {
+  const [displayName, setDisplayName] = useState(p.deployment);
+  useEffect(() => {
+    if (!p.deployment) return;
+
+    try {
+      const url = p.deployment.startsWith('/')
+        ? new URL(p.deployment, window.location.origin)
+        : p.deployment;
+      setDisplayName(url.toString());
+    } catch {
+      setDisplayName(p.deployment);
+    }
+  }, [p.deployment]);
+
+  if (!p.deployment) return;
+
+  return (
+    <a href={p.deployment} target="_blank" rel="noreferrer">
+      {displayName}
+    </a>
+  );
+}
 
 function calculateRelevanceForProject(p: RepoData) {
   // popularity metrics, based on stars + published package downloads
