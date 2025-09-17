@@ -1,20 +1,11 @@
 import React from 'react';
-import { PageContext } from '@new-personal-monorepo/vike-utils';
 import './PageShell.scss';
 import { Link } from './Link';
-import { MinimumPageShell } from './MinimumPageShell';
-import { pageCount } from '../pages/blog/config';
 import { Toaster } from '../src/shared-components/toaster';
 
-export function PageShell({
-  children,
-  pageContext,
-}: {
-  children: React.ReactNode;
-  pageContext: PageContext;
-}) {
+export function PageShell({ children }: { children: React.ReactNode }) {
   return (
-    <MinimumPageShell pageContext={pageContext}>
+    <React.StrictMode>
       <Layout>
         <Sidebar>
           <Link className="navitem" href="/">
@@ -26,14 +17,14 @@ export function PageShell({
           <Link className="navitem" href="/presentations">
             Speaking + Presentations
           </Link>
-          <Link className="navitem" href={`/blog/${1}`}>
+          <Link className="navitem" href={`/blog/1`}>
             Blog
           </Link>
         </Sidebar>
         <Content>{children}</Content>
       </Layout>
       <Toaster></Toaster>
-    </MinimumPageShell>
+    </React.StrictMode>
   );
 }
 
