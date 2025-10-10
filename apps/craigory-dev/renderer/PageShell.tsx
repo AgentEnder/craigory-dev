@@ -8,18 +8,25 @@ export function PageShell({ children }: { children: React.ReactNode }) {
     <React.StrictMode>
       <Layout>
         <Sidebar>
-          <Link className="navitem" href="/">
-            Home
-          </Link>
-          <Link className="navitem" href="/projects">
-            Projects
-          </Link>
-          <Link className="navitem" href="/presentations">
-            Speaking + Presentations
-          </Link>
-          <Link className="navitem" href={`/blog/1`}>
-            Blog
-          </Link>
+          <div className="sidebar-nav">
+            <Link className="navitem" href="/">
+              Home
+            </Link>
+            <Link className="navitem" href="/projects">
+              Projects
+            </Link>
+            <Link className="navitem" href="/presentations">
+              Speaking + Presentations
+            </Link>
+            <Link className="navitem" href={`/blog/1`}>
+              Blog
+            </Link>
+          </div>
+          <div className="sidebar-footer">
+            <Link className="footer-link" href="/privacy">
+              Privacy Policy
+            </Link>
+          </div>
         </Sidebar>
         <Content>{children}</Content>
       </Layout>

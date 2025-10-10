@@ -29,6 +29,42 @@ a {
     flex-direction: column;
     align-items: center;
     line-height: 1.8em;
+    min-height: 100vh;
+
+    .sidebar-nav {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      width: 100%;
+    }
+
+    .sidebar-footer {
+      margin-top: auto;
+      padding-top: 2rem;
+      width: 100%;
+      text-align: right;
+      position: sticky;
+      bottom: 1rem;
+
+      .footer-link {
+        font-size: 0.85rem;
+        color: #888;
+        // padding: 5px 10px;
+        display: inline-block;
+
+        &:hover {
+          color: #555;
+        }
+      }
+    }
+
+    @media screen and (max-height: 200px) {
+      .sidebar-footer {
+        position: unset;
+      }
+
+      height: fit-content;
+    }
   }
 
   .content {
@@ -61,6 +97,12 @@ a {
       padding-bottom: 0.5em;
       border-bottom: 2px solid #eee;
       width: 100%;
+      min-height: auto;
+
+      .sidebar-footer {
+        margin-top: 1rem;
+        padding-top: 1rem;
+      }
     }
 
     .content {
