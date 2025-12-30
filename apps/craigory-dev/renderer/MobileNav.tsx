@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Link } from './Link';
 import './MobileNav.scss';
 
@@ -6,15 +6,49 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showFab, setShowFab] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
+  const drawerRef = useRef<HTMLElement>(null);
 
   const openDrawer = () => setIsOpen(true);
   const closeDrawer = () => setIsOpen(false);
+
+  // ESC key to close drawer
+  useEffect(() => {
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === 'Escape' && isOpen) {
+        closeDrawer();
+      }
+    };
+    document.addEventListener('keydown', handleEsc);
+    return () => document.removeEventListener('keydown', handleEsc);
+  }, [isOpen]);
+
+  // Lock body scroll when drawer is open
+  useEffect(() => {
+    if (isOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [isOpen]);
+
+  // Focus management
+  useEffect(() => {
+    if (isOpen && drawerRef.current) {
+      const closeButton = drawerRef.current.querySelector<HTMLButtonElement>(
+        '.mobile-drawer-close'
+      );
+      closeButton?.focus();
+    }
+  }, [isOpen]);
 
   return (
     <div className="mobile-nav-container">
       <MobileHeader ref={headerRef} onMenuClick={openDrawer} />
       <div className="mobile-content">{children}</div>
-      <MobileDrawer isOpen={isOpen} onClose={closeDrawer} />
+      <MobileDrawer ref={drawerRef} isOpen={isOpen} onClose={closeDrawer} />
       <MobileOverlay isOpen={isOpen} onClick={closeDrawer} />
       <NavFAB visible={showFab} onClick={openDrawer} />
     </div>
@@ -39,19 +73,41 @@ const MobileHeader = React.forwardRef<
 ));
 MobileHeader.displayName = 'MobileHeader';
 
-function MobileDrawer({
-  isOpen,
-  onClose,
-}: {
-  isOpen: boolean;
-  onClose: () => void;
-}) {
+const MobileDrawer = React.forwardRef<
+  HTMLElement,
+  { isOpen: boolean; onClose: () => void }
+>(({ isOpen, onClose }, ref) => {
+  // Handle focus trap on Tab key
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key !== 'Tab' || !ref || typeof ref === 'function') return;
+
+    const focusableElements = (
+      ref as React.RefObject<HTMLElement>
+    ).current?.querySelectorAll<HTMLElement>(
+      'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+    );
+    if (!focusableElements || focusableElements.length === 0) return;
+
+    const firstElement = focusableElements[0];
+    const lastElement = focusableElements[focusableElements.length - 1];
+
+    if (e.shiftKey && document.activeElement === firstElement) {
+      e.preventDefault();
+      lastElement.focus();
+    } else if (!e.shiftKey && document.activeElement === lastElement) {
+      e.preventDefault();
+      firstElement.focus();
+    }
+  };
+
   return (
     <nav
+      ref={ref}
       className={`mobile-drawer ${isOpen ? 'mobile-drawer--open' : ''}`}
       role="dialog"
       aria-label="Navigation menu"
       aria-hidden={!isOpen}
+      onKeyDown={handleKeyDown}
     >
       <div className="mobile-drawer-header">
         <button
@@ -83,7 +139,8 @@ function MobileDrawer({
       </div>
     </nav>
   );
-}
+});
+MobileDrawer.displayName = 'MobileDrawer';
 
 function MobileOverlay({
   isOpen,
