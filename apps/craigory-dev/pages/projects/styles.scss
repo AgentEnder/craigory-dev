@@ -11,6 +11,11 @@ table {
   box-shadow: 0 0 5px rgba(0, 0, 0, 0.1);
   align-items: center;
 
+  // Mobile: keep 2-column but use minmax to prevent overflow
+  @media screen and (max-width: 600px) {
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+  }
+
   thead,
   tbody,
   tr {
@@ -24,6 +29,9 @@ table {
     text-align: left;
     border-bottom: 1px solid #ddd;
     height: 100%;
+    min-width: 0; // Prevent grid blowout
+    overflow-wrap: break-word;
+    word-break: break-word;
   }
 
   tr:nth-child(even) td {
@@ -43,11 +51,18 @@ table {
     display: flex;
     margin-top: auto;
     margin-bottom: auto;
+    min-width: 0; // Prevent flex blowout
   }
 
   td {
     display: flex;
     align-items: center;
+  }
+
+  // Handle long URLs
+  a {
+    word-break: break-all;
+    overflow-wrap: break-word;
   }
 }
 
@@ -85,4 +100,12 @@ input[type='checkbox'][state] {
 th[colspan='2'],
 td[colspan='2'] {
   grid-column: 1 / span 2;
+}
+
+// Hide content markers on mobile (they use negative margins that can look off)
+@media screen and (max-width: 600px) {
+  // Content marker links with negative margin
+  a[href^='#'][style*='margin'] {
+    display: none;
+  }
 }

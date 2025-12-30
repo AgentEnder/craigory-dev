@@ -11,6 +11,11 @@
   padding: 0.5em;
   text-align: center;
   font-size: 1em;
+  white-space: nowrap;
+  // Creates an outline effect for better readability
+  text-shadow: 0.05em 0 black, 0 0.05em black, -0.05em 0 black, 0 -0.05em black,
+    -0.05em -0.05em black, -0.05em 0.05em black, 0.05em -0.05em black,
+    0.05em 0.05em black;
 }
 
 tr:nth-child(even) .percent-bar-fill {

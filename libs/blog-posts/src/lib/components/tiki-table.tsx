@@ -103,7 +103,7 @@ const DATA: TikiRating[] = [
     drinks: 4.0,
     decor: 2.0,
     food: 4.0,
-    visits: [new Date('2023-09-29')],
+    visits: [new Date('2023-09-29'), new Date('2025-12-05')],
   },
   {
     bar: 'The Kaona Room',
@@ -138,6 +138,30 @@ const DATA: TikiRating[] = [
     drinks: 4.0,
     decor: 1.5,
     visits: [new Date('2025-08-20')],
+  },
+  {
+    bar: 'Sunken Harbor Club',
+    blogSlug: 'sunken-harbor-club',
+    googleMapsLink: 'https://maps.app.goo.gl/nKXh4pAKP57gBtqq5',
+    location: 'Brooklyn, NY',
+    description:
+      'A nautical themed tiki bar located above Gage and Tollner in Brooklyn, NY.',
+    overall: 4.5,
+    food: 4.5,
+    drinks: 4.5,
+    decor: 4.0,
+    visits: [new Date('2025-12-06')],
+  },
+  {
+    bar: 'Paradise Lost',
+    blogSlug: 'paradise-lost',
+    googleMapsLink: 'https://maps.app.goo.gl/d5BQGcLvhUeMrEtW6',
+    location: 'East Village, NYC, NY',
+    description: 'A tiki speakeasy located in the East Village, NYC.',
+    overall: 3,
+    drinks: 4,
+    decor: 3,
+    visits: [new Date('2025-12-06')],
   },
 ];
 

@@ -6,6 +6,9 @@
 @media screen and (max-width: 900px) {
   .mobile-nav-container {
     display: block;
+    overflow-x: hidden;
+    width: 100%;
+    max-width: 100vw;
   }
 }
 
@@ -42,7 +45,7 @@
   border-radius: 8px;
   cursor: pointer;
   color: #333;
-  transition: top 300ms ease-out, bottom 300ms ease-out;
+  transition: transform 300ms ease-out, bottom 300ms ease-out;
 
   &:hover {
     color: #000;
@@ -50,14 +53,14 @@
 
   // When scrolled down, move to bottom-right
   &--scrolled {
-    top: auto;
-    bottom: 24px;
+    transform: translateY(calc(100vh - 56px));
+    box-shadow: slategray 0px 0px 8px;
   }
 
   // Hamburger icon animation
   .hamburger-icon {
     .hamburger-line {
-      transition: transform 300ms ease-out, opacity 200ms ease-out;
+      transition: transform 400ms ease-out, opacity 400ms ease-out;
       transform-origin: center;
     }
   }
@@ -80,16 +83,14 @@
 // Drawer
 .mobile-drawer {
   position: fixed;
-  top: 0;
-  right: 0;
-  width: 280px;
-  height: 100vh;
+  inset: 0;
   background: white;
   transform: translateX(100%);
   transition: transform 300ms ease-out;
   z-index: 1001;
   display: flex;
   flex-direction: column;
+  overflow: hidden;
 
   &--open {
     transform: translateX(0);
@@ -185,4 +186,7 @@
   padding-bottom: 50px;
   max-width: 90vw;
   margin: 0 auto;
+  overflow-x: hidden;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }

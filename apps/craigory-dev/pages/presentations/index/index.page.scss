@@ -17,19 +17,37 @@
   margin-bottom: 1.5rem;
   padding: 0.5rem;
 
+  // Mobile: single column stack
+  @media screen and (max-width: 600px) {
+    grid-template-columns: 1fr;
+    grid-auto-rows: auto;
+  }
+
   & > .location,
   & > .date {
     text-align: right;
+
+    @media screen and (max-width: 600px) {
+      text-align: left;
+    }
   }
 
   & > .title {
     // Title is takes 2 rows, 1 column (see area diagram above)
     grid-area: span 2 / span 1;
+
+    @media screen and (max-width: 600px) {
+      grid-area: auto;
+    }
   }
 
   & > .description {
     // Description is takes 1 row, 2 columns (see area diagram above)
     grid-area: span 1 / span 2;
+
+    @media screen and (max-width: 600px) {
+      grid-area: auto;
+    }
   }
 
   &.active {
@@ -40,6 +58,10 @@
 
     transform: rotate(1deg);
     transition: transform 0.25s ease-in-out;
+
+    @media screen and (max-width: 600px) {
+      transform: none; // Don't rotate on mobile - can cause overflow
+    }
 
     a {
       color: #95957c;

@@ -2,7 +2,10 @@
   "permissions": {
     "allow": [
       "WebFetch(domain:tailwindcss.com)",
-      "mcp__ide__getDiagnostics"
+      "mcp__ide__getDiagnostics",
+      "Skill(superpowers:brainstorming)",
+      "Skill(superpowers:writing-plans)",
+      "Skill(superpowers:subagent-driven-development)"
     ],
     "deny": [],
     "ask": []

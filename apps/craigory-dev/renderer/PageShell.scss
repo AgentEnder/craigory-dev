@@ -4,10 +4,15 @@
 @import url('https://fonts.googleapis.com/css2?family=Fira+Code&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Maiden+Orange&display=swap');
 
+html {
+  overflow-x: hidden;
+}
+
 body {
   margin: 0;
   font-family: sans-serif;
   overflow-y: scroll;
+  overflow-x: hidden;
   width: 100%;
 }
 * {
