@@ -44,6 +44,22 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
     }
   }, [isOpen]);
 
+  // Show FAB when header scrolls out of view
+  useEffect(() => {
+    const header = headerRef.current;
+    if (!header) return;
+
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setShowFab(!entry.isIntersecting);
+      },
+      { threshold: 0 }
+    );
+
+    observer.observe(header);
+    return () => observer.disconnect();
+  }, []);
+
   return (
     <div className="mobile-nav-container">
       <MobileHeader ref={headerRef} onMenuClick={openDrawer} />
