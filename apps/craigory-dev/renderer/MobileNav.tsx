@@ -11,10 +11,6 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
   const triggerRef = useRef<HTMLElement | null>(null);
   const pageContext = usePageContext();
 
-  const openDrawer = () => {
-    triggerRef.current = document.activeElement as HTMLElement;
-    setIsOpen(true);
-  };
   const closeDrawer = () => setIsOpen(false);
 
   // Close drawer on route change
@@ -45,13 +41,13 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
     };
   }, [isOpen]);
 
-  // Focus management - focus close button when opening, restore focus when closing
+  // Focus management - focus toggle button when opening, restore focus when closing
   useEffect(() => {
-    if (isOpen && drawerRef.current) {
-      const closeButton = drawerRef.current.querySelector<HTMLButtonElement>(
-        '.mobile-drawer-close'
-      );
-      closeButton?.focus();
+    if (isOpen) {
+      // Focus the toggle button (now acts as close button too)
+      const toggleButton =
+        document.querySelector<HTMLButtonElement>('.menu-toggle');
+      toggleButton?.focus();
     } else if (!isOpen && triggerRef.current) {
       triggerRef.current.focus();
       triggerRef.current = null;
@@ -74,102 +70,109 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
     return () => observer.disconnect();
   }, []);
 
+  const toggleDrawer = () => {
+    if (!isOpen) {
+      triggerRef.current = document.activeElement as HTMLElement;
+    }
+    setIsOpen(!isOpen);
+  };
+
   return (
     <div className="mobile-nav-container">
-      <MobileHeader ref={headerRef} onMenuClick={openDrawer} isOpen={isOpen} />
+      <MobileHeader ref={headerRef} />
       <div className="mobile-content">{children}</div>
-      <MobileDrawer ref={drawerRef} isOpen={isOpen} onClose={closeDrawer} />
+      <MobileDrawer ref={drawerRef} isOpen={isOpen} />
       <MobileOverlay isOpen={isOpen} onClick={closeDrawer} />
-      <NavFAB visible={showFab} onClick={openDrawer} isOpen={isOpen} />
+      <MenuToggle isOpen={isOpen} onClick={toggleDrawer} />
+      <NavFAB visible={showFab && !isOpen} onClick={toggleDrawer} isOpen={isOpen} />
     </div>
   );
 }
 
-const MobileHeader = React.forwardRef<
-  HTMLDivElement,
-  { onMenuClick: () => void; isOpen: boolean }
->(({ onMenuClick, isOpen }, ref) => (
+const MobileHeader = React.forwardRef<HTMLDivElement, object>((_, ref) => (
   <header ref={ref} className="mobile-header">
     <div className="mobile-header-brand">{/* Future: logo/brand */}</div>
-    <button
-      className="mobile-header-hamburger"
-      onClick={onMenuClick}
-      aria-label="Open navigation menu"
-      aria-expanded={isOpen}
-    >
-      <HamburgerIcon />
-    </button>
+    {/* Toggle button is now fixed-position, outside the header */}
   </header>
 ));
 MobileHeader.displayName = 'MobileHeader';
 
-const MobileDrawer = React.forwardRef<
-  HTMLElement,
-  { isOpen: boolean; onClose: () => void }
->(({ isOpen, onClose }, ref) => {
-  // Handle focus trap on Tab key
-  const handleKeyDown = (e: React.KeyboardEvent) => {
-    if (e.key !== 'Tab' || !ref || typeof ref === 'function') return;
-
-    const focusableElements = (
-      ref as React.RefObject<HTMLElement>
-    ).current?.querySelectorAll<HTMLElement>(
-      'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
-    );
-    if (!focusableElements || focusableElements.length === 0) return;
-
-    const firstElement = focusableElements[0];
-    const lastElement = focusableElements[focusableElements.length - 1];
-
-    if (e.shiftKey && document.activeElement === firstElement) {
-      e.preventDefault();
-      lastElement.focus();
-    } else if (!e.shiftKey && document.activeElement === lastElement) {
-      e.preventDefault();
-      firstElement.focus();
-    }
-  };
-
+function MenuToggle({
+  isOpen,
+  onClick,
+}: {
+  isOpen: boolean;
+  onClick: () => void;
+}) {
   return (
-    <nav
-      ref={ref}
-      className={`mobile-drawer ${isOpen ? 'mobile-drawer--open' : ''}`}
-      role="dialog"
-      aria-label="Navigation menu"
-      aria-hidden={!isOpen}
-      onKeyDown={handleKeyDown}
+    <button
+      className={`menu-toggle ${isOpen ? 'menu-toggle--open' : ''}`}
+      onClick={onClick}
+      aria-label={isOpen ? 'Close navigation menu' : 'Open navigation menu'}
+      aria-expanded={isOpen}
     >
-      <div className="mobile-drawer-header">
-        <button
-          className="mobile-drawer-close"
-          onClick={onClose}
-          aria-label="Close navigation menu"
-        >
-          <CloseIcon />
-        </button>
-      </div>
-      <div className="mobile-drawer-nav">
-        <Link className="mobile-navitem" href="/">
-          Home
-        </Link>
-        <Link className="mobile-navitem" href="/projects">
-          Projects
-        </Link>
-        <Link className="mobile-navitem" href="/presentations">
-          Speaking + Presentations
-        </Link>
-        <Link className="mobile-navitem" href={`/blog/1`}>
-          Blog
-        </Link>
-      </div>
-      <div className="mobile-drawer-footer">
-        <Link className="mobile-footer-link" href="/privacy">
-          Privacy Policy
-        </Link>
-      </div>
-    </nav>
+      <HamburgerIcon />
+    </button>
   );
-});
+}
+
+const MobileDrawer = React.forwardRef<HTMLElement, { isOpen: boolean }>(
+  ({ isOpen }, ref) => {
+    // Handle focus trap on Tab key
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+      if (e.key !== 'Tab' || !ref || typeof ref === 'function') return;
+
+      const focusableElements = (
+        ref as React.RefObject<HTMLElement>
+      ).current?.querySelectorAll<HTMLElement>(
+        'button, a[href], input, select, textarea, [tabindex]:not([tabindex="-1"])'
+      );
+      if (!focusableElements || focusableElements.length === 0) return;
+
+      const firstElement = focusableElements[0];
+      const lastElement = focusableElements[focusableElements.length - 1];
+
+      if (e.shiftKey && document.activeElement === firstElement) {
+        e.preventDefault();
+        lastElement.focus();
+      } else if (!e.shiftKey && document.activeElement === lastElement) {
+        e.preventDefault();
+        firstElement.focus();
+      }
+    };
+
+    return (
+      <nav
+        ref={ref}
+        className={`mobile-drawer ${isOpen ? 'mobile-drawer--open' : ''}`}
+        role="dialog"
+        aria-label="Navigation menu"
+        aria-hidden={!isOpen}
+        onKeyDown={handleKeyDown}
+      >
+        <div className="mobile-drawer-nav">
+          <Link className="mobile-navitem" href="/">
+            Home
+          </Link>
+          <Link className="mobile-navitem" href="/projects">
+            Projects
+          </Link>
+          <Link className="mobile-navitem" href="/presentations">
+            Speaking + Presentations
+          </Link>
+          <Link className="mobile-navitem" href={`/blog/1`}>
+            Blog
+          </Link>
+        </div>
+        <div className="mobile-drawer-footer">
+          <Link className="mobile-footer-link" href="/privacy">
+            Privacy Policy
+          </Link>
+        </div>
+      </nav>
+    );
+  }
+);
 MobileDrawer.displayName = 'MobileDrawer';
 
 function MobileOverlay({
@@ -247,20 +250,3 @@ function HamburgerIcon() {
   );
 }
 
-function CloseIcon() {
-  return (
-    <svg
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <line x1="18" y1="6" x2="6" y2="18" />
-      <line x1="6" y1="6" x2="18" y2="18" />
-    </svg>
-  );
-}
