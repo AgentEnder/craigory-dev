@@ -142,16 +142,19 @@
 }
 
 // Tiny screens: no overlay, push content instead
+// Only transform header and content, NOT the container (which would affect fixed-position drawer)
 @media screen and (max-width: 480px) {
   .mobile-overlay {
     display: none;
   }
 
-  .mobile-nav-container {
+  .mobile-header,
+  .mobile-content {
     transition: transform 300ms ease-out;
   }
 
-  .mobile-nav-container:has(.mobile-drawer--open) {
+  .mobile-nav-container:has(.mobile-drawer--open) .mobile-header,
+  .mobile-nav-container:has(.mobile-drawer--open) .mobile-content {
     transform: translateX(-280px);
   }
 }
