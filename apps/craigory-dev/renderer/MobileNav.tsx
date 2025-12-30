@@ -69,7 +69,7 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
 
   return (
     <div className="mobile-nav-container">
-      <MobileHeader ref={headerRef} onMenuClick={openDrawer} />
+      <MobileHeader ref={headerRef} onMenuClick={openDrawer} isOpen={isOpen} />
       <div className="mobile-content">{children}</div>
       <MobileDrawer ref={drawerRef} isOpen={isOpen} onClose={closeDrawer} />
       <MobileOverlay isOpen={isOpen} onClick={closeDrawer} />
@@ -80,15 +80,15 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
 
 const MobileHeader = React.forwardRef<
   HTMLDivElement,
-  { onMenuClick: () => void }
->(({ onMenuClick }, ref) => (
+  { onMenuClick: () => void; isOpen: boolean }
+>(({ onMenuClick, isOpen }, ref) => (
   <header ref={ref} className="mobile-header">
     <div className="mobile-header-brand">{/* Future: logo/brand */}</div>
     <button
       className="mobile-header-hamburger"
       onClick={onMenuClick}
       aria-label="Open navigation menu"
-      aria-expanded={false}
+      aria-expanded={isOpen}
     >
       <HamburgerIcon />
     </button>
