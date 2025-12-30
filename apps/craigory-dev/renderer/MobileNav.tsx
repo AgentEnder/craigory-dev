@@ -5,7 +5,7 @@ import './MobileNav.scss';
 
 export function MobileNav({ children }: { children: React.ReactNode }) {
   const [isOpen, setIsOpen] = useState(false);
-  const [showFab, setShowFab] = useState(false);
+  const [scrolledDown, setScrolledDown] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
   const triggerRef = useRef<HTMLElement | null>(null);
@@ -54,20 +54,14 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
     }
   }, [isOpen]);
 
-  // Show FAB when header scrolls out of view
+  // Move toggle button to bottom when scrolled past ~60px
   useEffect(() => {
-    const header = headerRef.current;
-    if (!header) return;
+    const handleScroll = () => {
+      setScrolledDown(window.scrollY > 60);
+    };
 
-    const observer = new IntersectionObserver(
-      ([entry]) => {
-        setShowFab(!entry.isIntersecting);
-      },
-      { threshold: 0 }
-    );
-
-    observer.observe(header);
-    return () => observer.disconnect();
+    window.addEventListener('scroll', handleScroll, { passive: true });
+    return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
   const toggleDrawer = () => {
@@ -83,8 +77,7 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
       <div className="mobile-content">{children}</div>
       <MobileDrawer ref={drawerRef} isOpen={isOpen} />
       <MobileOverlay isOpen={isOpen} onClick={closeDrawer} />
-      <MenuToggle isOpen={isOpen} onClick={toggleDrawer} />
-      <NavFAB visible={showFab && !isOpen} onClick={toggleDrawer} isOpen={isOpen} />
+      <MenuToggle isOpen={isOpen} onClick={toggleDrawer} scrolledDown={scrolledDown} />
     </div>
   );
 }
@@ -100,13 +93,23 @@ MobileHeader.displayName = 'MobileHeader';
 function MenuToggle({
   isOpen,
   onClick,
+  scrolledDown,
 }: {
   isOpen: boolean;
   onClick: () => void;
+  scrolledDown: boolean;
 }) {
+  const classes = [
+    'menu-toggle',
+    isOpen && 'menu-toggle--open',
+    scrolledDown && !isOpen && 'menu-toggle--scrolled',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
   return (
     <button
-      className={`menu-toggle ${isOpen ? 'menu-toggle--open' : ''}`}
+      className={classes}
       onClick={onClick}
       aria-label={isOpen ? 'Close navigation menu' : 'Open navigation menu'}
       aria-expanded={isOpen}
@@ -188,27 +191,6 @@ function MobileOverlay({
       onClick={onClick}
       aria-hidden="true"
     />
-  );
-}
-
-function NavFAB({
-  visible,
-  onClick,
-  isOpen,
-}: {
-  visible: boolean;
-  onClick: () => void;
-  isOpen: boolean;
-}) {
-  return (
-    <button
-      className={`nav-fab ${visible ? 'nav-fab--visible' : ''}`}
-      onClick={onClick}
-      aria-label="Open navigation menu"
-      aria-expanded={isOpen}
-    >
-      <HamburgerIcon />
-    </button>
   );
 }
 
