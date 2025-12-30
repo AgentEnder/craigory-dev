@@ -8,9 +8,13 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
   const [showFab, setShowFab] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
+  const triggerRef = useRef<HTMLElement | null>(null);
   const pageContext = usePageContext();
 
-  const openDrawer = () => setIsOpen(true);
+  const openDrawer = () => {
+    triggerRef.current = document.activeElement as HTMLElement;
+    setIsOpen(true);
+  };
   const closeDrawer = () => setIsOpen(false);
 
   // Close drawer on route change
@@ -41,13 +45,16 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
     };
   }, [isOpen]);
 
-  // Focus management
+  // Focus management - focus close button when opening, restore focus when closing
   useEffect(() => {
     if (isOpen && drawerRef.current) {
       const closeButton = drawerRef.current.querySelector<HTMLButtonElement>(
         '.mobile-drawer-close'
       );
       closeButton?.focus();
+    } else if (!isOpen && triggerRef.current) {
+      triggerRef.current.focus();
+      triggerRef.current = null;
     }
   }, [isOpen]);
 
@@ -73,7 +80,7 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
       <div className="mobile-content">{children}</div>
       <MobileDrawer ref={drawerRef} isOpen={isOpen} onClose={closeDrawer} />
       <MobileOverlay isOpen={isOpen} onClick={closeDrawer} />
-      <NavFAB visible={showFab} onClick={openDrawer} />
+      <NavFAB visible={showFab} onClick={openDrawer} isOpen={isOpen} />
     </div>
   );
 }
@@ -184,15 +191,18 @@ function MobileOverlay({
 function NavFAB({
   visible,
   onClick,
+  isOpen,
 }: {
   visible: boolean;
   onClick: () => void;
+  isOpen: boolean;
 }) {
   return (
     <button
       className={`nav-fab ${visible ? 'nav-fab--visible' : ''}`}
       onClick={onClick}
       aria-label="Open navigation menu"
+      aria-expanded={isOpen}
     >
       <HamburgerIcon />
     </button>
