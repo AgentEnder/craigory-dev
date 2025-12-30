@@ -141,13 +141,14 @@ export function FilterBar({
   onSetFilter,
   onSetSort,
   repos,
+  ...tableProps
 }: {
   onSetFilter: (filter: FilterFn) => void;
   onSetSort: (
     fn: (projects: RepoData[]) => (a: RepoData, b: RepoData) => number
   ) => void;
   repos: RepoData[];
-}) {
+} & React.HTMLProps<HTMLTableElement>) {
   const languages = useMemo(
     () => [...new Set(repos.flatMap((r) => Object.keys(r.languages ?? {})))],
     [repos]
@@ -189,7 +190,7 @@ export function FilterBar({
   }
 
   return (
-    <table className={styles['filter-table']}>
+    <table {...tableProps} className={styles['filter-table']}>
       <tbody>
         {Array.from(filters.values()).map((filter) => (
           <tr key={filter.id}>

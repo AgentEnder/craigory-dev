@@ -1,0 +1,198 @@
+.projectCard {
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  overflow: hidden;
+  margin-bottom: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.sectionHeader {
+  background: #f5f5f5;
+  padding: 0.75rem 1rem;
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 600;
+  border-bottom: 1px solid #ddd;
+}
+
+// Project Info Section
+.projectInfo {
+  .infoRow {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #eee;
+    align-items: center;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr;
+      gap: 0.25rem;
+    }
+  }
+
+  .infoLabel {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #333;
+    font-weight: 500;
+
+    svg {
+      font-size: 1.25rem;
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 600px) {
+      font-size: 0.9rem;
+    }
+  }
+
+  .infoValue {
+    color: #444;
+    min-width: 0; // Allow shrinking
+    text-align: right;
+
+    @media (max-width: 600px) {
+      text-align: left;
+    }
+
+    a {
+      color: #0066cc;
+      word-break: break-all;
+      text-decoration: none;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+}
+
+// Languages Section
+.projectLanguages {
+  border-top: 1px solid #ddd;
+
+  .languagesGrid {
+    display: grid;
+    grid-template-columns: auto 1fr;
+
+    @media (max-width: 600px) {
+      grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    }
+  }
+
+  .languageRow {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #eee;
+    align-items: center;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:nth-child(even) {
+      background: #fafafa;
+    }
+
+    @media (max-width: 600px) {
+      gap: 0.5rem;
+    }
+  }
+
+  .languageName {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    white-space: nowrap;
+    font-size: 0.95rem;
+
+    svg,
+    img {
+      width: 1.25rem;
+      height: 1.25rem;
+      flex-shrink: 0;
+    }
+  }
+
+  .languageBar {
+    min-width: 0; // Allow shrinking
+  }
+}
+
+// Packages Section
+.projectPackages {
+  border-top: 1px solid #ddd;
+
+  .packagesGrid {
+    display: grid;
+    grid-template-columns: 1fr auto;
+
+    @media (max-width: 600px) {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .packageRow {
+    display: grid;
+    grid-template-columns: subgrid;
+    grid-column: 1 / -1;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #eee;
+    align-items: center;
+
+    &:last-child {
+      border-bottom: none;
+    }
+
+    &:nth-child(even) {
+      background: #fafafa;
+    }
+
+    @media (max-width: 600px) {
+      gap: 0.25rem;
+    }
+  }
+
+  .packageName {
+    min-width: 0;
+
+    a {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      color: #0066cc;
+      text-decoration: none;
+      word-break: break-all;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  .npmIcon {
+    font-size: 1.5rem;
+    flex-shrink: 0;
+    color: #cb3837;
+  }
+
+  .packageDownloads {
+    color: #666;
+    font-size: 0.9rem;
+    white-space: nowrap;
+
+    @media (max-width: 600px) {
+      font-size: 0.85rem;
+    }
+  }
+}
