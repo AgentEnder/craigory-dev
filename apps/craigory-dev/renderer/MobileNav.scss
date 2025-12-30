@@ -39,6 +39,26 @@
   &:hover {
     color: #000;
   }
+
+  // Hamburger icon animation
+  .hamburger-icon {
+    .hamburger-line {
+      transition: transform 300ms ease-out, opacity 200ms ease-out;
+      transform-origin: center;
+    }
+  }
+
+  &[aria-expanded='true'] .hamburger-icon {
+    .hamburger-line-top {
+      transform: translateY(6px) rotate(45deg);
+    }
+    .hamburger-line-middle {
+      opacity: 0;
+    }
+    .hamburger-line-bottom {
+      transform: translateY(-6px) rotate(-45deg);
+    }
+  }
 }
 
 // Drawer
@@ -141,11 +161,16 @@
   }
 }
 
-// Tiny screens: no overlay, push content instead
+// Tiny screens: no overlay, full-width drawer, push content completely off
 // Only transform header and content, NOT the container (which would affect fixed-position drawer)
 @media screen and (max-width: 480px) {
   .mobile-overlay {
     display: none;
+  }
+
+  // Full-width drawer on tiny screens
+  .mobile-drawer {
+    width: 100vw;
   }
 
   .mobile-header,
@@ -153,9 +178,10 @@
     transition: transform 300ms ease-out;
   }
 
+  // Push content completely off-screen
   .mobile-nav-container:has(.mobile-drawer--open) .mobile-header,
   .mobile-nav-container:has(.mobile-drawer--open) .mobile-content {
-    transform: translateX(-280px);
+    transform: translateX(-100vw);
   }
 }
 

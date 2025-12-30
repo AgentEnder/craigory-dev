@@ -212,6 +212,7 @@ function NavFAB({
 function HamburgerIcon() {
   return (
     <svg
+      className="hamburger-icon"
       width="24"
       height="24"
       viewBox="0 0 24 24"
@@ -221,9 +222,27 @@ function HamburgerIcon() {
       strokeLinecap="round"
       strokeLinejoin="round"
     >
-      <line x1="3" y1="6" x2="21" y2="6" />
-      <line x1="3" y1="12" x2="21" y2="12" />
-      <line x1="3" y1="18" x2="21" y2="18" />
+      <line
+        className="hamburger-line hamburger-line-top"
+        x1="3"
+        y1="6"
+        x2="21"
+        y2="6"
+      />
+      <line
+        className="hamburger-line hamburger-line-middle"
+        x1="3"
+        y1="12"
+        x2="21"
+        y2="12"
+      />
+      <line
+        className="hamburger-line hamburger-line-bottom"
+        x1="3"
+        y1="18"
+        x2="21"
+        y2="18"
+      />
     </svg>
   );
 }
