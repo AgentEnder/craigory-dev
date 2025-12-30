@@ -2,10 +2,12 @@ import React from 'react';
 import './PageShell.scss';
 import { Link } from './Link';
 import { Toaster } from '../src/shared-components/toaster';
+import { MobileNav } from './MobileNav';
 
 export function PageShell({ children }: { children: React.ReactNode }) {
   return (
     <React.StrictMode>
+      {/* Desktop layout */}
       <Layout>
         <Sidebar>
           <div className="sidebar-nav">
@@ -30,7 +32,11 @@ export function PageShell({ children }: { children: React.ReactNode }) {
         </Sidebar>
         <Content>{children}</Content>
       </Layout>
-      <Toaster></Toaster>
+
+      {/* Mobile layout */}
+      <MobileNav>{children}</MobileNav>
+
+      <Toaster />
     </React.StrictMode>
   );
 }

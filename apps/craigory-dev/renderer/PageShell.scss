@@ -87,35 +87,9 @@ a {
     max-width: 80vw;
   }
 
+  // Hide desktop layout on mobile - MobileNav takes over
   @media screen and (max-width: 900px) {
-    flex-direction: column;
-    max-width: 90vw;
-    line-height: 3em;
-
-    .sidebar {
-      padding: 0;
-      padding-bottom: 0.5em;
-      border-bottom: 2px solid #eee;
-      width: 100%;
-      min-height: auto;
-
-      .sidebar-footer {
-        margin-top: 1rem;
-        padding-top: 1rem;
-      }
-    }
-
-    .content {
-      padding: 20px;
-      padding-bottom: 50px;
-      border-left: none;
-      width: 100%;
-    }
-
-    .navitem {
-      text-align: center;
-      font-size: 2em;
-    }
+    display: none;
   }
 }
 
