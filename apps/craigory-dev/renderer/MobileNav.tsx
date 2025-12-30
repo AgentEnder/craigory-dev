@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
+import { usePageContext } from 'vike-react/usePageContext';
 import { Link } from './Link';
 import './MobileNav.scss';
 
@@ -7,9 +8,15 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
   const [showFab, setShowFab] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
   const drawerRef = useRef<HTMLElement>(null);
+  const pageContext = usePageContext();
 
   const openDrawer = () => setIsOpen(true);
   const closeDrawer = () => setIsOpen(false);
+
+  // Close drawer on route change
+  useEffect(() => {
+    closeDrawer();
+  }, [pageContext.urlPathname]);
 
   // ESC key to close drawer
   useEffect(() => {
