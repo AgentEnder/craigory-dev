@@ -45,7 +45,7 @@ jobs:
 
       - name: Build / Test / Lint
         run: |
-          node ./node_modules/.bin/nx run-many -t build, test, lint
+          node ./node_modules/.bin/nx run-many -t build,test,lint
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
 
