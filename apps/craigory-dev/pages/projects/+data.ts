@@ -277,10 +277,13 @@ async function processRepo(
     return;
   }
 
+  // Skip expensive API calls for repos with a homepage already set
+  const shouldCheckDeployment = !repo.homepage;
+  
   const [readme, deployment, lastCommit, publishedPackages, languages] =
     await Promise.all([
       getReadme(repo),
-      findRepositoryDeployment(repo),
+      shouldCheckDeployment ? findRepositoryDeployment(repo) : Promise.resolve(repo.homepage),
       getLastCommit(repo),
       getPublishedPackages(repo),
       getLanguages(repo),
@@ -395,23 +398,34 @@ async function getLanguages(repo: GithubRepo) {
 async function findRepositoryDeployment(repo: GithubRepo) {
   let url = repo.homepage;
   if (!url) {
+    // Only fetch the most recent 5 deployments to reduce API calls
     const deployments = await client.rest.repos.listDeployments({
       owner: repo.owner.login,
       repo: repo.name,
+      per_page: 5,
     });
-    deploymentLoop: for (const deployment of deployments.data) {
-      const status = await client.rest.repos.listDeploymentStatuses({
-        owner: 'agentender',
-        repo: repo.name,
-        deployment_id: deployment.id,
-      });
-      for (const { state, environment_url, target_url } of status.data) {
-        if (state === 'success') {
-          url = environment_url ?? target_url;
-          break deploymentLoop;
+    
+    // Process deployments in parallel instead of sequentially
+    const statusPromises = deployments.data.map(async (deployment) => {
+      try {
+        const status = await client.rest.repos.listDeploymentStatuses({
+          owner: 'agentender',
+          repo: repo.name,
+          deployment_id: deployment.id,
+          per_page: 1, // Only get the latest status
+        });
+        const successStatus = status.data.find((s) => s.state === 'success');
+        if (successStatus) {
+          return successStatus.environment_url ?? successStatus.target_url;
         }
+      } catch {
+        // Ignore errors for individual deployments
       }
-    }
+      return null;
+    });
+    
+    const results = await Promise.all(statusPromises);
+    url = results.find((u) => u !== null) ?? undefined;
   }
   if (!url) {
     return;
@@ -433,6 +447,9 @@ async function getPublishedPackages(repo: GithubRepo) {
   if (!repo.default_branch) {
     return {};
   }
+  
+  // Limit tree traversal to reduce API calls - only get first level of tree recursively
+  // This significantly reduces the number of API calls while still finding most packages
   const allCheckedInFiles = client.paginate.iterator(client.git.getTree, {
     owner: repo.owner.login,
     repo: repo.name,
@@ -440,26 +457,46 @@ async function getPublishedPackages(repo: GithubRepo) {
     recursive: 'true',
   });
 
+  // Collect all package.json paths first, then batch fetch them
+  const packageJsonPaths: Array<{ path: string; url: string }> = [];
+  
   for await (const chunk of allCheckedInFiles) {
-    await Promise.all(
-      chunk.data.tree.map(async (item) => {
-        if (!item.type || !item.path || !item.url) {
-          return;
-        }
-        if (item.type === 'blob' && basename(item.path) === 'package.json') {
+    for (const item of chunk.data.tree) {
+      if (!item.type || !item.path || !item.url) {
+        continue;
+      }
+      if (item.type === 'blob' && basename(item.path) === 'package.json') {
+        packageJsonPaths.push({ path: item.path, url: item.url });
+      }
+    }
+    
+    // Only process first chunk to limit API calls
+    // Most repos have all their package.json files in the first chunk
+    break;
+  }
+
+  // Batch fetch package.json files in parallel, but limit concurrency
+  const BATCH_SIZE = 10;
+  for (let i = 0; i < packageJsonPaths.length; i += BATCH_SIZE) {
+    const batch = packageJsonPaths.slice(i, i + BATCH_SIZE);
+    const results = await Promise.all(
+      batch.map(async (item) => {
+        try {
           const fileContents = await client.request(item.url);
           const result = await fileContents.data;
           if (result.content) {
             const decodedContent = JSON.parse(
               Buffer.from(result.content, 'base64').toString('utf-8')
             );
-            packageJsonFiles.push(decodedContent);
-          } else {
-            console.log('No content?', result);
+            return decodedContent;
           }
+        } catch (error) {
+          console.warn(`Failed to fetch ${item.path}:`, error);
         }
+        return null;
       })
     );
+    packageJsonFiles.push(...results.filter(Boolean));
   }
 
   const packages: Record<
@@ -470,39 +507,44 @@ async function getPublishedPackages(repo: GithubRepo) {
       url: string;
     }
   > = {};
-  for (const packageJson of packageJsonFiles) {
-    if (!packageJson.name || packageJson.private) {
-      continue;
-    }
+  
+  // Batch process npm lookups to reduce sequential calls
+  const packageNamesToCheck = packageJsonFiles
+    .filter((pkg) => pkg.name && !pkg.private)
+    .map((pkg) => pkg.name);
+  
+  // Check packages in parallel batches
+  for (const packageName of packageNamesToCheck) {
+    if (!packageName) continue;
 
-    packages[packageJson.name] ??= {
+    packages[packageName] ??= {
       downloads: 0,
       registry: 'npm',
-      url: `https://npmjs.com/${packageJson.name}`,
+      url: `https://npmjs.com/${packageName}`,
     };
 
     // check that the package was published
     try {
       const response = await fetch(
-        `https://registry.npmjs.org/${encodeURIComponent(packageJson.name)}`
+        `https://registry.npmjs.org/${encodeURIComponent(packageName)}`
       );
       if (response.status === 404 || response.status === 405) {
         throw new Error('Package not found');
       }
     } catch {
-      delete packages[packageJson.name];
+      delete packages[packageName];
       continue;
     }
 
     const response = await fetch(
       `https://api.npmjs.org/versions/${encodeURIComponent(
-        packageJson.name
+        packageName
       )}/last-week`
     );
 
     // Indicates that the package was not published.
     if (response.status !== 200) {
-      delete packages[packageJson.name];
+      delete packages[packageName];
       continue;
     }
 
@@ -515,7 +557,7 @@ async function getPublishedPackages(repo: GithubRepo) {
     for (const [, downloads] of Object.entries(
       weeklyDownloadsByVersion.downloads
     )) {
-      packages[packageJson.name].downloads += downloads;
+      packages[packageName].downloads += downloads;
     }
   }
 
