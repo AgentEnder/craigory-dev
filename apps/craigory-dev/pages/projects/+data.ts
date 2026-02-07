@@ -283,7 +283,7 @@ async function processRepo(
   const [readme, deployment, lastCommit, publishedPackages, languages] =
     await Promise.all([
       getReadme(repo),
-      shouldCheckDeployment ? findRepositoryDeployment(repo) : Promise.resolve(repo.homepage),
+      shouldCheckDeployment ? findRepositoryDeployment(repo) : Promise.resolve(repo.homepage ?? undefined),
       getLastCommit(repo),
       getPublishedPackages(repo),
       getLanguages(repo),
@@ -414,9 +414,9 @@ async function findRepositoryDeployment(repo: GithubRepo) {
           deployment_id: deployment.id,
           per_page: 1, // Only get the latest status
         });
-        const successStatus = status.data.find((s) => s.state === 'success');
-        if (successStatus) {
-          return successStatus.environment_url ?? successStatus.target_url;
+        const latestStatus = status.data[0];
+        if (latestStatus && latestStatus.state === 'success') {
+          return latestStatus.environment_url ?? latestStatus.target_url;
         }
       } catch {
         // Ignore errors for individual deployments
@@ -448,8 +448,8 @@ async function getPublishedPackages(repo: GithubRepo) {
     return {};
   }
   
-  // Limit tree traversal to reduce API calls - only get first level of tree recursively
-  // This significantly reduces the number of API calls while still finding most packages
+  // Limit tree traversal to reduce API calls - fetch full recursive tree 
+  // but only process first chunk of results to reduce pagination API calls
   const allCheckedInFiles = client.paginate.iterator(client.git.getTree, {
     owner: repo.owner.login,
     repo: repo.name,
