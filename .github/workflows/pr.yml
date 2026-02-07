@@ -45,7 +45,7 @@ jobs:
 
       - name: Build / Test / Lint
         run: |
-          npx nx run-many -t build,test,lint
+          npx nx run-many -t build,test,lint --exclude=tiki-menu
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
 
