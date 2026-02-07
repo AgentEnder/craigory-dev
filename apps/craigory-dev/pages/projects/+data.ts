@@ -78,8 +78,9 @@ async function getNpmPackagesByMaintainer(
   const packages = new Map<string, NpmPackageInfo>();
   let from = 0;
   const size = 250; // Max allowed by npm API
+  let hasMore = true;
 
-  while (true) {
+  while (hasMore) {
     const response = await fetch(
       `https://registry.npmjs.org/-/v1/search?text=maintainer:${encodeURIComponent(maintainer)}&size=${size}&from=${from}`
     );
@@ -102,7 +103,7 @@ async function getNpmPackagesByMaintainer(
     }
 
     from += size;
-    if (from >= data.total) break;
+    hasMore = from < data.total;
   }
 
   console.log(`Found ${packages.size} npm packages for maintainer:${maintainer}`);
@@ -129,8 +130,9 @@ async function findPackageJsonFiles(
   const results: PackageJsonLocation[] = [];
   let page = 1;
   const perPage = 100;
+  let hasMore = true;
 
-  while (true) {
+  while (hasMore && page * perPage < 1000) {
     const response = await client.request('GET /search/code', {
       q: `filename:package.json ${searchQuery}`,
       per_page: perPage,
@@ -145,11 +147,8 @@ async function findPackageJsonFiles(
       });
     }
 
-    if (response.data.items.length < perPage) break;
+    hasMore = response.data.items.length === perPage;
     page++;
-
-    // GitHub code search has a max of 1000 results
-    if (page * perPage >= 1000) break;
   }
 
   return results;
