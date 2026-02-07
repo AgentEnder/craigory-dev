@@ -45,18 +45,18 @@ jobs:
 
       - name: Build / Test / Lint
         run: |
-          node ./node_modules/.bin/nx run-many -t build,test,lint
+          npx nx run-many -t build,test,lint
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
 
       # Add your deployment steps here
       - name: Deploy to preview environment
         run: |
-          PUBLIC_ENV__BASE_URL=$PATH_PREFIX  node ./node_modules/.bin/nx build craigory-dev 
+          PUBLIC_ENV__BASE_URL=$PATH_PREFIX npx nx build craigory-dev
           mkdir -p ./dist/gh-pages-root/pr/$GITHUB_SHA
           cp -r ./dist/apps/craigory-dev/client "./dist/gh-pages-root${PATH_PREFIX}"
           cp ./dist/apps/craigory-dev/client/CNAME ./dist/gh-pages-root
-          node ./node_modules/.bin/nx deploy craigory-dev -c preview --directory ./dist/gh-pages-root
+          npx nx deploy craigory-dev -c preview --directory ./dist/gh-pages-root
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
           PR_NUMBER: ${{ github.event.number }}
