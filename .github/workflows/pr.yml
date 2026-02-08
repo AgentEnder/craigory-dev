@@ -61,6 +61,7 @@ jobs:
           GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
           PR_NUMBER: ${{ github.event.number }}
           PATH_PREFIX: /pr/${{ github.event.number || github.sha }}
+          SKIP_FIREBASE_DEPLOY: 'true'
         # only if agentender/craigory-dev
         if: github.repository == 'agentender/craigory-dev'
 
