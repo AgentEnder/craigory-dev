@@ -8,7 +8,7 @@ import {
   GithubProjectData,
 } from './types';
 import { isBefore, subYears } from 'date-fns';
-import { basename, dirname, join } from 'path';
+import { dirname, join } from 'path';
 import {
   existsSync,
   readFileSync,
@@ -37,6 +37,172 @@ const patchedRequest: typeof client.request = ((
 Object.assign(patchedRequest, originalRequest);
 
 client.request = patchedRequest;
+
+// ============================================================================
+// NPM Package Types and Functions
+// ============================================================================
+
+interface NpmPackageInfo {
+  name: string;
+  downloads: { weekly: number; monthly: number };
+  homepage?: string;
+  repository?: string;
+  description?: string;
+}
+
+interface NpmSearchResult {
+  objects: Array<{
+    package: {
+      name: string;
+      links?: {
+        homepage?: string;
+        repository?: string;
+      };
+      description?: string;
+    };
+    downloads: {
+      weekly: number;
+      monthly: number;
+    };
+  }>;
+  total: number;
+}
+
+/**
+ * Fetches all npm packages where the user is listed as a maintainer.
+ * This is much more efficient than traversing repos to find package.json files.
+ */
+async function getNpmPackagesByMaintainer(
+  maintainer: string
+): Promise<Map<string, NpmPackageInfo>> {
+  const packages = new Map<string, NpmPackageInfo>();
+  let from = 0;
+  const size = 250; // Max allowed by npm API
+  let hasMore = true;
+
+  while (hasMore) {
+    const response = await fetch(
+      `https://registry.npmjs.org/-/v1/search?text=maintainer:${encodeURIComponent(maintainer)}&size=${size}&from=${from}`
+    );
+
+    if (!response.ok) {
+      console.warn(`npm search failed: ${response.status}`);
+      break;
+    }
+
+    const data: NpmSearchResult = await response.json();
+
+    for (const obj of data.objects) {
+      packages.set(obj.package.name, {
+        name: obj.package.name,
+        downloads: obj.downloads,
+        homepage: obj.package.links?.homepage,
+        repository: obj.package.links?.repository,
+        description: obj.package.description,
+      });
+    }
+
+    from += size;
+    hasMore = from < data.total;
+  }
+
+  console.log(`Found ${packages.size} npm packages for maintainer:${maintainer}`);
+  return packages;
+}
+
+// ============================================================================
+// GitHub Code Search Functions
+// ============================================================================
+
+interface PackageJsonLocation {
+  repoFullName: string;
+  path: string;
+  gitUrl: string;
+}
+
+/**
+ * Uses GitHub code search to find all package.json files across repos.
+ * Much more efficient than traversing each repo's file tree.
+ */
+async function findPackageJsonFiles(
+  searchQuery: string
+): Promise<PackageJsonLocation[]> {
+  const results: PackageJsonLocation[] = [];
+  let page = 1;
+  const perPage = 100;
+  let hasMore = true;
+
+  while (hasMore && page * perPage < 1000) {
+    const response = await client.request('GET /search/code', {
+      q: `filename:package.json ${searchQuery}`,
+      per_page: perPage,
+      page,
+    });
+
+    for (const item of response.data.items) {
+      results.push({
+        repoFullName: item.repository.full_name,
+        path: item.path,
+        gitUrl: item.git_url ?? '',
+      });
+    }
+
+    hasMore = response.data.items.length === perPage;
+    page++;
+  }
+
+  return results;
+}
+
+/**
+ * Groups package.json locations by repository.
+ */
+function groupByRepo(
+  locations: PackageJsonLocation[]
+): Map<string, PackageJsonLocation[]> {
+  const grouped = new Map<string, PackageJsonLocation[]>();
+
+  for (const loc of locations) {
+    const existing = grouped.get(loc.repoFullName) || [];
+    existing.push(loc);
+    grouped.set(loc.repoFullName, existing);
+  }
+
+  return grouped;
+}
+
+// Pre-fetched npm package data, populated at startup
+let npmPackageCache: Map<string, NpmPackageInfo> = new Map();
+
+/**
+ * Initialize the npm package cache by fetching all packages for the maintainer.
+ */
+async function initNpmPackageCache(maintainer: string): Promise<void> {
+  npmPackageCache = await getNpmPackagesByMaintainer(maintainer);
+}
+
+/**
+ * Finds all package.json files across user's repos and additional repos.
+ * Uses GitHub code search which is much more efficient than per-repo tree traversal.
+ */
+async function findAllPackageJsonLocations(): Promise<PackageJsonLocation[]> {
+  const allLocations: PackageJsonLocation[] = [];
+
+  // Search user's repos
+  const userPackages = await findPackageJsonFiles('user:agentender');
+  allLocations.push(...userPackages);
+
+  // Search additional repos
+  for (const repo of ADDITIONAL_REPOS) {
+    const repoPackages = await findPackageJsonFiles(
+      `repo:${repo.owner}/${repo.name}`
+    );
+    allLocations.push(...repoPackages);
+  }
+
+  console.log(`Found ${allLocations.length} package.json files via code search`);
+  return allLocations;
+}
 
 // ENTRY POINT FOR VIKE PRE-RENDERING
 export const data = async (_pageContext: PageContext) => {
@@ -67,7 +233,16 @@ export const data = async (_pageContext: PageContext) => {
     console.log('Reusing GitHub data from', githubCachePath);
     githubProjects = githubCacheData;
   } else {
-    githubProjects = await getAllRepos();
+    // Initialize npm package cache first - this gets all packages where user is maintainer
+    // in a single API call, avoiding per-repo tree traversal
+    await initNpmPackageCache('agentender');
+
+    // Find all package.json files via GitHub code search (much faster than tree traversal)
+    // This is used for packages where user might not be listed as npm maintainer
+    const packageJsonLocations = await findAllPackageJsonLocations();
+    const packageJsonsByRepo = groupByRepo(packageJsonLocations);
+
+    githubProjects = await getAllRepos(packageJsonsByRepo);
     writeFileSync(githubCachePath, JSON.stringify(githubProjects, null, 2));
   }
 
@@ -159,6 +334,24 @@ function applyTechnologyAlias(technology: string): string {
   );
 }
 
+/**
+ * Normalizes git repository URLs to a common format for comparison.
+ * Handles formats like:
+ * - git+https://github.com/owner/repo.git
+ * - https://github.com/owner/repo
+ * - git://github.com/owner/repo.git
+ */
+function normalizeGitUrl(url: string): string {
+  if (!url) return '';
+
+  return url
+    .toLowerCase()
+    .replace(/^git\+/, '')
+    .replace(/^git:\/\//, 'https://')
+    .replace(/\.git$/, '')
+    .replace(/\/$/, '');
+}
+
 async function getLastCommitDate(
   projectPath: string,
   workspaceRoot: string
@@ -215,7 +408,9 @@ const repoFilter = (repo: GithubRepo) => {
   );
 };
 
-async function getAllRepos(): Promise<RepoData[]> {
+async function getAllRepos(
+  packageJsonsByRepo: Map<string, PackageJsonLocation[]>
+): Promise<RepoData[]> {
   const iterator = client.paginate.iterator(client.rest.repos.listForUser, {
     username: 'agentender',
     sort: 'updated',
@@ -244,7 +439,9 @@ async function getAllRepos(): Promise<RepoData[]> {
           owner: repo.owner,
           repo: repo.name,
         });
-        return processRepo(githubRepo.data as GithubRepo);
+        const fullName = `${repo.owner}/${repo.name}`;
+        const packageJsons = packageJsonsByRepo.get(fullName) || [];
+        return processRepo(githubRepo.data as GithubRepo, packageJsons);
       })
     );
     repos.push(...(chunkData.filter(Boolean) as RepoData[]));
@@ -262,7 +459,9 @@ async function getAllRepos(): Promise<RepoData[]> {
         if (repo.fork) {
           return Promise.resolve();
         }
-        return processRepo(repo);
+        const fullName = repo.full_name;
+        const packageJsons = packageJsonsByRepo.get(fullName) || [];
+        return processRepo(repo, packageJsons);
       })
     );
     repos.push(...(chunk.filter(Boolean) as RepoData[]));
@@ -271,18 +470,24 @@ async function getAllRepos(): Promise<RepoData[]> {
 }
 
 async function processRepo(
-  repo: GithubRepo
+  repo: GithubRepo,
+  packageJsonLocations: PackageJsonLocation[]
 ): Promise<GithubProjectData | undefined> {
   if (!repoFilter(repo)) {
     return;
   }
 
+  // Skip expensive API calls for repos with a homepage already set
+  const shouldCheckDeployment = !repo.homepage;
+
   const [readme, deployment, lastCommit, publishedPackages, languages] =
     await Promise.all([
       getReadme(repo),
-      findRepositoryDeployment(repo),
+      shouldCheckDeployment
+        ? findRepositoryDeployment(repo)
+        : Promise.resolve(repo.homepage ?? undefined),
       getLastCommit(repo),
-      getPublishedPackages(repo),
+      getPublishedPackages(repo, packageJsonLocations),
       getLanguages(repo),
     ]);
 
@@ -395,23 +600,34 @@ async function getLanguages(repo: GithubRepo) {
 async function findRepositoryDeployment(repo: GithubRepo) {
   let url = repo.homepage;
   if (!url) {
+    // Only fetch the most recent 5 deployments to reduce API calls
     const deployments = await client.rest.repos.listDeployments({
       owner: repo.owner.login,
       repo: repo.name,
+      per_page: 5,
     });
-    deploymentLoop: for (const deployment of deployments.data) {
-      const status = await client.rest.repos.listDeploymentStatuses({
-        owner: 'agentender',
-        repo: repo.name,
-        deployment_id: deployment.id,
-      });
-      for (const { state, environment_url, target_url } of status.data) {
-        if (state === 'success') {
-          url = environment_url ?? target_url;
-          break deploymentLoop;
+    
+    // Process deployments in parallel instead of sequentially
+    const statusPromises = deployments.data.map(async (deployment) => {
+      try {
+        const status = await client.rest.repos.listDeploymentStatuses({
+          owner: 'agentender',
+          repo: repo.name,
+          deployment_id: deployment.id,
+          per_page: 1, // Only get the latest status
+        });
+        const latestStatus = status.data[0];
+        if (latestStatus && latestStatus.state === 'success') {
+          return latestStatus.environment_url ?? latestStatus.target_url;
         }
+      } catch {
+        // Ignore errors for individual deployments
       }
-    }
+      return null;
+    });
+    
+    const results = await Promise.all(statusPromises);
+    url = results.find((u) => u !== null) ?? undefined;
   }
   if (!url) {
     return;
@@ -426,42 +642,10 @@ async function findRepositoryDeployment(repo: GithubRepo) {
   }
 }
 
-async function getPublishedPackages(repo: GithubRepo) {
-  // find all package.json files in repo
-
-  const packageJsonFiles: { name: string; private: boolean }[] = [];
-  if (!repo.default_branch) {
-    return {};
-  }
-  const allCheckedInFiles = client.paginate.iterator(client.git.getTree, {
-    owner: repo.owner.login,
-    repo: repo.name,
-    tree_sha: repo.default_branch,
-    recursive: 'true',
-  });
-
-  for await (const chunk of allCheckedInFiles) {
-    await Promise.all(
-      chunk.data.tree.map(async (item) => {
-        if (!item.type || !item.path || !item.url) {
-          return;
-        }
-        if (item.type === 'blob' && basename(item.path) === 'package.json') {
-          const fileContents = await client.request(item.url);
-          const result = await fileContents.data;
-          if (result.content) {
-            const decodedContent = JSON.parse(
-              Buffer.from(result.content, 'base64').toString('utf-8')
-            );
-            packageJsonFiles.push(decodedContent);
-          } else {
-            console.log('No content?', result);
-          }
-        }
-      })
-    );
-  }
-
+async function getPublishedPackages(
+  repo: GithubRepo,
+  packageJsonLocations: PackageJsonLocation[]
+) {
   const packages: Record<
     string,
     {
@@ -470,57 +654,102 @@ async function getPublishedPackages(repo: GithubRepo) {
       url: string;
     }
   > = {};
-  for (const packageJson of packageJsonFiles) {
-    if (!packageJson.name || packageJson.private) {
-      continue;
+
+  if (!repo.default_branch) {
+    return packages;
+  }
+
+  // First, check the npm cache for packages where user is maintainer
+  // These were pre-fetched in a single API call, so no additional requests needed
+  const normalizedRepoUrl = normalizeGitUrl(repo.html_url);
+  for (const [packageName, info] of npmPackageCache.entries()) {
+    // Check if this package's repository matches this repo
+    const normalizedPackageRepoUrl = normalizeGitUrl(info.repository ?? '');
+    if (normalizedPackageRepoUrl && normalizedPackageRepoUrl === normalizedRepoUrl) {
+      packages[packageName] = {
+        downloads: info.downloads.weekly,
+        registry: 'npm',
+        url: `https://npmjs.com/package/${packageName}`,
+      };
     }
+  }
 
-    packages[packageJson.name] ??= {
-      downloads: 0,
-      registry: 'npm',
-      url: `https://npmjs.com/${packageJson.name}`,
-    };
+  // For packages not found in the npm cache, we need to fetch package.json files
+  // and check if they're published (they might be published under a different maintainer)
+  const locationsToFetch = packageJsonLocations.filter((loc) => loc.gitUrl);
 
-    // check that the package was published
-    try {
-      const response = await fetch(
-        `https://registry.npmjs.org/${encodeURIComponent(packageJson.name)}`
-      );
-      if (response.status === 404 || response.status === 405) {
-        throw new Error('Package not found');
-      }
-    } catch {
-      delete packages[packageJson.name];
-      continue;
-    }
-
-    const response = await fetch(
-      `https://api.npmjs.org/versions/${encodeURIComponent(
-        packageJson.name
-      )}/last-week`
+  // Batch fetch package.json files to get package names
+  const BATCH_SIZE = 10;
+  for (let i = 0; i < locationsToFetch.length; i += BATCH_SIZE) {
+    const batch = locationsToFetch.slice(i, i + BATCH_SIZE);
+    const results = await Promise.all(
+      batch.map(async (loc) => {
+        try {
+          const fileContents = await client.request(loc.gitUrl);
+          const result = fileContents.data as { content?: string };
+          if (result.content) {
+            const decodedContent = JSON.parse(
+              Buffer.from(result.content, 'base64').toString('utf-8')
+            );
+            return {
+              name: decodedContent.name as string | undefined,
+              private: decodedContent.private as boolean | undefined,
+            };
+          }
+        } catch {
+          // Ignore fetch errors
+        }
+        return null;
+      })
     );
 
-    // Indicates that the package was not published.
-    if (response.status !== 200) {
-      delete packages[packageJson.name];
-      continue;
-    }
+    // Check each package that isn't private and isn't already in our results
+    for (const pkg of results) {
+      if (!pkg || !pkg.name || pkg.private) continue;
+      if (packages[pkg.name]) continue; // Already found via npm cache
 
-    const weeklyDownloadsByVersion: {
-      downloads: Record<string, number>;
-      error?: string;
-      statusCode?: number;
-    } = await response.json();
+      // Check if this package is published on npm
+      // Since npm isn't rate-limited, we can check directly
+      try {
+        const response = await fetch(
+          `https://registry.npmjs.org/${encodeURIComponent(pkg.name)}`
+        );
+        if (response.status === 404 || response.status === 405) {
+          continue; // Not published
+        }
 
-    for (const [, downloads] of Object.entries(
-      weeklyDownloadsByVersion.downloads
-    )) {
-      packages[packageJson.name].downloads += downloads;
+        // Get download stats
+        const downloadsResponse = await fetch(
+          `https://api.npmjs.org/versions/${encodeURIComponent(pkg.name)}/last-week`
+        );
+
+        if (downloadsResponse.status !== 200) {
+          continue;
+        }
+
+        const weeklyDownloadsByVersion: {
+          downloads: Record<string, number>;
+        } = await downloadsResponse.json();
+
+        let totalDownloads = 0;
+        for (const downloads of Object.values(
+          weeklyDownloadsByVersion.downloads
+        )) {
+          totalDownloads += downloads;
+        }
+
+        packages[pkg.name] = {
+          downloads: totalDownloads,
+          registry: 'npm',
+          url: `https://npmjs.com/package/${pkg.name}`,
+        };
+      } catch {
+        // Ignore errors
+      }
     }
   }
 
   return packages;
-  // get the contents of each package.json
 }
 
 function findWorkspaceRoot(startingDirectory: string) {

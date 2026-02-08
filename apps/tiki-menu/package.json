@@ -17,7 +17,7 @@
         ]
       },
       "deploy": {
-        "command": "pnpm exec firebase deploy --only firestore:rules",
+        "command": "if [ \"$SKIP_FIREBASE_DEPLOY\" != \"true\" ]; then pnpm exec firebase deploy --only firestore:rules; else echo 'Skipping firebase deploy (SKIP_FIREBASE_DEPLOY=true)'; fi",
         "options": {
           "cwd": "{projectRoot}"
         }

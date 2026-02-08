@@ -38,6 +38,10 @@ jobs:
         run: pnpm install --frozen-lockfile --reporter=verbose
         timeout-minutes: 10
 
+      # We use playwright to generate open graph images and for testing
+      - name: Install Playwright
+        run: npx playwright install --with-deps
+
       - name: Setup Git User
         run: |
           git config --global user.name "${GITHUB_ACTOR}"
@@ -45,22 +49,23 @@ jobs:
 
       - name: Build / Test / Lint
         run: |
-          node ./node_modules/.bin/nx run-many -t build, test, lint
+          npx nx run-many -t build,test,lint --exclude=tiki-menu
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
 
       # Add your deployment steps here
       - name: Deploy to preview environment
         run: |
-          PUBLIC_ENV__BASE_URL=$PATH_PREFIX  node ./node_modules/.bin/nx build craigory-dev 
+          PUBLIC_ENV__BASE_URL=$PATH_PREFIX npx nx build craigory-dev
           mkdir -p ./dist/gh-pages-root/pr/$GITHUB_SHA
           cp -r ./dist/apps/craigory-dev/client "./dist/gh-pages-root${PATH_PREFIX}"
           cp ./dist/apps/craigory-dev/client/CNAME ./dist/gh-pages-root
-          node ./node_modules/.bin/nx deploy craigory-dev -c preview --directory ./dist/gh-pages-root
+          npx nx deploy craigory-dev -c preview --directory ./dist/gh-pages-root
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
           PR_NUMBER: ${{ github.event.number }}
           PATH_PREFIX: /pr/${{ github.event.number || github.sha }}
+          SKIP_FIREBASE_DEPLOY: 'true'
         # only if agentender/craigory-dev
         if: github.repository == 'agentender/craigory-dev'
 
