@@ -1,0 +1,279 @@
+<!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <link rel="stylesheet" type="text/css" href="/pr/26/assets/static/style-bf567ca8.BcWtY8Ol.css">
+        <link rel="stylesheet" type="text/css" href="/pr/26/assets/static/Layout.CM1M0hot.css">
+        <link rel="stylesheet" type="text/css" href="/pr/26/assets/static/PageShell.CHC_lA4_.css">
+        <link rel="stylesheet" type="text/css" href="/pr/26/assets/static/view.Bt-1NU10.css">
+        <meta charset="UTF-8" />
+        
+    <title>Unlisted GitHub Repositories</title><meta property="og:title" content="Unlisted GitHub Repositories" />
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta charSet="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><script async="" src="https://www.googletagmanager.com/gtag/js?id=G-1180FLF5RC"></script><meta name="description" content="There are times where you may want to have a publicly accessible repository on GitHub, but you don&#x27;t want it to show up on your profile. Many video hosting services like YouTube have support for this, but GitHub does not. This post explores an alternative strategy."/><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/obsidian.min.css"/><script>window.dataLayer = window.dataLayer || [];
+        function gtag() {
+          dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+  
+        gtag('config', 'G-1180FLF5RC');
+          </script>
+    
+    
+    <meta property="og:image" content="https://craigory.dev/blog/2024-09-11/gh-unlisted-repos/og.png"><meta name="twitter:card" content="summary_large_image">
+  
+      </head>
+      <body>
+        
+        <div id="root"><div class="layout"><div class="sidebar"><div class="sidebar-nav"><a href="/pr/26/" class="navitem">Home</a><a href="/pr/26/projects" class="navitem">Projects</a><a href="/pr/26/presentations" class="navitem">Speaking + Presentations</a><a href="/pr/26/blog/1" class="navitem">Blog</a></div><div class="sidebar-footer"><a href="/pr/26/privacy" class="footer-link">Privacy Policy</a></div></div><div class="content"><div class="blog-post-theme theme-technical"><div class="reading-progress" style="transform:scaleX(0)"></div><div class="blog-post-container"><div class="blog-content"><header class="blog-header"><h1>Unlisted Github Repositories</h1><div class="meta-info"><span class="publish-date">September 11, 2024</span></div></header>
+<p>Services such as YouTube provide support for unlisted videos. This allows publishing a video that is publicly accessible, but only via a direct link. This is useful for sharing content with a select group of people. It be used for getting early feedback on a video draft, or for sharing a video with a client before it goes live.</p>
+<p>There is no equivalent feature for GitHub repositories, but the need still exists. Some reasons I’ve needed this feature include:</p>
+<ul>
+<li>Sharing issue reproductions</li>
+<li>Sharing more complex code snippets like multifile gists</li>
+</ul>
+<p>These could both technically be done as a public repository, but it clutters up the profile and makes it harder to find the repositories that are actually meaningful.</p>
+<h2 id="unrelated-branches">Unrelated Branches<a class="heading-link" href="#unrelated-branches"><div style="display:inline-block">#</div></a></h2>
+<p>A git repository frequently has many branches of code, typically waiting to be merged into the main branch. Branches, however, do not necessarily have to be related to the main branch. As such, you can push any branch to any repository, even if they don’t share a common ancestor.</p>
+<p>This is the key to our approach of creating unlisted repositories.</p>
+<h2 id="steps-to-create-an-unlisted-repository">Steps to Create an Unlisted Repository<a class="heading-link" href="#steps-to-create-an-unlisted-repository"><div style="display:inline-block">#</div></a></h2>
+<ol>
+<li>Create a “host” repository that will contain all of your unlisted repositories. This repository will be public, but not contain code on the main branch. It differs from other repositories in that it will contain many branches, each representing a different unlisted repository. I’d recommend adding a README to this repository that explains the purpose of the repository and how to use it.</li>
+</ol>
+<ul>
+<li>For example, I use https://github.com/agentender/github-issues as my host repository.</li>
+</ul>
+<ol start="2">
+<li>
+<p>Create or open the repository that will be published as unlisted. Only the checked out branch will be shared.</p>
+</li>
+<li>
+<p>Run the following command to push the branch to the host repository:</p>
+</li>
+</ol>
+<div style="display:flex;flex-direction:column"><pre style="margin-top:0" class="_code-wrapper_1uasc_1 "><code class="hljs language-bash">git push <span class="hljs-variable">$HOST_REPO_REMOTE_URL</span> HEAD:<span class="hljs-variable">$BRANCH_NAME</span>
+</code></pre></div>
+<p>You should replace <code>$HOST_REPO_REMOTE_URL</code> with the URL of the host repository and <code>$BRANCH_NAME</code> with the name you want to use when sharing the branch.</p>
+<ol start="4">
+<li>Share the URL of the branch with the people you want to have access to it.</li>
+</ol>
+<p>The link should look something like this:</p>
+<div style="display:flex;flex-direction:column"><pre style="margin-top:0" class="_code-wrapper_1uasc_1 "><code class="hljs language-plaintext">https://github.com/{user}/{host-repo}/tree/{branch-name}
+</code></pre></div>
+<h2 id="supporting-infra">Supporting Infra<a class="heading-link" href="#supporting-infra"><div style="display:inline-block">#</div></a></h2>
+<p>If you plan to use this semi-frequently, I’d recommend creating a script or git alias to simplify the process. Here’s an example script I use:</p>
+<div style="display:flex;flex-direction:column"><pre style="margin-top:0" class="_code-wrapper_1uasc_1 "><code class="hljs language-js"><span class="hljs-keyword">const</span> <span class="hljs-variable constant_">REMOTE_URL</span> = <span class="hljs-string">&#x27;https://github.com/agentender/github-issues&#x27;</span>;
+
+<span class="hljs-keyword">const</span> tryExec = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;./utils/try-exec&#x27;</span>);
+
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">prompt</span>(<span class="hljs-params">message</span>) {
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Promise</span>(<span class="hljs-function">(<span class="hljs-params">resolve</span>) =&gt;</span> {
+    <span class="hljs-keyword">const</span> readline = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;readline&#x27;</span>).<span class="hljs-title function_">createInterface</span>({
+      <span class="hljs-attr">input</span>: process.<span class="hljs-property">stdin</span>,
+      <span class="hljs-attr">output</span>: process.<span class="hljs-property">stdout</span>,
+    });
+    readline.<span class="hljs-title function_">question</span>(message, <span class="hljs-function">(<span class="hljs-params">answer</span>) =&gt;</span> {
+      readline.<span class="hljs-title function_">close</span>();
+      <span class="hljs-title function_">resolve</span>(answer);
+    });
+    readline.<span class="hljs-title function_">on</span>(<span class="hljs-string">&#x27;SIGINT&#x27;</span>, <span class="hljs-function">() =&gt;</span> {
+      readline.<span class="hljs-title function_">close</span>();
+      process.<span class="hljs-property">stdout</span>.<span class="hljs-title function_">write</span>(<span class="hljs-string">&#x27;\n&#x27;</span>);
+      <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;Aborted.&#x27;</span>);
+      process.<span class="hljs-title function_">exit</span>(<span class="hljs-number">1</span>);
+    });
+  });
+}
+
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">isForced</span>(<span class="hljs-params"></span>) {
+  <span class="hljs-keyword">return</span> process.<span class="hljs-property">argv</span>.<span class="hljs-title function_">includes</span>(<span class="hljs-string">&#x27;--force&#x27;</span>) || process.<span class="hljs-property">argv</span>.<span class="hljs-title function_">includes</span>(<span class="hljs-string">&#x27;-f&#x27;</span>);
+}
+
+<span class="hljs-keyword">async</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">checkIfBranchAlreadyOnRemote</span>(<span class="hljs-params">branch</span>) {
+  <span class="hljs-keyword">const</span> { code } = <span class="hljs-keyword">await</span> <span class="hljs-title function_">tryExec</span>(
+    <span class="hljs-string">`git ls-remote --exit-code <span class="hljs-subst">${REMOTE_URL}</span> <span class="hljs-subst">${branch}</span>`</span>,
+    <span class="hljs-literal">true</span>
+  );
+  <span class="hljs-keyword">return</span> code === <span class="hljs-number">0</span>;
+}
+
+(<span class="hljs-title function_">async</span> () =&gt; {
+  <span class="hljs-keyword">const</span> forced = <span class="hljs-title function_">isForced</span>();
+  <span class="hljs-keyword">const</span> currentBranchName = (
+    <span class="hljs-keyword">await</span> <span class="hljs-title function_">tryExec</span>(<span class="hljs-string">&#x27;git rev-parse --abbrev-ref HEAD&#x27;</span>, <span class="hljs-literal">true</span>)
+  ).<span class="hljs-property">stdout</span>.<span class="hljs-title function_">trim</span>();
+  <span class="hljs-keyword">let</span> branch = currentBranchName;
+  <span class="hljs-keyword">if</span> (currentBranchName === <span class="hljs-string">&#x27;master&#x27;</span> || currentBranchName === <span class="hljs-string">&#x27;main&#x27;</span>) {
+    branch = <span class="hljs-keyword">await</span> <span class="hljs-title function_">prompt</span>(
+      <span class="hljs-string">`What branch would you like to publish to?<span class="hljs-subst">${
+        forced ? <span class="hljs-string">&#x27; (Any existing contents will be overwritten)&#x27;</span> : <span class="hljs-string">&#x27;&#x27;</span>
+      }</span>`</span>
+    );
+  }
+  <span class="hljs-keyword">while</span> (!forced &amp;&amp; (<span class="hljs-keyword">await</span> <span class="hljs-title function_">checkIfBranchAlreadyOnRemote</span>(branch))) {
+    <span class="hljs-keyword">const</span> next = <span class="hljs-keyword">await</span> <span class="hljs-title function_">prompt</span>(
+      <span class="hljs-string">`Branch <span class="hljs-subst">${branch}</span> already exists on remote. What branch would you like to publish to?`</span>
+    );
+    <span class="hljs-keyword">if</span> (next === <span class="hljs-string">&#x27;&#x27;</span>) {
+      <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;Aborted.&#x27;</span>);
+      process.<span class="hljs-title function_">exit</span>(<span class="hljs-number">1</span>);
+    }
+    <span class="hljs-keyword">if</span> (branch) branch = next;
+  }
+  <span class="hljs-keyword">await</span> <span class="hljs-title function_">tryExec</span>(<span class="hljs-string">`git push <span class="hljs-subst">${REMOTE_URL}</span> <span class="hljs-subst">${currentBranchName}</span>:<span class="hljs-subst">${branch}</span>`</span>);
+  <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">`✅ Published branch at <span class="hljs-subst">${REMOTE_URL}</span>/tree/<span class="hljs-subst">${branch}</span>`</span>);
+})();
+</code></pre></div>
+<p>Wrapping the process in a script makes it easier to use, and ensures consistency. This also gives a spot to add additional checks or features in the future.</p>
+<p>The example script above for example:</p>
+<ul>
+<li>Prevents accidentally overwriting an existing branch</li>
+<li>Prompts for branch name if the current branch is <code>master</code> or <code>main</code>, or would otherwise overwrite an existing branch</li>
+<li>Allows forcing the push with <code>--force</code> or <code>-f</code></li>
+</ul>
+<p>If you setup a script like this, you can add it as a git alias to make it easier to use. I’ve covered how to do this in a previous post: <a href="/blog/2024-07-30/superpowered-git-aliases?ref=/blog/2024-09-11/gh-unlisted-repos" class="text-blue-600 hover:underline">Superpowered Git Aliases with Scripting</a></p>
+<h2 id="wrapping-up">Wrapping Up<a class="heading-link" href="#wrapping-up"><div style="display:inline-block">#</div></a></h2>
+<p>This isn’t quite as good as native support for unlisted repositories, but it’s a good workaround. Sharing reproductions will no longer clutter up your profile, and you can share more complex code snippets without needing to create a new repository for each one. Of note, this approach has limitations that native support would not.</p>
+<p>Repo’s shared with this manner:</p>
+<ul>
+<li>Can not really have more than one branch</li>
+<li>Can not have issues or pull requests<!-- -->
+<ul>
+<li>This also makes it hard to test things like Github Actions or similar</li>
+</ul>
+</li>
+<li>Can be found by anyone with access to the host repository</li>
+</ul>
+<p>With that said, I still think this is a useful tool to have in your toolbox.</p></div></div><button class="scroll-to-top " aria-label="Scroll to top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"></path></svg></button></div></div></div><div class="mobile-nav-container"><header class="mobile-header"><div class="mobile-header-brand"></div></header><div class="mobile-content"><div class="blog-post-theme theme-technical"><div class="reading-progress" style="transform:scaleX(0)"></div><div class="blog-post-container"><div class="blog-content"><header class="blog-header"><h1>Unlisted Github Repositories</h1><div class="meta-info"><span class="publish-date">September 11, 2024</span></div></header>
+<p>Services such as YouTube provide support for unlisted videos. This allows publishing a video that is publicly accessible, but only via a direct link. This is useful for sharing content with a select group of people. It be used for getting early feedback on a video draft, or for sharing a video with a client before it goes live.</p>
+<p>There is no equivalent feature for GitHub repositories, but the need still exists. Some reasons I’ve needed this feature include:</p>
+<ul>
+<li>Sharing issue reproductions</li>
+<li>Sharing more complex code snippets like multifile gists</li>
+</ul>
+<p>These could both technically be done as a public repository, but it clutters up the profile and makes it harder to find the repositories that are actually meaningful.</p>
+<h2 id="unrelated-branches">Unrelated Branches<a class="heading-link" href="#unrelated-branches"><div style="display:inline-block">#</div></a></h2>
+<p>A git repository frequently has many branches of code, typically waiting to be merged into the main branch. Branches, however, do not necessarily have to be related to the main branch. As such, you can push any branch to any repository, even if they don’t share a common ancestor.</p>
+<p>This is the key to our approach of creating unlisted repositories.</p>
+<h2 id="steps-to-create-an-unlisted-repository">Steps to Create an Unlisted Repository<a class="heading-link" href="#steps-to-create-an-unlisted-repository"><div style="display:inline-block">#</div></a></h2>
+<ol>
+<li>Create a “host” repository that will contain all of your unlisted repositories. This repository will be public, but not contain code on the main branch. It differs from other repositories in that it will contain many branches, each representing a different unlisted repository. I’d recommend adding a README to this repository that explains the purpose of the repository and how to use it.</li>
+</ol>
+<ul>
+<li>For example, I use https://github.com/agentender/github-issues as my host repository.</li>
+</ul>
+<ol start="2">
+<li>
+<p>Create or open the repository that will be published as unlisted. Only the checked out branch will be shared.</p>
+</li>
+<li>
+<p>Run the following command to push the branch to the host repository:</p>
+</li>
+</ol>
+<div style="display:flex;flex-direction:column"><pre style="margin-top:0" class="_code-wrapper_1uasc_1 "><code class="hljs language-bash">git push <span class="hljs-variable">$HOST_REPO_REMOTE_URL</span> HEAD:<span class="hljs-variable">$BRANCH_NAME</span>
+</code></pre></div>
+<p>You should replace <code>$HOST_REPO_REMOTE_URL</code> with the URL of the host repository and <code>$BRANCH_NAME</code> with the name you want to use when sharing the branch.</p>
+<ol start="4">
+<li>Share the URL of the branch with the people you want to have access to it.</li>
+</ol>
+<p>The link should look something like this:</p>
+<div style="display:flex;flex-direction:column"><pre style="margin-top:0" class="_code-wrapper_1uasc_1 "><code class="hljs language-plaintext">https://github.com/{user}/{host-repo}/tree/{branch-name}
+</code></pre></div>
+<h2 id="supporting-infra">Supporting Infra<a class="heading-link" href="#supporting-infra"><div style="display:inline-block">#</div></a></h2>
+<p>If you plan to use this semi-frequently, I’d recommend creating a script or git alias to simplify the process. Here’s an example script I use:</p>
+<div style="display:flex;flex-direction:column"><pre style="margin-top:0" class="_code-wrapper_1uasc_1 "><code class="hljs language-js"><span class="hljs-keyword">const</span> <span class="hljs-variable constant_">REMOTE_URL</span> = <span class="hljs-string">&#x27;https://github.com/agentender/github-issues&#x27;</span>;
+
+<span class="hljs-keyword">const</span> tryExec = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;./utils/try-exec&#x27;</span>);
+
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">prompt</span>(<span class="hljs-params">message</span>) {
+  <span class="hljs-keyword">return</span> <span class="hljs-keyword">new</span> <span class="hljs-title class_">Promise</span>(<span class="hljs-function">(<span class="hljs-params">resolve</span>) =&gt;</span> {
+    <span class="hljs-keyword">const</span> readline = <span class="hljs-built_in">require</span>(<span class="hljs-string">&#x27;readline&#x27;</span>).<span class="hljs-title function_">createInterface</span>({
+      <span class="hljs-attr">input</span>: process.<span class="hljs-property">stdin</span>,
+      <span class="hljs-attr">output</span>: process.<span class="hljs-property">stdout</span>,
+    });
+    readline.<span class="hljs-title function_">question</span>(message, <span class="hljs-function">(<span class="hljs-params">answer</span>) =&gt;</span> {
+      readline.<span class="hljs-title function_">close</span>();
+      <span class="hljs-title function_">resolve</span>(answer);
+    });
+    readline.<span class="hljs-title function_">on</span>(<span class="hljs-string">&#x27;SIGINT&#x27;</span>, <span class="hljs-function">() =&gt;</span> {
+      readline.<span class="hljs-title function_">close</span>();
+      process.<span class="hljs-property">stdout</span>.<span class="hljs-title function_">write</span>(<span class="hljs-string">&#x27;\n&#x27;</span>);
+      <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;Aborted.&#x27;</span>);
+      process.<span class="hljs-title function_">exit</span>(<span class="hljs-number">1</span>);
+    });
+  });
+}
+
+<span class="hljs-keyword">function</span> <span class="hljs-title function_">isForced</span>(<span class="hljs-params"></span>) {
+  <span class="hljs-keyword">return</span> process.<span class="hljs-property">argv</span>.<span class="hljs-title function_">includes</span>(<span class="hljs-string">&#x27;--force&#x27;</span>) || process.<span class="hljs-property">argv</span>.<span class="hljs-title function_">includes</span>(<span class="hljs-string">&#x27;-f&#x27;</span>);
+}
+
+<span class="hljs-keyword">async</span> <span class="hljs-keyword">function</span> <span class="hljs-title function_">checkIfBranchAlreadyOnRemote</span>(<span class="hljs-params">branch</span>) {
+  <span class="hljs-keyword">const</span> { code } = <span class="hljs-keyword">await</span> <span class="hljs-title function_">tryExec</span>(
+    <span class="hljs-string">`git ls-remote --exit-code <span class="hljs-subst">${REMOTE_URL}</span> <span class="hljs-subst">${branch}</span>`</span>,
+    <span class="hljs-literal">true</span>
+  );
+  <span class="hljs-keyword">return</span> code === <span class="hljs-number">0</span>;
+}
+
+(<span class="hljs-title function_">async</span> () =&gt; {
+  <span class="hljs-keyword">const</span> forced = <span class="hljs-title function_">isForced</span>();
+  <span class="hljs-keyword">const</span> currentBranchName = (
+    <span class="hljs-keyword">await</span> <span class="hljs-title function_">tryExec</span>(<span class="hljs-string">&#x27;git rev-parse --abbrev-ref HEAD&#x27;</span>, <span class="hljs-literal">true</span>)
+  ).<span class="hljs-property">stdout</span>.<span class="hljs-title function_">trim</span>();
+  <span class="hljs-keyword">let</span> branch = currentBranchName;
+  <span class="hljs-keyword">if</span> (currentBranchName === <span class="hljs-string">&#x27;master&#x27;</span> || currentBranchName === <span class="hljs-string">&#x27;main&#x27;</span>) {
+    branch = <span class="hljs-keyword">await</span> <span class="hljs-title function_">prompt</span>(
+      <span class="hljs-string">`What branch would you like to publish to?<span class="hljs-subst">${
+        forced ? <span class="hljs-string">&#x27; (Any existing contents will be overwritten)&#x27;</span> : <span class="hljs-string">&#x27;&#x27;</span>
+      }</span>`</span>
+    );
+  }
+  <span class="hljs-keyword">while</span> (!forced &amp;&amp; (<span class="hljs-keyword">await</span> <span class="hljs-title function_">checkIfBranchAlreadyOnRemote</span>(branch))) {
+    <span class="hljs-keyword">const</span> next = <span class="hljs-keyword">await</span> <span class="hljs-title function_">prompt</span>(
+      <span class="hljs-string">`Branch <span class="hljs-subst">${branch}</span> already exists on remote. What branch would you like to publish to?`</span>
+    );
+    <span class="hljs-keyword">if</span> (next === <span class="hljs-string">&#x27;&#x27;</span>) {
+      <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">&#x27;Aborted.&#x27;</span>);
+      process.<span class="hljs-title function_">exit</span>(<span class="hljs-number">1</span>);
+    }
+    <span class="hljs-keyword">if</span> (branch) branch = next;
+  }
+  <span class="hljs-keyword">await</span> <span class="hljs-title function_">tryExec</span>(<span class="hljs-string">`git push <span class="hljs-subst">${REMOTE_URL}</span> <span class="hljs-subst">${currentBranchName}</span>:<span class="hljs-subst">${branch}</span>`</span>);
+  <span class="hljs-variable language_">console</span>.<span class="hljs-title function_">log</span>(<span class="hljs-string">`✅ Published branch at <span class="hljs-subst">${REMOTE_URL}</span>/tree/<span class="hljs-subst">${branch}</span>`</span>);
+})();
+</code></pre></div>
+<p>Wrapping the process in a script makes it easier to use, and ensures consistency. This also gives a spot to add additional checks or features in the future.</p>
+<p>The example script above for example:</p>
+<ul>
+<li>Prevents accidentally overwriting an existing branch</li>
+<li>Prompts for branch name if the current branch is <code>master</code> or <code>main</code>, or would otherwise overwrite an existing branch</li>
+<li>Allows forcing the push with <code>--force</code> or <code>-f</code></li>
+</ul>
+<p>If you setup a script like this, you can add it as a git alias to make it easier to use. I’ve covered how to do this in a previous post: <a href="/blog/2024-07-30/superpowered-git-aliases?ref=/blog/2024-09-11/gh-unlisted-repos" class="text-blue-600 hover:underline">Superpowered Git Aliases with Scripting</a></p>
+<h2 id="wrapping-up">Wrapping Up<a class="heading-link" href="#wrapping-up"><div style="display:inline-block">#</div></a></h2>
+<p>This isn’t quite as good as native support for unlisted repositories, but it’s a good workaround. Sharing reproductions will no longer clutter up your profile, and you can share more complex code snippets without needing to create a new repository for each one. Of note, this approach has limitations that native support would not.</p>
+<p>Repo’s shared with this manner:</p>
+<ul>
+<li>Can not really have more than one branch</li>
+<li>Can not have issues or pull requests<!-- -->
+<ul>
+<li>This also makes it hard to test things like Github Actions or similar</li>
+</ul>
+</li>
+<li>Can be found by anyone with access to the host repository</li>
+</ul>
+<p>With that said, I still think this is a useful tool to have in your toolbox.</p></div></div><button class="scroll-to-top " aria-label="Scroll to top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"></path></svg></button></div></div><nav class="mobile-drawer " role="dialog" aria-label="Navigation menu" aria-hidden="true"><div class="mobile-drawer-nav"><a href="/pr/26/" class="mobile-navitem">Home</a><a href="/pr/26/projects" class="mobile-navitem">Projects</a><a href="/pr/26/presentations" class="mobile-navitem">Speaking + Presentations</a><a href="/pr/26/blog/1" class="mobile-navitem">Blog</a></div><div class="mobile-drawer-footer"><a href="/pr/26/privacy" class="mobile-footer-link">Privacy Policy</a></div></nav><div class="mobile-overlay " aria-hidden="true"></div><button class="menu-toggle" aria-label="Open navigation menu" aria-expanded="false"><svg class="hamburger-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line class="hamburger-line hamburger-line-top" x1="3" y1="6" x2="21" y2="6"></line><line class="hamburger-line hamburger-line-middle" x1="3" y1="12" x2="21" y2="12"></line><line class="hamburger-line hamburger-line-bottom" x1="3" y1="18" x2="21" y2="18"></line></svg></button></div><div style="position:fixed;bottom:0;right:0;display:flex;flex-direction:column;gap:8px;margin:16px;border-radius:8px;width:min(100%, 400px)"></div></div>
+        
+        <script id="vike_pageContext" type="application/json">{"pageProps":{"is404":false},"urlPathname":"\\/blog\\/2024-09-11\\/gh-unlisted-repos","urlParsed":{"href":"\\/blog\\/2024-09-11\\/gh-unlisted-repos","protocol":null,"hostname":null,"port":null,"origin":null,"pathname":"\\/blog\\/2024-09-11\\/gh-unlisted-repos","pathnameOriginal":"\\/blog\\/2024-09-11\\/gh-unlisted-repos","search":{},"searchAll":{},"searchOriginal":null},"routeParams":{"date":"2024-09-11","slug":"gh-unlisted-repos"},"data":{},"_urlRewrite":null,"pageId":"\\/pages\\/blog\\/view"}</script>
+        <script id="vike_globalContext" type="application/json">{}</script>
+        <script src="/pr/26/assets/entries/entry-server-routing.DOMFRIEi.js" type="module" async></script>
+        <link rel="modulepreload" href="/pr/26/assets/entries/pages_blog_view.BFRqoqzL.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/26/assets/chunks/chunk-BiSMlUrc.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/26/assets/chunks/chunk-C_jR_L7K.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/26/assets/chunks/chunk-BVSxiK3S.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/26/assets/chunks/chunk-bNc2JGQN.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/26/assets/chunks/chunk-Cj1Pzm3x.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/26/assets/chunks/chunk-DI4sGg5h.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/26/assets/chunks/chunk-DxuxlC8X.js" as="script" type="text/javascript">
+      </body>
+    </html>
