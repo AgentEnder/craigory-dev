@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./dist-spec",
+    "tsBuildInfoFile": "../../dist/tsc/node-pagefind.spec.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": []
+}
