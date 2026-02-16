@@ -1,84 +1,87 @@
-# pr-digest
+# node-pagefind
 
-A CLI tool for generating comprehensive digests of GitHub pull requests, optimized for AI agent handoffs with full timeline context.
+A Node.js CLI and SDK for querying [Pagefind](https://pagefind.app/) search indices. Supports both local and remote data sources with automatic version-keyed caching.
 
 ## Features
 
-- Fetches all PR information (title, description, branches)
-- Retrieves complete timeline including reviews, comments, and status changes
-- Formats output using markdown-factory for clean, readable output
-- Includes AI agent instructions based on timeline analysis
-- Flexible authentication (args, env vars, or gh CLI)
-- Auto-detects PR from current git repository using Octokit
+- Query any Pagefind index from Node.js — local or remote
+- CLI with `search`, `filters`, and `info` subcommands
+- Programmatic SDK via cli-forge's `.sdk()` method
+- `PagefindClient` class for fine-grained lifecycle control
+- Version-keyed caching in `/tmp/node-pagefind/` with automatic invalidation
+- Optional `--cachePath` for custom cache directories (bypasses version management)
 
 ## Installation
 
 ```bash
-npm install -g pr-digest
+npm install node-pagefind
 ```
 
-## Usage
+## CLI Usage
 
-### Auto-detect PR from current git repository
+### Search a remote site
 
 ```bash
-pr-digest digest
+node-pagefind search "react hooks" --url nx.dev/docs --limit 5 --excerpt
 ```
 
-When run from a GitHub repository, `pr-digest` will:
-
-1. Detect the GitHub repository from `git remote get-url origin`
-2. Get the current branch name from `git branch --show-current`
-3. Search GitHub for an open PR with a matching head branch
-4. Generate a digest for that PR
-
-You can still explicitly provide owner/repo/pr if needed:
-
-- `--owner` and `--repo` override the detected GitHub repository
-- `--pr` overrides the auto-detected PR number
-
-### Using a GitHub PR URL
+### Search a local build
 
 ```bash
-pr-digest digest https://github.com/owner/repo/pull/123
+node-pagefind search "getting started" --path ./dist
 ```
 
-### With output file
+### List available filters
 
 ```bash
-pr-digest digest --url https://github.com/owner/repo/pull/123 --output digest.md
+node-pagefind filters --url nx.dev/docs
 ```
 
-### Authentication
+### Show index info
 
-The tool tries token sources in this order:
+```bash
+node-pagefind info --url nx.dev/docs
+```
 
-1. `--token` CLI argument
-2. `GH_TOKEN` environment variable
-3. `GITHUB_TOKEN` environment variable
-4. `gh auth token` command (requires GitHub CLI)
+### Custom cache directory
 
-## Digest Format
+```bash
+node-pagefind search "query" --url nx.dev/docs --cachePath ./my-cache
+```
 
-The generated digest includes:
+## SDK Usage
 
-- **PR Header**: Title, number, and link
-- **Branch Information**: Base branch (for `git diff` commands) and head branch
-- **Timeline Section**: Full conversation history including:
-  - Review summary with approval statistics
-  - Individual review comments with review states
-  - Nx Cloud CI links (detected and highlighted)
-  - General Comments: Issue-level comments with threaded replies
-  - File-Specific Comments\*\*: Review comments grouped by file with line numbers and ranges
-  - **AI Agent Instructions**: Context-aware guidelines based on timeline data
+The package exports a cli-forge SDK where each subcommand becomes a typed async function:
 
-> **Timeline Features:**
+```typescript
+import { sdk } from 'node-pagefind';
 
-- Shows review state (approved, changes requested, commented, dismissed, etc.)
-- Groups comments into threads with replies
-- Detects Nx Cloud CI links in review comments and highlights them
-- Provides review summary statistics for quick overview
-- Helps AI agents understand the full review conversation context
+const result = await sdk.search({
+  query: 'react hooks',
+  url: 'https://nx.dev/docs',
+  limit: 5,
+});
+```
+
+## PagefindClient Usage
+
+For more control over initialization and reuse across multiple queries:
+
+```typescript
+import { PagefindClient } from 'node-pagefind';
+
+const client = new PagefindClient({ baseUrl: 'https://nx.dev/docs' });
+await client.init('en');
+
+const results = await client.search('react hooks');
+const filters = await client.filters();
+```
+
+## Caching
+
+By default, downloaded `pagefind.js` files are cached in `/tmp/node-pagefind/<version>/` with a `known-versions.json` map tracking which data source uses which version. If a version mismatch occurs at init time, the cache is invalidated and the client is re-downloaded automatically.
+
+When `cachePath` is provided, the file is stored directly at `<cachePath>/pagefind.js` with no version management — useful for CI/CD or embedded use cases where you want deterministic control over the cache location.
 
 ## Development
 
@@ -91,7 +94,4 @@ npm run test
 
 # Type check
 npm run typecheck
-
-# Lint
-npm run lint
 ```
