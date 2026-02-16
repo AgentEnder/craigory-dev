@@ -1,0 +1,59 @@
+{
+  "name": "pr-digest",
+  "version": "0.0.0",
+  "author": {
+    "name": "Craigory Coppola",
+    "url": "https://craigory.dev"
+  },
+  "bugs": {
+    "url": "https://github.com/AgentEnder/craigory-dev/issues"
+  },
+  "homepage": "https://craigory.dev",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AgentEnder/craigory-dev.git"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "type": "module",
+  "bin": {
+    "pr-digest": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.lib.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "cli": "node dist/cli.js"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.1",
+    "@typescript-eslint/eslint-plugin": "7.16.1",
+    "@typescript-eslint/parser": "7.16.1",
+    "@vitest/coverage-v8": "4.0.9",
+    "cli-forge": "^1.2.0",
+    "eslint": "8.57.0",
+    "tsx": "^4.21.0",
+    "typescript": "5.9.2",
+    "vitest": "4.0.9"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "dependencies": {
+    "@octokit/rest": "^21.0.1"
+  }
+}

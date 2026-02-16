@@ -21,7 +21,8 @@
       "@new-personal-monorepo/presentations": [
         "libs/presentations/src/index.ts"
       ],
-      "@new-personal-monorepo/vike-utils": ["libs/vike-utils/src/index.ts"]
+      "@new-personal-monorepo/vike-utils": ["libs/vike-utils/src/index.ts"],
+      "@new-personal-monorepo/pr-digest": ["packages/pr-digest/src/index.ts"]
     }
   },
   "exclude": ["node_modules", "tmp"]
