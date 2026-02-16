@@ -1,4 +1,3 @@
-/// <reference types="vitest" />
 /// <reference types="vite/client" />
 import mdx from '@mdx-js/rollup';
 import react from '@vitejs/plugin-react';
@@ -80,9 +79,6 @@ export default defineConfig({
   test: {
     reporters: ['default'],
     globals: true,
-    cache: {
-      dir: '../../node_modules/.vitest',
-    },
     environment: 'jsdom',
     include: ['{src,pages}/**/*.{test,spec}.{js,mjs,cjs,ts,mts,cts,jsx,tsx}'],
   },

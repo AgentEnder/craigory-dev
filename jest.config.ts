@@ -1,5 +1,6 @@
-import { getJestProjects } from '@nx/jest';
+import type { Config } from 'jest';
+const { getJestProjectsAsync } = require('@nx/jest');
 
-export default {
-  projects: getJestProjects(),
-};
+module.exports = async (): Promise<Config> => ({
+  projects: await getJestProjectsAsync(),
+});

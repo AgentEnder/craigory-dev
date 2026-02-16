@@ -1,13 +1,31 @@
 {
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "defaultProject": "craigory-dev",
+  "release": {
+    "projects": ["packages/*"],
+    "projectsRelationship": "independent",
+    "version": {
+      "preVersionCommand": "npx nx run-many -t build -p packages/*",
+      "conventionalCommits": true
+    },
+    "changelog": {
+      "workspaceChangelog": {
+        "createRelease": "github"
+      }
+    },
+    "git": {
+      "commitMessage": "chore(release): release {version} [skip ci]"
+    }
+  },
   "targetDefaults": {
     "build": {
       "dependsOn": ["^build"],
       "inputs": [
         "production",
         "^production",
-        { "env": "PUBLIC_ENV__BASE_URL" }
+        {
+          "env": "PUBLIC_ENV__BASE_URL"
+        }
       ],
       "cache": true
     },
@@ -34,10 +52,6 @@
         }
       }
     },
-    "@nx/vite:test": {
-      "inputs": ["default", "^production", "{workspaceRoot}/jest.preset.js"],
-      "cache": true
-    },
     "@nx/eslint:lint": {
       "inputs": [
         "default",
@@ -45,6 +59,21 @@
         "{workspaceRoot}/.eslintignore"
       ],
       "cache": true
+    },
+    "@nx/vitest:test": {
+      "inputs": ["default", "^production"],
+      "cache": true
+    },
+    "@nx/js/typescript": {
+      "options": {
+        "typecheck": {
+          "targetName": "typecheck"
+        },
+        "build": {
+          "targetName": "build",
+          "configName": "tsconfig.json"
+        }
+      }
     }
   },
   "namedInputs": {
