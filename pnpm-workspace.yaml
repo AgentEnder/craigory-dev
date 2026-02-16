@@ -5,5 +5,8 @@ packages:
   # Libs directory - contains all libraries/packages
   - 'libs/*'
 
+  # Packages directory - contains publishable npm packages
+  - 'packages/*'
+
   # Tools directory if it contains packages
   - 'tools'
