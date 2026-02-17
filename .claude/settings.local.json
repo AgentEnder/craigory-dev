@@ -5,7 +5,11 @@
       "mcp__ide__getDiagnostics",
       "Skill(superpowers:brainstorming)",
       "Skill(superpowers:writing-plans)",
-      "Skill(superpowers:subagent-driven-development)"
+      "Skill(superpowers:subagent-driven-development)",
+      "Bash(apps/craigory-dev/pages/projects/components/ProjectCard.module.scss )",
+      "Bash(apps/craigory-dev/pages/projects/+Page.tsx )",
+      "Bash(apps/craigory-dev/pages/projects/styles.scss )",
+      "Bash(apps/craigory-dev/pages/projects/components/filter-bar.tsx)"
     ],
     "deny": [],
     "ask": []
