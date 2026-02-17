@@ -256,7 +256,11 @@ export const data = async (_pageContext: PageContext) => {
     console.log('Reusing local projects data from', localCachePath);
     localProjects = localCacheData;
   } else {
-    localProjects = await getLocalProjects(workspaceRoot);
+    const [appProjects, packageProjects] = await Promise.all([
+      getLocalProjects(workspaceRoot),
+      getMonorepoPackages(workspaceRoot),
+    ]);
+    localProjects = [...appProjects, ...packageProjects];
     writeFileSync(localCachePath, JSON.stringify(localProjects, null, 2));
   }
 
@@ -764,6 +768,168 @@ function findWorkspaceRoot(startingDirectory: string) {
     next = dirname(next);
   }
   throw new Error('Prerendering should happen inside the Nx workspace');
+}
+
+async function getMonorepoPackages(
+  workspaceRoot: string
+): Promise<LocalProjectData[]> {
+  const packagesDir = join(workspaceRoot, 'packages');
+  const projects: LocalProjectData[] = [];
+
+  if (!existsSync(packagesDir)) {
+    return projects;
+  }
+
+  const packageDirs = readdirSync(packagesDir).filter((dir) => {
+    const dirPath = join(packagesDir, dir);
+    return (
+      statSync(dirPath).isDirectory() &&
+      existsSync(join(dirPath, 'package.json'))
+    );
+  });
+
+  for (const pkgDir of packageDirs) {
+    const projectPath = join(packagesDir, pkgDir);
+
+    try {
+      const packageJson = JSON.parse(
+        readFileSync(join(projectPath, 'package.json'), 'utf-8')
+      );
+
+      // Skip private packages
+      if (packageJson.private) {
+        continue;
+      }
+
+      const packageName: string = packageJson.name ?? pkgDir;
+
+      // Read optional project-metadata.json for featured/order overrides
+      const metadataPath = join(projectPath, 'project-metadata.json');
+      const metadataOverrides: Partial<LocalProjectMetadata> =
+        existsSync(metadataPath)
+          ? JSON.parse(readFileSync(metadataPath, 'utf-8'))
+          : {};
+
+      // Fetch npm weekly download stats
+      const publishedPackages: Record<
+        string,
+        { downloads: number; registry: 'npm'; url: string }
+      > = {};
+      try {
+        const downloadsResponse = await fetch(
+          `https://api.npmjs.org/versions/${encodeURIComponent(packageName)}/last-week`
+        );
+        if (downloadsResponse.status === 200) {
+          const weeklyDownloadsByVersion: {
+            downloads: Record<string, number>;
+          } = await downloadsResponse.json();
+          let totalDownloads = 0;
+          for (const downloads of Object.values(
+            weeklyDownloadsByVersion.downloads
+          )) {
+            totalDownloads += downloads;
+          }
+          publishedPackages[packageName] = {
+            downloads: totalDownloads,
+            registry: 'npm',
+            url: `https://npmjs.com/package/${packageName}`,
+          };
+        }
+      } catch {
+        // Package may not be published yet
+      }
+
+      // Language analysis via linguist-js
+      const languages: Record<string, number> = {};
+      try {
+        const analysis = await linguist(projectPath, {
+          keepVendored: false,
+          quick: false,
+        });
+
+        let totalBytes = 0;
+        for (const [lang, data] of Object.entries(
+          analysis.languages.results
+        )) {
+          if (
+            FORBIDDEN_TECHNOLOGIES.some(
+              (tech) => tech.toLowerCase() === lang.toLowerCase()
+            )
+          ) {
+            continue;
+          }
+          totalBytes += data.bytes;
+        }
+
+        if (totalBytes > 0) {
+          for (const [lang, data] of Object.entries(
+            analysis.languages.results
+          )) {
+            if (
+              FORBIDDEN_TECHNOLOGIES.some(
+                (tech) => tech.toLowerCase() === lang.toLowerCase()
+              )
+            ) {
+              continue;
+            }
+            const percentage = data.bytes / totalBytes;
+            if (percentage >= LANGUAGE_PERCENTAGE_THRESHOLD) {
+              const aliasedLang = applyTechnologyAlias(lang);
+              const percentageValue = Math.round(percentage * 100);
+              if (languages[aliasedLang]) {
+                languages[aliasedLang] += percentageValue;
+              } else {
+                languages[aliasedLang] = percentageValue;
+              }
+            }
+          }
+        }
+      } catch (error) {
+        console.warn(
+          `Failed to analyze languages for package ${pkgDir}:`,
+          error
+        );
+      }
+
+      // Get last commit date
+      const lastCommit = await getLastCommitDate(projectPath, workspaceRoot);
+
+      // Read README if present
+      let readme: string | null = null;
+      const readmePath = join(projectPath, 'README.md');
+      if (existsSync(readmePath)) {
+        readme = readFileSync(readmePath, 'utf-8');
+      }
+
+      const metadata: LocalProjectMetadata = {
+        name: metadataOverrides.name ?? packageName,
+        description: metadataOverrides.description ?? packageJson.description,
+        featured: metadataOverrides.featured,
+        order: metadataOverrides.order,
+      };
+
+      projects.push({
+        type: 'local',
+        repo: packageName,
+        projectPath,
+        metadata,
+        description: metadata.description,
+        url: `https://github.com/AgentEnder/craigory-dev/tree/main/packages/${pkgDir}`,
+        readme,
+        languages,
+        lastCommit: lastCommit?.toISOString(),
+        stars: undefined,
+        publishedPackages:
+          Object.keys(publishedPackages).length > 0
+            ? publishedPackages
+            : undefined,
+      });
+    } catch (error) {
+      console.warn(`Failed to process monorepo package ${pkgDir}:`, error);
+    }
+  }
+
+  return projects;
 }
 
 async function getLocalProjects(
