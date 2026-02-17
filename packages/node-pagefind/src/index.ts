@@ -1,4 +1,10 @@
-export { createPagefindClient, PagefindClient } from './pagefind.js';
+export {
+  createPagefindClient,
+  inspectCache,
+  PagefindClient,
+  printCacheInspection,
+} from './pagefind.js';
+export type { CacheInspection } from './pagefind.js';
 export type {
   PagefindClientOptions,
   PagefindFilterMap,

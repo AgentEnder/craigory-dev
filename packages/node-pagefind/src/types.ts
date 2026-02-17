@@ -5,6 +5,10 @@ export interface PagefindClientOptions {
   baseUrl?: string;
   /** Custom cache directory for downloaded pagefind.js — bypasses version-based caching */
   cachePath?: string;
+  /** Log fetch events and cache details to stderr */
+  verbose?: boolean;
+  /** Skip all caching — always fetch from remote */
+  skipCache?: boolean;
 }
 
 export interface PagefindSearchOptions {
