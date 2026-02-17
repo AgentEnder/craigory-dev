@@ -1,9 +1,27 @@
 #!/usr/bin/env node
 
 import { cli } from 'cli-forge';
+import { PerformanceObserver } from 'perf_hooks';
 
-import { createPagefindClient } from './pagefind.js';
-import type { PagefindResultData } from './types.js';
+import { createPagefindClient, printCacheInspection } from './pagefind.js';
+
+function installPerfLogger(): void {
+  const measures: PerformanceEntry[] = [];
+  const obs = new PerformanceObserver((list) => {
+    measures.push(...list.getEntries());
+  });
+  obs.observe({ entryTypes: ['measure'] });
+
+  process.on('beforeExit', () => {
+    obs.disconnect();
+    if (measures.length === 0) return;
+    console.error('\n[perf] ─────────────────────────────');
+    for (const m of measures) {
+      console.error(`[perf] ${m.name.padEnd(10)} ${m.duration.toFixed(0)}ms`);
+    }
+    console.error('[perf] ─────────────────────────────');
+  });
+}
 
 const pagefindCLI = cli('pagefind', {
   description: 'Query Pagefind search indices from Node.js',
@@ -30,6 +48,21 @@ const pagefindCLI = cli('pagefind', {
         description:
           'Custom cache directory for downloaded pagefind.js (bypasses version-based caching)',
       })
+      .option('verbose', {
+        type: 'boolean',
+        default: false,
+        description: 'Log fetch events and cache details to stderr',
+      })
+      .option('skipCache', {
+        type: 'boolean',
+        default: false,
+        description: 'Skip all caching — always fetch from remote',
+      })
+      .middleware((opts) => {
+        if (opts.verbose) {
+          installPerfLogger();
+        }
+      })
       .command('search', {
         description: 'Search the pagefind index',
         builder: (c) =>
@@ -53,40 +86,65 @@ const pagefindCLI = cli('pagefind', {
               type: 'number',
               default: 10,
               description: 'Maximum results to show',
+            })
+            .option('minScore', {
+              type: 'number',
+              default: 5,
+              description: 'Minimum score threshold (0-1) to include a result',
             }),
         handler: async (opts) => {
+          performance.mark('start');
+
           const client = createPagefindClient({
             path: opts.path,
             url: opts.url,
             cachePath: opts.cachePath,
+            verbose: opts.verbose,
+            skipCache: opts.skipCache,
           });
           await client.init(opts.lang);
 
-          const query = opts.query;
+          performance.mark('init');
+          performance.measure('init', 'start', 'init');
+
+          // When invoked via $0 alias, positionals land in unmatched
+          const query = opts.query ?? opts.unmatched?.[0];
+          if (!query) {
+            console.error('Usage: pagefind search <query>');
+            process.exit(1);
+          }
           const result = await client.search(query, {
             language: opts.lang,
             excerpt: opts.excerpt,
             limit: opts.limit,
           });
 
-          if (result.results.length === 0) {
+          performance.mark('search');
+          performance.measure('search', 'init', 'search');
+
+          const candidates = result.results
+            .filter((r) => {
+              return !opts.minScore || r.score >= opts.minScore;
+            })
+            .slice(0, opts.limit);
+
+          if (candidates.length === 0) {
             console.log('No results found');
+            performance.measure('total', 'start');
             return { query, results: [] };
           }
 
           console.log(`\nFound ${result.results.length} result(s):\n`);
 
-          const maxResults = opts.limit;
-          const resolvedResults: Array<{
-            score: number;
-            data: PagefindResultData;
-          }> = [];
+          const resolvedResults = await Promise.all(
+            candidates.map(async (r) => ({
+              score: r.score,
+              data: await r.data(),
+            }))
+          );
 
-          for (const r of result.results.slice(0, maxResults)) {
-            const data = await r.data();
-            resolvedResults.push({ score: r.score, data });
-
-            console.log(`[${r.score.toFixed(2)}] ${data.meta.title}`);
+          for (const { score, data } of resolvedResults) {
+            console.log(`[${score.toFixed(2)}] ${data.meta.title}`);
             console.log(`    URL: ${data.url}`);
 
             if (opts.excerpt && data.excerpt) {
@@ -99,11 +157,14 @@ const pagefindCLI = cli('pagefind', {
             console.log();
           }
 
-          if (result.results.length > maxResults) {
-            console.log(
-              `... and ${result.results.length - maxResults} more results`
-            );
+          const remaining = result.results.length - candidates.length;
+          if (remaining > 0) {
+            console.log(`... and ${remaining} more results`);
           }
+
+          performance.mark('resolve');
+          performance.measure('resolve', 'search', 'resolve');
+          performance.measure('total', 'start', 'resolve');
 
           return { query, results: resolvedResults };
         },
@@ -113,18 +174,27 @@ const pagefindCLI = cli('pagefind', {
         description: 'List available search filters',
         builder: (c) => c,
         handler: async (opts) => {
+          performance.mark('start');
+
           const client = createPagefindClient({
             path: opts.path,
             url: opts.url,
             cachePath: opts.cachePath,
+            verbose: opts.verbose,
+            skipCache: opts.skipCache,
           });
           await client.init();
+
+          performance.mark('init');
+          performance.measure('init', 'start', 'init');
 
           const filters = await client.filters();
           console.log('Available filters:');
           for (const [key, values] of Object.entries(filters)) {
             console.log(`  ${key}: ${Object.keys(values).join(', ')}`);
           }
+
+          performance.measure('total', 'start');
 
           return filters;
         },
@@ -137,6 +207,8 @@ const pagefindCLI = cli('pagefind', {
             path: opts.path,
             url: opts.url,
             cachePath: opts.cachePath,
+            verbose: opts.verbose,
+            skipCache: opts.skipCache,
           });
           const info = client.getInfo();
           console.log(`Base URL: ${info.baseUrl}`);
@@ -144,6 +216,13 @@ const pagefindCLI = cli('pagefind', {
           console.log(`Initialized: ${info.initialized}`);
 
           return info;
+        },
+      })
+      .command('inspect-cache', {
+        description: 'Show information about the local pagefind cache',
+        builder: (c) => c,
+        handler: async () => {
+          return printCacheInspection();
         },
       }),
 });
