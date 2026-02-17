@@ -43,7 +43,6 @@
     "@typescript-eslint/eslint-plugin": "7.16.1",
     "@typescript-eslint/parser": "7.16.1",
     "@vitest/coverage-v8": "4.0.9",
-    "cli-forge": "^1.2.0",
     "eslint": "8.57.0",
     "tsx": "^4.21.0",
     "typescript": "5.9.2",
@@ -54,6 +53,8 @@
     "README.md"
   ],
   "dependencies": {
-    "@octokit/rest": "^21.0.1"
+    "@octokit/rest": "^21.0.1",
+    "cli-forge": "^1.2.0",
+    "tslib": "^2.5.0"
   }
 }
