@@ -82,7 +82,9 @@ async function getNpmPackagesByMaintainer(
 
   while (hasMore) {
     const response = await fetch(
-      `https://registry.npmjs.org/-/v1/search?text=maintainer:${encodeURIComponent(maintainer)}&size=${size}&from=${from}`
+      `https://registry.npmjs.org/-/v1/search?text=maintainer:${encodeURIComponent(
+        maintainer
+      )}&size=${size}&from=${from}`
     );
 
     if (!response.ok) {
@@ -106,7 +108,9 @@ async function getNpmPackagesByMaintainer(
     hasMore = from < data.total;
   }
 
-  console.log(`Found ${packages.size} npm packages for maintainer:${maintainer}`);
+  console.log(
+    `Found ${packages.size} npm packages for maintainer:${maintainer}`
+  );
   return packages;
 }
 
@@ -200,7 +204,9 @@ async function findAllPackageJsonLocations(): Promise<PackageJsonLocation[]> {
     allLocations.push(...repoPackages);
   }
 
-  console.log(`Found ${allLocations.length} package.json files via code search`);
+  console.log(
+    `Found ${allLocations.length} package.json files via code search`
+  );
   return allLocations;
 }
 
@@ -325,6 +331,8 @@ const FORBIDDEN_WORDS = [
 
 const FORBIDDEN_README_WORDS = ['subscribe to the nx youtube channel'];
 
+const FORBIDDEN_WORD_EXCEPTIONS = new Set(['agentender/functional-examples']);
+
 // We don't want to show JSON as a technology, it's more of a data format.
 const FORBIDDEN_TECHNOLOGIES = ['JSON', 'SVG'];
 const ALIAS_TECHNOLOGIES = {
@@ -394,15 +402,19 @@ const repoFilter = (repo: GithubRepo) => {
   const name = repo.name.toLowerCase();
   const description = repo.description?.toLowerCase() ?? '';
 
+  const fullName = repo.full_name.toLowerCase();
+  const isForbiddenWordException = FORBIDDEN_WORD_EXCEPTIONS.has(fullName);
+
   return (
     !repo.archived &&
     !repo.fork &&
     !name.includes('demo') &&
-    !FORBIDDEN_WORDS.some((word) =>
-      typeof word === 'string'
-        ? name.includes(word) || description.includes(word)
-        : word.test(name) || word.test(description)
-    ) &&
+    (isForbiddenWordException ||
+      !FORBIDDEN_WORDS.some((word) =>
+        typeof word === 'string'
+          ? name.includes(word) || description.includes(word)
+          : word.test(name) || word.test(description)
+      )) &&
     !(
       repo.description &&
       repo.description.toLowerCase().includes('deployments of')
@@ -610,7 +622,7 @@ async function findRepositoryDeployment(repo: GithubRepo) {
       repo: repo.name,
       per_page: 5,
     });
-    
+
     // Process deployments in parallel instead of sequentially
     const statusPromises = deployments.data.map(async (deployment) => {
       try {
@@ -629,7 +641,7 @@ async function findRepositoryDeployment(repo: GithubRepo) {
       }
       return null;
     });
-    
+
     const results = await Promise.all(statusPromises);
     url = results.find((u) => u !== null) ?? undefined;
   }
@@ -669,7 +681,10 @@ async function getPublishedPackages(
   for (const [packageName, info] of npmPackageCache.entries()) {
     // Check if this package's repository matches this repo
     const normalizedPackageRepoUrl = normalizeGitUrl(info.repository ?? '');
-    if (normalizedPackageRepoUrl && normalizedPackageRepoUrl === normalizedRepoUrl) {
+    if (
+      normalizedPackageRepoUrl &&
+      normalizedPackageRepoUrl === normalizedRepoUrl
+    ) {
       packages[packageName] = {
         downloads: info.downloads.weekly,
         registry: 'npm',
@@ -724,7 +739,9 @@ async function getPublishedPackages(
 
         // Get download stats
         const downloadsResponse = await fetch(
-          `https://api.npmjs.org/versions/${encodeURIComponent(pkg.name)}/last-week`
+          `https://api.npmjs.org/versions/${encodeURIComponent(
+            pkg.name
+          )}/last-week`
         );
 
         if (downloadsResponse.status !== 200) {
@@ -805,10 +822,11 @@ async function getMonorepoPackages(
 
       // Read optional project-metadata.json for featured/order overrides
       const metadataPath = join(projectPath, 'project-metadata.json');
-      const metadataOverrides: Partial<LocalProjectMetadata> =
-        existsSync(metadataPath)
-          ? JSON.parse(readFileSync(metadataPath, 'utf-8'))
-          : {};
+      const metadataOverrides: Partial<LocalProjectMetadata> = existsSync(
+        metadataPath
+      )
+        ? JSON.parse(readFileSync(metadataPath, 'utf-8'))
+        : {};
 
       // Fetch npm weekly download stats
       const publishedPackages: Record<
@@ -817,7 +835,9 @@ async function getMonorepoPackages(
       > = {};
       try {
         const downloadsResponse = await fetch(
-          `https://api.npmjs.org/versions/${encodeURIComponent(packageName)}/last-week`
+          `https://api.npmjs.org/versions/${encodeURIComponent(
+            packageName
+          )}/last-week`
         );
         if (downloadsResponse.status === 200) {
           const weeklyDownloadsByVersion: {
@@ -848,9 +868,7 @@ async function getMonorepoPackages(
         });
 
         let totalBytes = 0;
-        for (const [lang, data] of Object.entries(
-          analysis.languages.results
-        )) {
+        for (const [lang, data] of Object.entries(analysis.languages.results)) {
           if (
             FORBIDDEN_TECHNOLOGIES.some(
               (tech) => tech.toLowerCase() === lang.toLowerCase()
