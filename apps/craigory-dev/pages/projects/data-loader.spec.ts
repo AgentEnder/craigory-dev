@@ -197,6 +197,13 @@ describe('projects +data', () => {
     expect(monorepoProject?.publishedPackages?.['another-package']?.url).toBe(
       'https://npmjs.com/package/another-package'
     );
+
+    const prDigest = result.projects.find((p) => p.repo === 'pr-digest');
+    const nodePagefind = result.projects.find((p) => p.repo === 'node-pagefind');
+    expect(Object.keys(prDigest?.publishedPackages ?? {})).toEqual(['pr-digest']);
+    expect(Object.keys(nodePagefind?.publishedPackages ?? {})).toEqual([
+      'node-pagefind',
+    ]);
   });
 
   it('drops stale npm packages that are not published', async () => {

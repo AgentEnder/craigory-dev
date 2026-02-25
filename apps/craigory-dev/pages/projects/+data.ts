@@ -455,56 +455,93 @@ async function isPublishedOnNpm(packageName: string): Promise<boolean> {
 async function normalizePublishedPackageEntries(
   projects: RepoData[]
 ): Promise<RepoData[]> {
-  const projectNames = new Set(projects.map((project) => project.repo.toLowerCase()));
+  const projectNames = new Set(
+    projects.map((project) => project.repo.toLowerCase())
+  );
+  const normalizedByProject = new Map<
+    string,
+    Array<[string, NonNullable<RepoData['publishedPackages']>[string]]>
+  >();
+  const packageOwners = new Map<
+    string,
+    [string, NonNullable<RepoData['publishedPackages']>[string]]
+  >();
 
-  return Promise.all(projects.map(async (project) => {
-    if (!project.publishedPackages) {
-      return project;
-    }
+  await Promise.all(
+    projects.map(async (project) => {
+      if (!project.publishedPackages) {
+        normalizedByProject.set(project.repo, []);
+        return;
+      }
 
-    const normalizedEntries = (
-      await Promise.all(
-        Object.entries(project.publishedPackages).map(
-          async ([packageName, packageInfo]) => {
-            const normalizedPackageName = packageName.toLowerCase();
-            const isSelfPackage =
-              normalizedPackageName === project.repo.toLowerCase();
-            if (!isSelfPackage && projectNames.has(normalizedPackageName)) {
-              return null;
-            }
-
-            if (packageInfo.registry === 'npm') {
-              const isPublished = await isPublishedOnNpm(packageName);
-              if (!isPublished) {
-                return null;
+      const normalizedEntries = (
+        await Promise.all(
+          Object.entries(project.publishedPackages).map(
+            async ([packageName, packageInfo]) => {
+              if (packageInfo.registry === 'npm') {
+                const isPublished = await isPublishedOnNpm(packageName);
+                if (!isPublished) {
+                  return null;
+                }
               }
-            }
 
-            return [
-              packageName,
-              {
-                ...packageInfo,
-                url:
-                  packageInfo.registry === 'npm'
-                    ? `https://npmjs.com/package/${packageName}`
-                    : packageInfo.url,
-              },
-            ] as const;
-          }
+              return [
+                packageName,
+                {
+                  ...packageInfo,
+                  url:
+                    packageInfo.registry === 'npm'
+                      ? `https://npmjs.com/package/${packageName}`
+                      : packageInfo.url,
+                },
+              ] as [string, NonNullable<RepoData['publishedPackages']>[string]];
+            }
+          )
         )
-      )
-    ).filter((entry): entry is [string, (typeof project.publishedPackages)[string]] =>
-      entry !== null
-    );
+      ).filter((entry): entry is [string, NonNullable<RepoData['publishedPackages']>[string]] =>
+        entry !== null
+      );
+
+      normalizedByProject.set(project.repo, normalizedEntries);
+      for (const [packageName, packageInfo] of normalizedEntries) {
+        const normalizedPackageName = packageName.toLowerCase();
+        const existing = packageOwners.get(normalizedPackageName);
+        if (!existing || packageInfo.downloads > existing[1].downloads) {
+          packageOwners.set(normalizedPackageName, [packageName, packageInfo]);
+        }
+      }
+    })
+  );
+
+  return projects.map((project) => {
+    const entries = normalizedByProject.get(project.repo) ?? [];
+    const filteredEntries = entries.filter(([packageName]) => {
+      const normalizedPackageName = packageName.toLowerCase();
+      return (
+        normalizedPackageName === project.repo.toLowerCase() ||
+        !projectNames.has(normalizedPackageName)
+      );
+    });
+
+    const ownerEntry = packageOwners.get(project.repo.toLowerCase());
+    const ownPackageMissing = ownerEntry
+      ? !filteredEntries.some(
+          ([packageName]) => packageName.toLowerCase() === project.repo.toLowerCase()
+        )
+      : false;
+
+    if (ownerEntry && ownPackageMissing) {
+      filteredEntries.push(ownerEntry);
+    }
 
     return {
       ...project,
       publishedPackages:
-        normalizedEntries.length > 0
-          ? Object.fromEntries(normalizedEntries)
+        filteredEntries.length > 0
+          ? Object.fromEntries(filteredEntries)
           : undefined,
     };
-  }));
+  });
 }
 
 async function getLastCommitDate(
