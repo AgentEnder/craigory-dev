@@ -82,9 +82,7 @@ async function getNpmPackagesByMaintainer(
 
   while (hasMore) {
     const response = await fetch(
-      `https://registry.npmjs.org/-/v1/search?text=maintainer:${encodeURIComponent(
-        maintainer
-      )}&size=${size}&from=${from}`
+      `https://registry.npmjs.org/-/v1/search?text=maintainer:${encodeURIComponent(maintainer)}&size=${size}&from=${from}`
     );
 
     if (!response.ok) {
@@ -108,9 +106,7 @@ async function getNpmPackagesByMaintainer(
     hasMore = from < data.total;
   }
 
-  console.log(
-    `Found ${packages.size} npm packages for maintainer:${maintainer}`
-  );
+  console.log(`Found ${packages.size} npm packages for maintainer:${maintainer}`);
   return packages;
 }
 
@@ -122,6 +118,11 @@ interface PackageJsonLocation {
   repoFullName: string;
   path: string;
   gitUrl: string;
+}
+
+interface PackageJsonManifest {
+  name?: string;
+  private?: boolean;
 }
 
 /**
@@ -204,9 +205,7 @@ async function findAllPackageJsonLocations(): Promise<PackageJsonLocation[]> {
     allLocations.push(...repoPackages);
   }
 
-  console.log(
-    `Found ${allLocations.length} package.json files via code search`
-  );
+  console.log(`Found ${allLocations.length} package.json files via code search`);
   return allLocations;
 }
 
@@ -270,8 +269,13 @@ export const data = async (_pageContext: PageContext) => {
     writeFileSync(localCachePath, JSON.stringify(localProjects, null, 2));
   }
 
+  const mergedProjects = await normalizePublishedPackageEntries([
+    ...githubProjects,
+    ...localProjects,
+  ]);
+
   const result = {
-    projects: [...githubProjects, ...localProjects].sort((a, b) => {
+    projects: mergedProjects.sort((a, b) => {
       // Sort by featured first, then by custom order, then by last commit date, then by name
       if (
         'metadata' in a &&
@@ -330,7 +334,26 @@ const FORBIDDEN_WORDS = [
 ];
 
 const FORBIDDEN_README_WORDS = ['subscribe to the nx youtube channel'];
-
+const NON_PUBLISHABLE_PACKAGE_PATH_SEGMENTS = new Set([
+  '__tests__',
+  'demo',
+  'demos',
+  'doc',
+  'docs',
+  'e2e',
+  'example',
+  'examples',
+  'fixture',
+  'fixtures',
+  'playground',
+  'sample',
+  'samples',
+  'sandbox',
+  'template',
+  'templates',
+  'test',
+  'tests',
+]);
 const FORBIDDEN_WORD_EXCEPTIONS = new Set(['agentender/functional-examples']);
 
 // We don't want to show JSON as a technology, it's more of a data format.
@@ -362,6 +385,126 @@ function normalizeGitUrl(url: string): string {
     .replace(/^git:\/\//, 'https://')
     .replace(/\.git$/, '')
     .replace(/\/$/, '');
+}
+
+function isLikelyPublishablePackagePath(path: string): boolean {
+  const pathSegments = path.toLowerCase().split('/');
+  return !pathSegments.some((segment) =>
+    NON_PUBLISHABLE_PACKAGE_PATH_SEGMENTS.has(segment)
+  );
+}
+
+const npmWeeklyDownloadsCache = new Map<string, number | null>();
+async function getNpmWeeklyDownloads(packageName: string): Promise<number | null> {
+  if (npmWeeklyDownloadsCache.has(packageName)) {
+    return npmWeeklyDownloadsCache.get(packageName) ?? null;
+  }
+
+  try {
+    const downloadsResponse = await fetch(
+      `https://api.npmjs.org/versions/${encodeURIComponent(packageName)}/last-week`
+    );
+    if (downloadsResponse.status !== 200) {
+      npmWeeklyDownloadsCache.set(packageName, null);
+      return null;
+    }
+
+    const weeklyDownloadsByVersion: {
+      downloads: Record<string, number>;
+    } = await downloadsResponse.json();
+    const totalDownloads = Object.values(
+      weeklyDownloadsByVersion.downloads ?? {}
+    ).reduce((acc, downloads) => acc + downloads, 0);
+
+    npmWeeklyDownloadsCache.set(packageName, totalDownloads);
+    return totalDownloads;
+  } catch {
+    npmWeeklyDownloadsCache.set(packageName, null);
+    return null;
+  }
+}
+
+const npmPublishStatusCache = new Map<string, boolean>();
+async function isPublishedOnNpm(packageName: string): Promise<boolean> {
+  if (npmPublishStatusCache.has(packageName)) {
+    return npmPublishStatusCache.get(packageName) ?? true;
+  }
+
+  try {
+    const response = await fetch(
+      `https://registry.npmjs.org/${encodeURIComponent(packageName)}`
+    );
+    if (response.status === 404 || response.status === 405) {
+      npmPublishStatusCache.set(packageName, false);
+      return false;
+    }
+
+    if (!response.ok) {
+      // Keep package data on transient registry errors to avoid dropping valid entries.
+      return true;
+    }
+
+    npmPublishStatusCache.set(packageName, true);
+    return true;
+  } catch {
+    // Keep package data when network checks fail.
+    return true;
+  }
+}
+
+async function normalizePublishedPackageEntries(
+  projects: RepoData[]
+): Promise<RepoData[]> {
+  const projectNames = new Set(projects.map((project) => project.repo.toLowerCase()));
+
+  return Promise.all(projects.map(async (project) => {
+    if (!project.publishedPackages) {
+      return project;
+    }
+
+    const normalizedEntries = (
+      await Promise.all(
+        Object.entries(project.publishedPackages).map(
+          async ([packageName, packageInfo]) => {
+            const normalizedPackageName = packageName.toLowerCase();
+            const isSelfPackage =
+              normalizedPackageName === project.repo.toLowerCase();
+            if (!isSelfPackage && projectNames.has(normalizedPackageName)) {
+              return null;
+            }
+
+            if (packageInfo.registry === 'npm') {
+              const isPublished = await isPublishedOnNpm(packageName);
+              if (!isPublished) {
+                return null;
+              }
+            }
+
+            return [
+              packageName,
+              {
+                ...packageInfo,
+                url:
+                  packageInfo.registry === 'npm'
+                    ? `https://npmjs.com/package/${packageName}`
+                    : packageInfo.url,
+              },
+            ] as const;
+          }
+        )
+      )
+    ).filter((entry): entry is [string, (typeof project.publishedPackages)[string]] =>
+      entry !== null
+    );
+
+    return {
+      ...project,
+      publishedPackages:
+        normalizedEntries.length > 0
+          ? Object.fromEntries(normalizedEntries)
+          : undefined,
+    };
+  }));
 }
 
 async function getLastCommitDate(
@@ -401,7 +544,6 @@ async function getLastCommitDate(
 const repoFilter = (repo: GithubRepo) => {
   const name = repo.name.toLowerCase();
   const description = repo.description?.toLowerCase() ?? '';
-
   const fullName = repo.full_name.toLowerCase();
   const isForbiddenWordException = FORBIDDEN_WORD_EXCEPTIONS.has(fullName);
 
@@ -622,7 +764,7 @@ async function findRepositoryDeployment(repo: GithubRepo) {
       repo: repo.name,
       per_page: 5,
     });
-
+    
     // Process deployments in parallel instead of sequentially
     const statusPromises = deployments.data.map(async (deployment) => {
       try {
@@ -641,7 +783,7 @@ async function findRepositoryDeployment(repo: GithubRepo) {
       }
       return null;
     });
-
+    
     const results = await Promise.all(statusPromises);
     url = results.find((u) => u !== null) ?? undefined;
   }
@@ -675,27 +817,11 @@ async function getPublishedPackages(
     return packages;
   }
 
-  // First, check the npm cache for packages where user is maintainer
-  // These were pre-fetched in a single API call, so no additional requests needed
-  const normalizedRepoUrl = normalizeGitUrl(repo.html_url);
-  for (const [packageName, info] of npmPackageCache.entries()) {
-    // Check if this package's repository matches this repo
-    const normalizedPackageRepoUrl = normalizeGitUrl(info.repository ?? '');
-    if (
-      normalizedPackageRepoUrl &&
-      normalizedPackageRepoUrl === normalizedRepoUrl
-    ) {
-      packages[packageName] = {
-        downloads: info.downloads.weekly,
-        registry: 'npm',
-        url: `https://npmjs.com/package/${packageName}`,
-      };
-    }
-  }
-
-  // For packages not found in the npm cache, we need to fetch package.json files
-  // and check if they're published (they might be published under a different maintainer)
-  const locationsToFetch = packageJsonLocations.filter((loc) => loc.gitUrl);
+  // Fetch package.json files to get candidate package names in this repository.
+  const locationsToFetch = packageJsonLocations.filter(
+    (loc) => loc.gitUrl && isLikelyPublishablePackagePath(loc.path)
+  );
+  const repoPackageNames = new Set<string>();
 
   // Batch fetch package.json files to get package names
   const BATCH_SIZE = 10;
@@ -709,11 +835,8 @@ async function getPublishedPackages(
           if (result.content) {
             const decodedContent = JSON.parse(
               Buffer.from(result.content, 'base64').toString('utf-8')
-            );
-            return {
-              name: decodedContent.name as string | undefined,
-              private: decodedContent.private as boolean | undefined,
-            };
+            ) as PackageJsonManifest;
+            return decodedContent;
           }
         } catch {
           // Ignore fetch errors
@@ -722,52 +845,63 @@ async function getPublishedPackages(
       })
     );
 
-    // Check each package that isn't private and isn't already in our results
+    // Keep all non-private package names declared in this repo.
     for (const pkg of results) {
       if (!pkg || !pkg.name || pkg.private) continue;
-      if (packages[pkg.name]) continue; // Already found via npm cache
-
-      // Check if this package is published on npm
-      // Since npm isn't rate-limited, we can check directly
-      try {
-        const response = await fetch(
-          `https://registry.npmjs.org/${encodeURIComponent(pkg.name)}`
-        );
-        if (response.status === 404 || response.status === 405) {
-          continue; // Not published
-        }
-
-        // Get download stats
-        const downloadsResponse = await fetch(
-          `https://api.npmjs.org/versions/${encodeURIComponent(
-            pkg.name
-          )}/last-week`
-        );
-
-        if (downloadsResponse.status !== 200) {
-          continue;
-        }
-
-        const weeklyDownloadsByVersion: {
-          downloads: Record<string, number>;
-        } = await downloadsResponse.json();
-
-        let totalDownloads = 0;
-        for (const downloads of Object.values(
-          weeklyDownloadsByVersion.downloads
-        )) {
-          totalDownloads += downloads;
-        }
-
-        packages[pkg.name] = {
-          downloads: totalDownloads,
-          registry: 'npm',
-          url: `https://npmjs.com/package/${pkg.name}`,
-        };
-      } catch {
-        // Ignore errors
-      }
+      repoPackageNames.add(pkg.name);
     }
+  }
+
+  // First, check npm maintainer matches where the package repository points at this repo.
+  // Require that it is also declared in this repo when we have package.json evidence.
+  const normalizedRepoUrl = normalizeGitUrl(repo.html_url);
+  const maintainerCandidates = Array.from(npmPackageCache.entries())
+    .filter(([packageName, info]) => {
+      const normalizedPackageRepoUrl = normalizeGitUrl(info.repository ?? '');
+      if (!normalizedPackageRepoUrl || normalizedPackageRepoUrl !== normalizedRepoUrl) {
+        return false;
+      }
+      if (repoPackageNames.size === 0) {
+        return true;
+      }
+      return repoPackageNames.has(packageName);
+    })
+    .map(([packageName]) => packageName);
+
+  const maintainerPackages = await Promise.all(
+    maintainerCandidates.map(async (packageName) => {
+      const downloads = await getNpmWeeklyDownloads(packageName);
+      return downloads === null ? null : { packageName, downloads };
+    })
+  );
+
+  for (const pkg of maintainerPackages) {
+    if (!pkg) continue;
+    packages[pkg.packageName] = {
+      downloads: pkg.downloads,
+      registry: 'npm',
+      url: `https://npmjs.com/package/${pkg.packageName}`,
+    };
+  }
+
+  // For any remaining package names discovered in package.json, verify npm publish status.
+  const repoPackageCandidates = Array.from(repoPackageNames).filter(
+    (packageName) => !packages[packageName]
+  );
+  const repoPackages = await Promise.all(
+    repoPackageCandidates.map(async (packageName) => {
+      const downloads = await getNpmWeeklyDownloads(packageName);
+      return downloads === null ? null : { packageName, downloads };
+    })
+  );
+
+  for (const pkg of repoPackages) {
+    if (!pkg) continue;
+    packages[pkg.packageName] = {
+      downloads: pkg.downloads,
+      registry: 'npm',
+      url: `https://npmjs.com/package/${pkg.packageName}`,
+    };
   }
 
   return packages;
@@ -822,11 +956,10 @@ async function getMonorepoPackages(
 
       // Read optional project-metadata.json for featured/order overrides
       const metadataPath = join(projectPath, 'project-metadata.json');
-      const metadataOverrides: Partial<LocalProjectMetadata> = existsSync(
-        metadataPath
-      )
-        ? JSON.parse(readFileSync(metadataPath, 'utf-8'))
-        : {};
+      const metadataOverrides: Partial<LocalProjectMetadata> =
+        existsSync(metadataPath)
+          ? JSON.parse(readFileSync(metadataPath, 'utf-8'))
+          : {};
 
       // Fetch npm weekly download stats
       const publishedPackages: Record<
@@ -835,9 +968,7 @@ async function getMonorepoPackages(
       > = {};
       try {
         const downloadsResponse = await fetch(
-          `https://api.npmjs.org/versions/${encodeURIComponent(
-            packageName
-          )}/last-week`
+          `https://api.npmjs.org/versions/${encodeURIComponent(packageName)}/last-week`
         );
         if (downloadsResponse.status === 200) {
           const weeklyDownloadsByVersion: {
@@ -868,7 +999,9 @@ async function getMonorepoPackages(
         });
 
         let totalBytes = 0;
-        for (const [lang, data] of Object.entries(analysis.languages.results)) {
+        for (const [lang, data] of Object.entries(
+          analysis.languages.results
+        )) {
           if (
             FORBIDDEN_TECHNOLOGIES.some(
               (tech) => tech.toLowerCase() === lang.toLowerCase()
