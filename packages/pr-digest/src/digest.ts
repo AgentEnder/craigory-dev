@@ -658,7 +658,7 @@ function formatActionItems(timeline: TimelineEvent[]): string {
       h4(
         'Changes Requested',
         ...changesRequested.map(
-          (r) => `- @${r.author}: ${r.body?.substring(0, 100) ?? ''}...`
+          (r) => `- @${r.author}: ${r.body ?? ''}`
         )
       )
     );
@@ -669,7 +669,7 @@ function formatActionItems(timeline: TimelineEvent[]): string {
       h4(
         'Pending Responses',
         ...needsResponse.map(
-          (r) => `- @${r.author}: ${r.body?.substring(0, 100) ?? ''}...`
+          (r) => `- @${r.author}: ${r.body ?? ''}`
         )
       )
     );
