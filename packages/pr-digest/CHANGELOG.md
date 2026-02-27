@@ -1,3 +1,13 @@
+## 0.1.4 (2026-02-27)
+
+### 🩹 Fixes
+
+- **pr-digest:** do not truncate packages ([7137d1c](https://github.com/AgentEnder/craigory-dev/commit/7137d1c))
+
+### ❤️ Thank You
+
+- Craigory Coppola @AgentEnder
+
 ## 0.1.3 (2026-02-17)
 
 ### 🩹 Fixes
