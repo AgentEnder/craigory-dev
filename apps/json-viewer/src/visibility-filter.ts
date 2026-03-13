@@ -1,3 +1,6 @@
+/** Path separator for visibility paths — null byte can't appear in JSON keys */
+export const PATH_SEP = '\0';
+
 export function applyVisibilityFilter(
   data: unknown,
   hiddenPaths: Set<string>
@@ -16,7 +19,9 @@ function filterNode(
   if (Array.isArray(value)) {
     return value
       .map((item, i) => {
-        const path = currentPath ? `${currentPath}.${i}` : String(i);
+        const path = currentPath
+          ? `${currentPath}${PATH_SEP}${i}`
+          : String(i);
         if (hiddenPaths.has(path)) return undefined;
         return filterNode(item, path, hiddenPaths);
       })
@@ -24,8 +29,10 @@ function filterNode(
   }
 
   const result: Record<string, unknown> = {};
-  for (const [key, val] of Object.entries(value as Record<string, unknown>)) {
-    const path = currentPath ? `${currentPath}.${key}` : key;
+  for (const [key, val] of Object.entries(
+    value as Record<string, unknown>
+  )) {
+    const path = currentPath ? `${currentPath}${PATH_SEP}${key}` : key;
     if (hiddenPaths.has(path)) continue;
     result[key] = filterNode(val, path, hiddenPaths);
   }
@@ -37,16 +44,17 @@ function filterNode(
  *
  * At collection boundaries (arrays, dict-like objects), expands to all
  * siblings and searches for the same leaf property at the same depth.
- *
- * Example: toggling "arr.0.a.x.foo" also finds "arr.1.b.x.foo" because
- * both reach property "foo" at depth 3 within array siblings.
  */
 export function findSiblingPaths(
   data: unknown,
   toggledPath: string
 ): string[] {
-  const parts = toggledPath.split('.');
+  const parts = toggledPath.split(PATH_SEP);
   return walkAndExpand(data, parts, 0, '');
+}
+
+function joinPath(prefix: string, key: string): string {
+  return prefix ? `${prefix}${PATH_SEP}${key}` : key;
 }
 
 function walkAndExpand(
@@ -67,9 +75,8 @@ function walkAndExpand(
     const results: string[] = [];
 
     for (let i = 0; i < node.length; i++) {
-      const childPrefix = prefix ? `${prefix}.${i}` : String(i);
+      const childPrefix = joinPath(prefix, String(i));
       if (remaining === 0) {
-        // The toggled item IS an array element (no deeper property)
         results.push(childPrefix);
       } else {
         results.push(
@@ -89,7 +96,7 @@ function walkAndExpand(
     const results: string[] = [];
 
     for (const [k, v] of Object.entries(obj)) {
-      const childPrefix = prefix ? `${prefix}.${k}` : k;
+      const childPrefix = joinPath(prefix, k);
       if (remaining === 0) {
         results.push(childPrefix);
       } else {
@@ -103,7 +110,7 @@ function walkAndExpand(
 
   // Regular object: follow the key literally
   if (key in obj) {
-    const nextPrefix = prefix ? `${prefix}.${key}` : key;
+    const nextPrefix = joinPath(prefix, key);
     return walkAndExpand(obj[key], parts, depth + 1, nextPrefix);
   }
 
@@ -125,11 +132,10 @@ function searchAtDepth(
   if (depth <= 0) return [];
 
   if (Array.isArray(node)) {
-    // Array in the middle of a search — each element consumes one depth level
     const results: string[] = [];
     for (let i = 0; i < node.length; i++) {
       results.push(
-        ...searchAtDepth(node[i], leafProp, depth - 1, `${prefix}.${i}`)
+        ...searchAtDepth(node[i], leafProp, depth - 1, joinPath(prefix, String(i)))
       );
     }
     return results;
@@ -138,19 +144,17 @@ function searchAtDepth(
   const obj = node as Record<string, unknown>;
 
   if (depth === 1) {
-    // At the target depth: look for the leaf property
     if (leafProp in obj) {
-      return [`${prefix}.${leafProp}`];
+      return [joinPath(prefix, leafProp)];
     }
     return [];
   }
 
-  // Recurse deeper into all keys
   const results: string[] = [];
   for (const [k, v] of Object.entries(obj)) {
     if (v !== null && typeof v === 'object') {
       results.push(
-        ...searchAtDepth(v, leafProp, depth - 1, `${prefix}.${k}`)
+        ...searchAtDepth(v, leafProp, depth - 1, joinPath(prefix, k))
       );
     }
   }
@@ -158,12 +162,16 @@ function searchAtDepth(
 }
 
 /**
- * Heuristic: an object is "dictionary-like" if it has 2+ keys and all
- * values are non-null objects. This identifies map/record patterns like
- * { lodash: { version: "4" }, react: { version: "18" } }.
+ * Heuristic: an object is "dictionary-like" if it has 2+ keys and
+ * most values are non-null objects (at least 80%). This identifies
+ * map/record patterns like { "0.0.1": {...}, "0.1.0": {...} }
+ * while tolerating a few non-object entries.
  */
 function isDictionaryLike(obj: Record<string, unknown>): boolean {
   const values = Object.values(obj);
   if (values.length < 2) return false;
-  return values.every((v) => v !== null && typeof v === 'object');
+  const objectCount = values.filter(
+    (v) => v !== null && typeof v === 'object'
+  ).length;
+  return objectCount / values.length >= 0.8;
 }

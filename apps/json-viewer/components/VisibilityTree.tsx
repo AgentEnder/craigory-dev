@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { PATH_SEP } from '../src/visibility-filter';
 
 interface VisibilityTreeProps {
   data: unknown;
@@ -10,9 +11,7 @@ function TypeBadge({ value }: { value: unknown }) {
   if (value === null) return <span className="text-xs text-orange-500 font-mono">null</span>;
   if (Array.isArray(value)) return <span className="text-xs text-blue-500 font-mono">[]</span>;
   if (typeof value === 'object') return <span className="text-xs text-purple-500 font-mono">{'{}'}</span>;
-  if (typeof value === 'string') return <span className="text-xs text-green-600 font-mono">"a"</span>;
-  if (typeof value === 'number') return <span className="text-xs text-blue-600 font-mono">1</span>;
-  if (typeof value === 'boolean') return <span className="text-xs text-orange-600 font-mono">tf</span>;
+  // No badge for primitives — the inline value preview is sufficient
   return null;
 }
 
@@ -77,7 +76,17 @@ function TreeNode({
           {keyName}
         </span>
         {!isExpandable && !isHidden && (
-          <span className="text-xs text-gray-400 truncate max-w-[200px]">
+          <span
+            className={`text-xs truncate max-w-[200px] ${
+              typeof value === 'string'
+                ? 'text-green-600'
+                : typeof value === 'number'
+                  ? 'text-blue-600'
+                  : value === null || typeof value === 'boolean'
+                    ? 'text-orange-500'
+                    : 'text-gray-400'
+            }`}
+          >
             {JSON.stringify(value)}
           </span>
         )}
@@ -89,7 +98,7 @@ function TreeNode({
               key={entry.key}
               keyName={entry.key}
               value={entry.value}
-              path={`${path}.${entry.key}`}
+              path={path ? `${path}${PATH_SEP}${entry.key}` : entry.key}
               hiddenPaths={hiddenPaths}
               onTogglePath={onTogglePath}
             />
