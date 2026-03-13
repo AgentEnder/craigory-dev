@@ -162,16 +162,37 @@ function searchAtDepth(
 }
 
 /**
- * Heuristic: an object is "dictionary-like" if it has 2+ keys and
- * most values are non-null objects (at least 80%). This identifies
- * map/record patterns like { "0.0.1": {...}, "0.1.0": {...} }
- * while tolerating a few non-object entries.
+ * Heuristic: an object is "dictionary-like" if it has 2+ keys,
+ * most values are non-null objects, and those objects share a
+ * structurally similar shape (high key overlap).
+ *
+ * This identifies map/record patterns like:
+ *   { "0.0.1": { name, version, ... }, "0.1.0": { name, version, ... } }
+ * while rejecting heterogeneous objects like:
+ *   { author: { name, url }, dist: { shasum, tarball } }
  */
 function isDictionaryLike(obj: Record<string, unknown>): boolean {
   const values = Object.values(obj);
   if (values.length < 2) return false;
-  const objectCount = values.filter(
-    (v) => v !== null && typeof v === 'object'
-  ).length;
-  return objectCount / values.length >= 0.8;
+
+  const objectValues = values.filter(
+    (v): v is Record<string, unknown> => v !== null && typeof v === 'object' && !Array.isArray(v)
+  );
+  if (objectValues.length / values.length < 0.8) return false;
+
+  // Check structural similarity: compute key overlap between pairs.
+  // Sample up to 5 pairs to keep this cheap on large dictionaries.
+  const sample = objectValues.slice(0, 6);
+  const keySets = sample.map((v) => new Set(Object.keys(v)));
+
+  for (let i = 0; i < keySets.length - 1; i++) {
+    const a = keySets[i];
+    const b = keySets[i + 1];
+    const intersection = [...a].filter((k) => b.has(k)).length;
+    const smaller = Math.min(a.size, b.size);
+    // Require at least 50% key overlap relative to the smaller set
+    if (smaller > 0 && intersection / smaller < 0.5) return false;
+  }
+
+  return true;
 }
