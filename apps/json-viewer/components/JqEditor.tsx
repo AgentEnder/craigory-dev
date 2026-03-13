@@ -25,51 +25,43 @@ export function JqEditor({ jsonData, onResult, onError }: JqEditorProps) {
       try {
         const mod = await import('jq-web');
 
-        // jq-web's CJS module.exports is reassigned twice:
-        // first to a factory, then to a Promise of { json, raw }.
-        // Vite's CJS→ESM interop can produce various shapes depending
-        // on whether it auto-resolves the thenable. Search multiple
-        // candidate locations for the `json` function.
+        // jq-web's final module.exports is a Promise<{ json, raw }>.
+        // Vite's CJS→ESM interop may expose it in several ways:
+        //  - mod.default is the Promise (standard CJS interop)
+        //  - mod itself resolves to { json, raw } (if Vite auto-resolves thenable exports)
+        //  - mod.default.default in rare double-wrap cases
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
         let resolved: JqApi | null = null;
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const candidates: any[] = [
-          mod.default,
-          mod,
-          mod.default?.default,
-        ].filter(Boolean);
+        function hasJsonFn(v: any): v is JqApi {
+          return v && typeof v.json === 'function';
+        }
 
-        for (const c of candidates) {
-          if (typeof c.json === 'function') {
-            resolved = c;
-            break;
-          }
-          if (typeof c.then === 'function') {
-            try {
-              const awaited = await c;
-              if (typeof awaited?.json === 'function') {
-                resolved = awaited;
-                break;
-              }
-            } catch {
-              /* try next candidate */
-            }
-          }
-          if (typeof c === 'function') {
-            try {
-              const instance = await c();
-              if (typeof instance?.json === 'function') {
-                resolved = instance;
-                break;
-              }
-            } catch {
-              /* try next candidate */
-            }
+        // Check if already resolved (Vite may auto-await thenables)
+        if (hasJsonFn(mod)) {
+          resolved = mod;
+        } else if (hasJsonFn(mod.default)) {
+          resolved = mod.default;
+        } else {
+          // Await the thenable/Promise — don't swallow errors here,
+          // as rejection typically means the WASM failed to load
+          const target = mod.default ?? mod;
+          if (typeof target === 'function') {
+            const instance = await target();
+            resolved = hasJsonFn(instance) ? instance : null;
+          } else if (target && typeof target.then === 'function') {
+            const awaited = await target;
+            resolved = hasJsonFn(awaited) ? awaited : null;
           }
         }
 
         if (!resolved) {
-          throw new Error('Unexpected jq-web module format');
+          throw new Error(
+            'Could not resolve jq API from module. ' +
+              `Got keys: [${Object.keys(mod).join(', ')}], ` +
+              `default type: ${typeof mod.default}`
+          );
         }
 
         if (!cancelled) {

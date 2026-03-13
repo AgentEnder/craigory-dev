@@ -26,6 +26,10 @@ export function TypeScriptEditor({
   const aceEditorRef = useRef<AceEditor>(null);
   const languageProviderRef = useRef<AceLanguageProvider>(null);
   const typeVersionRef = useRef(0);
+  const autoRunTimerRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined
+  );
+  const runTransformRef = useRef<() => void>(() => {});
 
   // Update ambient types when jsonData changes
   useEffect(() => {
@@ -106,6 +110,20 @@ export function TypeScriptEditor({
         );
       }
 
+      // Auto-run transform when annotations change and there are no errors
+      editor.session.on('changeAnnotation', () => {
+        const annotations = editor.session.getAnnotations() || [];
+        const hasErrors = annotations.some(
+          (a: { type: string }) => a.type === 'error'
+        );
+        if (!hasErrors) {
+          clearTimeout(autoRunTimerRef.current);
+          autoRunTimerRef.current = setTimeout(() => {
+            runTransformRef.current();
+          }, 500);
+        }
+      });
+
       aceEditorRef.current = editor;
     }
 
@@ -119,6 +137,7 @@ export function TypeScriptEditor({
     };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Keep ref in sync so the annotation listener always calls the latest version
   const runTransform = useCallback(async () => {
     if (!aceEditorRef.current) return;
     const code = aceEditorRef.current.getValue();
@@ -154,6 +173,8 @@ export function TypeScriptEditor({
       onError(e instanceof Error ? e.message : 'Execution error');
     }
   }, [jsonData, onResult, onError]);
+
+  runTransformRef.current = runTransform;
 
   return (
     <div>
