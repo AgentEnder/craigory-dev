@@ -5,13 +5,15 @@ import { JsonInput } from '../../components/JsonInput';
 import { TabBar, type Tab } from '../../components/TabBar';
 import { JsonOutput } from '../../components/JsonOutput';
 import { VisibilityTree } from '../../components/VisibilityTree';
+import { JqEditor } from '../../components/JqEditor';
 import { applyVisibilityFilter } from '../../src/visibility-filter';
 
 export default function Page() {
   const [jsonData, setJsonData] = useState<unknown>(null);
-  const [rawJson, setRawJson] = useState('');
+  const [, setRawJson] = useState('');
   const [activeTab, setActiveTab] = useState<Tab>('jq');
   const [output, setOutput] = useState<unknown>(null);
+  const [error, setError] = useState<string | null>(null);
   const [hiddenPaths, setHiddenPaths] = useState<Set<string>>(new Set());
 
   const handleJsonParsed = useCallback((data: unknown, raw: string) => {
@@ -41,9 +43,10 @@ export default function Page() {
   const handleTabChange = useCallback(
     (tab: Tab) => {
       setActiveTab(tab);
+      setError(null);
       if (tab === 'visibility' && jsonData !== null) {
         setOutput(applyVisibilityFilter(jsonData, hiddenPaths));
-      } else if (jsonData !== null) {
+      } else if (tab !== 'jq' && jsonData !== null) {
         setOutput(jsonData);
       }
     },
@@ -60,7 +63,13 @@ export default function Page() {
             <div className="bg-white rounded-3xl p-6 border border-gray-100 mb-6 animate-fade-in">
               <TabBar activeTab={activeTab} onTabChange={handleTabChange} />
               <div className="min-h-[200px]">
-                {activeTab === 'visibility' ? (
+                {activeTab === 'jq' ? (
+                  <JqEditor
+                    jsonData={jsonData}
+                    onResult={setOutput}
+                    onError={setError}
+                  />
+                ) : activeTab === 'visibility' ? (
                   <VisibilityTree
                     data={jsonData}
                     hiddenPaths={hiddenPaths}
@@ -73,6 +82,11 @@ export default function Page() {
                 )}
               </div>
             </div>
+            {error && (
+              <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 animate-fade-in">
+                {error}
+              </div>
+            )}
             <JsonOutput data={output} />
           </>
         )}

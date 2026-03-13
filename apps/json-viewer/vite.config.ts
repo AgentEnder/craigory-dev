@@ -5,6 +5,7 @@ import tailwindcss from '@tailwindcss/vite';
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), vike()],
+  optimizeDeps: { exclude: ['jq-web'] },
   build: {},
   base: (process.env.PUBLIC_ENV__BASE_URL ?? '') + '/json-viewer/',
 });
