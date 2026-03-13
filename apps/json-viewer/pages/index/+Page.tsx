@@ -6,6 +6,7 @@ import { TabBar, type Tab } from '../../components/TabBar';
 import { JsonOutput } from '../../components/JsonOutput';
 import { VisibilityTree } from '../../components/VisibilityTree';
 import { JqEditor } from '../../components/JqEditor';
+import { TypeScriptEditor } from '../../components/TypeScriptEditor';
 import { applyVisibilityFilter } from '../../src/visibility-filter';
 
 export default function Page() {
@@ -69,17 +70,19 @@ export default function Page() {
                     onResult={setOutput}
                     onError={setError}
                   />
+                ) : activeTab === 'typescript' ? (
+                  <TypeScriptEditor
+                    jsonData={jsonData}
+                    onResult={setOutput}
+                    onError={setError}
+                  />
                 ) : activeTab === 'visibility' ? (
                   <VisibilityTree
                     data={jsonData}
                     hiddenPaths={hiddenPaths}
                     onTogglePath={handleTogglePath}
                   />
-                ) : (
-                  <p className="text-gray-400 text-sm">
-                    {activeTab} editor coming next
-                  </p>
-                )}
+                ) : null}
               </div>
             </div>
             {error && (
