@@ -29,20 +29,17 @@ export function TypeScriptEditor({
 
   // Update ambient types when jsonData changes
   useEffect(() => {
-    if (!aceEditorRef.current || !languageProviderRef.current) return;
+    if (!languageProviderRef.current) return;
     typeVersionRef.current += 1;
     const typeDecl = generateTypeDeclaration(jsonData);
-    languageProviderRef.current.setDocumentOptions(
-      aceEditorRef.current.session,
-      {
-        extraLibs: {
-          'file:///ambient.d.ts': {
-            content: typeDecl,
-            version: typeVersionRef.current,
-          },
+    languageProviderRef.current.setGlobalOptions('typescript', {
+      extraLibs: {
+        'file:///ambient.d.ts': {
+          content: typeDecl,
+          version: typeVersionRef.current,
         },
-      }
-    );
+      },
+    });
   }, [jsonData]);
 
   useEffect(() => {
@@ -88,10 +85,11 @@ export function TypeScriptEditor({
         const languageProvider = LanguageProvider.create(worker);
         languageProvider.registerEditor(editor);
 
-        // Feed ambient type declarations
+        // Feed ambient type declarations via global options
+        // (extraLibs is read from globalOptions, not per-document options)
         typeVersionRef.current += 1;
         const typeDecl = generateTypeDeclaration(jsonData);
-        languageProvider.setDocumentOptions(editor.session, {
+        languageProvider.setGlobalOptions('typescript', {
           extraLibs: {
             'file:///ambient.d.ts': {
               content: typeDecl,

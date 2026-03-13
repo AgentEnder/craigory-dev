@@ -24,24 +24,51 @@ export function JqEditor({ jsonData, onResult, onError }: JqEditorProps) {
     async function loadJq() {
       try {
         const mod = await import('jq-web');
-        // jq-web's CJS module.exports is reassigned twice:
-        // first to the factory, then to a promise of { json, raw }.
-        // Vite's CJS→ESM conversion may put the promise on .default
-        // or directly on the module. Handle both cases.
-        let resolved: JqApi;
 
-        const target = mod.default ?? mod;
-        if (typeof target === 'function') {
-          // Got the factory function (first assignment) — call it
-          const instance = await target();
-          resolved = { json: instance.json, raw: instance.raw };
-        } else if (typeof target.then === 'function') {
-          // Got the promise (second assignment) — await it
-          resolved = await target;
-        } else if (typeof target.json === 'function') {
-          // Already resolved
-          resolved = target;
-        } else {
+        // jq-web's CJS module.exports is reassigned twice:
+        // first to a factory, then to a Promise of { json, raw }.
+        // Vite's CJS→ESM interop can produce various shapes depending
+        // on whether it auto-resolves the thenable. Search multiple
+        // candidate locations for the `json` function.
+        let resolved: JqApi | null = null;
+
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const candidates: any[] = [
+          mod.default,
+          mod,
+          mod.default?.default,
+        ].filter(Boolean);
+
+        for (const c of candidates) {
+          if (typeof c.json === 'function') {
+            resolved = c;
+            break;
+          }
+          if (typeof c.then === 'function') {
+            try {
+              const awaited = await c;
+              if (typeof awaited?.json === 'function') {
+                resolved = awaited;
+                break;
+              }
+            } catch {
+              /* try next candidate */
+            }
+          }
+          if (typeof c === 'function') {
+            try {
+              const instance = await c();
+              if (typeof instance?.json === 'function') {
+                resolved = instance;
+                break;
+              }
+            } catch {
+              /* try next candidate */
+            }
+          }
+        }
+
+        if (!resolved) {
           throw new Error('Unexpected jq-web module format');
         }
 
