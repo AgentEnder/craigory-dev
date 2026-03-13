@@ -110,18 +110,12 @@ export function TypeScriptEditor({
         );
       }
 
-      // Auto-run transform when annotations change and there are no errors
-      editor.session.on('changeAnnotation', () => {
-        const annotations = editor.session.getAnnotations() || [];
-        const hasErrors = annotations.some(
-          (a: { type: string }) => a.type === 'error'
-        );
-        if (!hasErrors) {
-          clearTimeout(autoRunTimerRef.current);
-          autoRunTimerRef.current = setTimeout(() => {
-            runTransformRef.current();
-          }, 500);
-        }
+      // Auto-run transform 500ms after the last edit
+      editor.session.on('change', () => {
+        clearTimeout(autoRunTimerRef.current);
+        autoRunTimerRef.current = setTimeout(() => {
+          runTransformRef.current();
+        }, 500);
       });
 
       aceEditorRef.current = editor;
