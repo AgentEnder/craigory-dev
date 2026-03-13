@@ -1,5 +1,9 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 
+interface JqApi {
+  json: (data: unknown, filter: string) => unknown;
+}
+
 interface JqEditorProps {
   jsonData: unknown;
   onResult: (result: unknown) => void;
@@ -8,9 +12,7 @@ interface JqEditorProps {
 
 export function JqEditor({ jsonData, onResult, onError }: JqEditorProps) {
   const [expression, setExpression] = useState('.');
-  const [jqModule, setJqModule] = useState<{
-    json: (data: unknown, filter: string) => unknown;
-  } | null>(null);
+  const [jqApi, setJqApi] = useState<JqApi | null>(null);
   const [loading, setLoading] = useState(true);
   const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined
@@ -21,46 +23,65 @@ export function JqEditor({ jsonData, onResult, onError }: JqEditorProps) {
 
     async function loadJq() {
       try {
-        // jq-web's default export is a promise that resolves to { json, raw }
         const mod = await import('jq-web');
-        const jqPromise = mod.default || mod;
-        const jq = typeof jqPromise.then === 'function'
-          ? await jqPromise
-          : jqPromise;
+        // jq-web's CJS module.exports is reassigned twice:
+        // first to the factory, then to a promise of { json, raw }.
+        // Vite's CJS→ESM conversion may put the promise on .default
+        // or directly on the module. Handle both cases.
+        let resolved: JqApi;
+
+        const target = mod.default ?? mod;
+        if (typeof target === 'function') {
+          // Got the factory function (first assignment) — call it
+          const instance = await target();
+          resolved = { json: instance.json, raw: instance.raw };
+        } else if (typeof target.then === 'function') {
+          // Got the promise (second assignment) — await it
+          resolved = await target;
+        } else if (typeof target.json === 'function') {
+          // Already resolved
+          resolved = target;
+        } else {
+          throw new Error('Unexpected jq-web module format');
+        }
 
         if (!cancelled) {
-          setJqModule(jq);
+          setJqApi(resolved);
           setLoading(false);
         }
-      } catch {
+      } catch (e) {
         if (!cancelled) {
-          onError('Failed to load jq-web WASM module');
+          onError(
+            `Failed to load jq engine: ${e instanceof Error ? e.message : String(e)}`
+          );
           setLoading(false);
         }
       }
     }
 
     loadJq();
-    return () => { cancelled = true; };
+    return () => {
+      cancelled = true;
+    };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const runQuery = useCallback(
     (expr: string) => {
-      if (!jqModule || !expr.trim()) return;
+      if (!jqApi || !expr.trim()) return;
       try {
-        const result = jqModule.json(jsonData, expr);
+        const result = jqApi.json(jsonData, expr);
         onResult(result);
         onError(null);
       } catch (e) {
         onError(e instanceof Error ? e.message : 'jq error');
       }
     },
-    [jqModule, jsonData, onResult, onError]
+    [jqApi, jsonData, onResult, onError]
   );
 
   useEffect(() => {
-    if (jqModule) runQuery(expression);
-  }, [jqModule, jsonData]); // eslint-disable-line react-hooks/exhaustive-deps
+    if (jqApi) runQuery(expression);
+  }, [jqApi, jsonData]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleChange = (value: string) => {
     setExpression(value);

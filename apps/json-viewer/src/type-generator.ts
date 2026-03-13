@@ -1,6 +1,6 @@
 export function generateTypeDeclaration(data: unknown): string {
   const typeStr = inferType(data, 0);
-  return `declare const data: ${typeStr};\n`;
+  return `type DataType = ${typeStr};\n`;
 }
 
 function inferType(value: unknown, depth: number): string {

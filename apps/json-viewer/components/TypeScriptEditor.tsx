@@ -12,6 +12,11 @@ type AceEditor = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AceLanguageProvider = any;
 
+const DEFAULT_CODE = `export default function transform(data: DataType) {
+  return data;
+}
+`;
+
 export function TypeScriptEditor({
   jsonData,
   onResult,
@@ -45,9 +50,8 @@ export function TypeScriptEditor({
 
     async function initEditor() {
       const ace = await import('ace-code');
-      await import('ace-code/src/mode/typescript');
-      await import('ace-code/src/theme/chrome');
-      // Import language_tools extension to enable autocompletion options
+      const tsMode = await import('ace-code/src/mode/typescript');
+      const chromeTheme = await import('ace-code/src/theme/chrome');
       await import('ace-code/src/ext/language_tools');
       const { LanguageProvider } = await import(
         'ace-linters/build/ace-linters'
@@ -55,9 +59,9 @@ export function TypeScriptEditor({
 
       if (!mounted || !editorRef.current) return;
 
+      // Create editor without string-based mode/theme to avoid
+      // ace's internal module loader ("loader is not configured")
       const editor = ace.edit(editorRef.current, {
-        mode: 'ace/mode/typescript',
-        theme: 'ace/theme/chrome',
         fontSize: 13,
         showPrintMargin: false,
         tabSize: 2,
@@ -69,10 +73,11 @@ export function TypeScriptEditor({
         enableLiveAutocompletion: true,
       });
 
-      editor.setValue(
-        '// Transform the data and return the result\nreturn data;\n',
-        -1
-      );
+      // Set mode and theme directly via object references
+      editor.session.setMode(new tsMode.Mode());
+      editor.setTheme(chromeTheme);
+
+      editor.setValue(DEFAULT_CODE, -1);
 
       // Set up ace-linters with custom worker that registers the TypeScript service
       try {
@@ -83,7 +88,7 @@ export function TypeScriptEditor({
         const languageProvider = LanguageProvider.create(worker);
         languageProvider.registerEditor(editor);
 
-        // Feed ambient type declarations for the data variable
+        // Feed ambient type declarations
         typeVersionRef.current += 1;
         const typeDecl = generateTypeDeclaration(jsonData);
         languageProvider.setDocumentOptions(editor.session, {
@@ -121,18 +126,30 @@ export function TypeScriptEditor({
     const code = aceEditorRef.current.getValue();
 
     try {
-      // Transpile TypeScript to JavaScript before execution
+      // Transpile TypeScript to JavaScript (CommonJS so we can extract exports)
       const ts = await import('typescript');
       const transpiled = ts.transpileModule(code, {
         compilerOptions: {
           target: ts.ScriptTarget.ES2022,
-          module: ts.ModuleKind.None,
+          module: ts.ModuleKind.CommonJS,
           strict: false,
+          esModuleInterop: true,
         },
       });
 
-      const fn = new Function('data', transpiled.outputText);
-      const result = fn(jsonData);
+      // Execute the transpiled code — CommonJS wraps `export default` as
+      // `exports.default = ...` so we can extract the transform function
+      const exports: Record<string, unknown> = {};
+      const fn = new Function('exports', transpiled.outputText);
+      fn(exports);
+
+      const transform = exports.default;
+      if (typeof transform !== 'function') {
+        onError('Module must have a default export function');
+        return;
+      }
+
+      const result = transform(jsonData);
       onResult(result);
       onError(null);
     } catch (e) {
