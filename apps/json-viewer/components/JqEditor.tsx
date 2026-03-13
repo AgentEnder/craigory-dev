@@ -10,7 +10,7 @@ export function JqEditor({ jsonData, onResult, onError }: JqEditorProps) {
   const [expression, setExpression] = useState('.');
   const [jqModule, setJqModule] = useState<{ json: (data: unknown, filter: string) => unknown } | null>(null);
   const [loading, setLoading] = useState(true);
-  const debounceRef = useRef<ReturnType<typeof setTimeout>>();
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
 
   useEffect(() => {
     import('jq-web').then((mod) => {
