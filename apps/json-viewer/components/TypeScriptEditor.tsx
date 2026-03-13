@@ -47,6 +47,8 @@ export function TypeScriptEditor({
       const ace = await import('ace-code');
       await import('ace-code/src/mode/typescript');
       await import('ace-code/src/theme/chrome');
+      // Import language_tools extension to enable autocompletion options
+      await import('ace-code/src/ext/language_tools');
       const { LanguageProvider } = await import(
         'ace-linters/build/ace-linters'
       );
@@ -72,13 +74,10 @@ export function TypeScriptEditor({
         -1
       );
 
-      // Set up ace-linters for TypeScript intellisense
+      // Set up ace-linters with custom worker that registers the TypeScript service
       try {
         const worker = new Worker(
-          new URL(
-            'ace-linters/build/service-manager.js',
-            import.meta.url
-          ),
+          new URL('../src/typescript-worker.ts', import.meta.url),
           { type: 'module' }
         );
         const languageProvider = LanguageProvider.create(worker);
