@@ -7,7 +7,10 @@ import { JsonOutput } from '../../components/JsonOutput';
 import { VisibilityTree } from '../../components/VisibilityTree';
 import { JqEditor } from '../../components/JqEditor';
 import { TypeScriptEditor } from '../../components/TypeScriptEditor';
-import { applyVisibilityFilter } from '../../src/visibility-filter';
+import {
+  applyVisibilityFilter,
+  findSiblingPaths,
+} from '../../src/visibility-filter';
 
 export default function Page() {
   const [jsonData, setJsonData] = useState<unknown>(null);
@@ -25,14 +28,21 @@ export default function Page() {
 
   const handleTogglePath = useCallback(
     (path: string) => {
+      if (jsonData === null) return;
       setHiddenPaths((prev) => {
         const next = new Set(prev);
-        if (next.has(path)) {
-          next.delete(path);
-        } else {
-          next.add(path);
+        // Find all structurally equivalent paths (across array siblings,
+        // dict-like siblings, etc.) and toggle them together
+        const siblings = findSiblingPaths(jsonData, path);
+        const isHiding = !prev.has(path);
+        for (const sibling of siblings) {
+          if (isHiding) {
+            next.add(sibling);
+          } else {
+            next.delete(sibling);
+          }
         }
-        if (activeTab === 'visibility' && jsonData !== null) {
+        if (activeTab === 'visibility') {
           setOutput(applyVisibilityFilter(jsonData, next));
         }
         return next;
