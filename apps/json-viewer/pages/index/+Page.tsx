@@ -14,7 +14,7 @@ import {
 
 export default function Page() {
   const [jsonData, setJsonData] = useState<unknown>(null);
-  const [activeTab, setActiveTab] = useState<Tab>('jq');
+  const [activeTab, setActiveTab] = useState<Tab>('typescript');
   const [output, setOutput] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [hiddenPaths, setHiddenPaths] = useState<Set<string>>(new Set());
