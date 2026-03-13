@@ -11,16 +11,16 @@ import { applyVisibilityFilter } from '../../src/visibility-filter';
 
 export default function Page() {
   const [jsonData, setJsonData] = useState<unknown>(null);
-  const [, setRawJson] = useState('');
   const [activeTab, setActiveTab] = useState<Tab>('jq');
   const [output, setOutput] = useState<unknown>(null);
   const [error, setError] = useState<string | null>(null);
   const [hiddenPaths, setHiddenPaths] = useState<Set<string>>(new Set());
 
-  const handleJsonParsed = useCallback((data: unknown, raw: string) => {
+  const handleJsonParsed = useCallback((data: unknown, _raw: string) => {
     setJsonData(data);
-    setRawJson(raw);
     setOutput(data);
+    setHiddenPaths(new Set());
+    setError(null);
   }, []);
 
   const handleTogglePath = useCallback(
