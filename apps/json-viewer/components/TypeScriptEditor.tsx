@@ -7,21 +7,10 @@ interface TypeScriptEditorProps {
   onError: (error: string | null) => void;
 }
 
-interface AceEditor {
-  getValue: () => string;
-  destroy: () => void;
-  session: unknown;
-}
-
-interface AceLanguageProvider {
-  registerEditor: (editor: AceEditor) => void;
-  setDocumentOptions: (
-    session: unknown,
-    options: {
-      extraLibs?: Record<string, { content: string; version: number }>;
-    }
-  ) => void;
-}
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AceEditor = any;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AceLanguageProvider = any;
 
 export function TypeScriptEditor({
   jsonData,
@@ -29,8 +18,8 @@ export function TypeScriptEditor({
   onError,
 }: TypeScriptEditorProps) {
   const editorRef = useRef<HTMLDivElement>(null);
-  const aceEditorRef = useRef<AceEditor | null>(null);
-  const languageProviderRef = useRef<AceLanguageProvider | null>(null);
+  const aceEditorRef = useRef<AceEditor>(null);
+  const languageProviderRef = useRef<AceLanguageProvider>(null);
   const typeVersionRef = useRef(0);
 
   // Update ambient types when jsonData changes
@@ -76,20 +65,9 @@ export function TypeScriptEditor({
         maxLines: 20,
         enableBasicAutocompletion: true,
         enableLiveAutocompletion: true,
-      }) as unknown as AceEditor;
+      });
 
-      editor.getValue = (editor as unknown as { getValue: () => string })
-        .getValue;
-
-      editor.session = (editor as unknown as { session: unknown }).session;
-
-      editor.destroy = (editor as unknown as { destroy: () => void }).destroy;
-
-      (
-        editor as unknown as {
-          setValue: (val: string, cursor?: number) => void;
-        }
-      ).setValue(
+      editor.setValue(
         '// Transform the data and return the result\nreturn data;\n',
         -1
       );
