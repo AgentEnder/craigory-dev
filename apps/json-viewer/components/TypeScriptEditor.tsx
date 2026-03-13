@@ -110,13 +110,15 @@ export function TypeScriptEditor({
         );
       }
 
-      // Auto-run transform 500ms after the last edit
-      editor.session.on('change', () => {
+      // Auto-run transform 500ms after the last edit or annotation change
+      const scheduleAutoRun = () => {
         clearTimeout(autoRunTimerRef.current);
         autoRunTimerRef.current = setTimeout(() => {
           runTransformRef.current();
         }, 500);
-      });
+      };
+      editor.session.on('change', scheduleAutoRun);
+      editor.session.on('changeAnnotation', scheduleAutoRun);
 
       aceEditorRef.current = editor;
     }
