@@ -1,7 +1,4 @@
 import { useEffect, useRef, useCallback } from 'react';
-// generateTypeDeclaration will be used to feed types to ace-linters in a future task
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-import { generateTypeDeclaration } from '../src/type-generator';
 
 interface TypeScriptEditorProps {
   jsonData: unknown;
