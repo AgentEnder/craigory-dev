@@ -8,28 +8,41 @@ interface JqEditorProps {
 
 export function JqEditor({ jsonData, onResult, onError }: JqEditorProps) {
   const [expression, setExpression] = useState('.');
-  const [jqModule, setJqModule] = useState<{ json: (data: unknown, filter: string) => unknown } | null>(null);
+  const [jqModule, setJqModule] = useState<{
+    json: (data: unknown, filter: string) => unknown;
+  } | null>(null);
   const [loading, setLoading] = useState(true);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
+  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(
+    undefined
+  );
 
   useEffect(() => {
-    import('jq-web').then((mod) => {
-      const jq = mod.default || mod;
-      // jq-web exports a promise that resolves to the jq instance
-      if (typeof jq.then === 'function') {
-        jq.then((resolved: typeof jq) => {
-          setJqModule(resolved);
+    let cancelled = false;
+
+    async function loadJq() {
+      try {
+        // jq-web's default export is a promise that resolves to { json, raw }
+        const mod = await import('jq-web');
+        const jqPromise = mod.default || mod;
+        const jq = typeof jqPromise.then === 'function'
+          ? await jqPromise
+          : jqPromise;
+
+        if (!cancelled) {
+          setJqModule(jq);
           setLoading(false);
-        });
-      } else {
-        setJqModule(jq);
-        setLoading(false);
+        }
+      } catch {
+        if (!cancelled) {
+          onError('Failed to load jq-web WASM module');
+          setLoading(false);
+        }
       }
-    }).catch(() => {
-      onError('Failed to load jq-web WASM module');
-      setLoading(false);
-    });
-  }, [onError]);
+    }
+
+    loadJq();
+    return () => { cancelled = true; };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const runQuery = useCallback(
     (expr: string) => {
