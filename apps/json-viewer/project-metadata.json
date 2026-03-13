@@ -1,0 +1,5 @@
+{
+  "name": "JSON Viewer",
+  "description": "A client-side JSON viewer and transformer. Explore JSON with collapsible trees, filter properties visually, and transform data using TypeScript or jq queries with full intellisense support.",
+  "technologies": ["TypeScript", "HTML", "CSS"]
+}
