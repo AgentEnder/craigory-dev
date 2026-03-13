@@ -23,49 +23,27 @@ export function JqEditor({ jsonData, onResult, onError }: JqEditorProps) {
 
     async function loadJq() {
       try {
+        // jq-web's module.exports is a Promise<{ json, raw }>.
+        // With Vite pre-bundling (esbuild CJS→ESM), mod.default is the Promise.
         const mod = await import('jq-web');
-
-        // jq-web's final module.exports is a Promise<{ json, raw }>.
-        // Vite's CJS→ESM interop may expose it in several ways:
-        //  - mod.default is the Promise (standard CJS interop)
-        //  - mod itself resolves to { json, raw } (if Vite auto-resolves thenable exports)
-        //  - mod.default.default in rare double-wrap cases
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        let resolved: JqApi | null = null;
+        const target = mod.default ?? mod;
 
         // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        function hasJsonFn(v: any): v is JqApi {
-          return v && typeof v.json === 'function';
-        }
+        const resolved: any =
+          target && typeof target.then === 'function'
+            ? await target
+            : target;
 
-        // Check if already resolved (Vite may auto-await thenables)
-        if (hasJsonFn(mod)) {
-          resolved = mod;
-        } else if (hasJsonFn(mod.default)) {
-          resolved = mod.default;
-        } else {
-          // Await the thenable/Promise — don't swallow errors here,
-          // as rejection typically means the WASM failed to load
-          const target = mod.default ?? mod;
-          if (typeof target === 'function') {
-            const instance = await target();
-            resolved = hasJsonFn(instance) ? instance : null;
-          } else if (target && typeof target.then === 'function') {
-            const awaited = await target;
-            resolved = hasJsonFn(awaited) ? awaited : null;
-          }
-        }
-
-        if (!resolved) {
+        if (!resolved || typeof resolved.json !== 'function') {
           throw new Error(
             'Could not resolve jq API from module. ' +
-              `Got keys: [${Object.keys(mod).join(', ')}], ` +
-              `default type: ${typeof mod.default}`
+              `default type: ${typeof mod.default}, ` +
+              `resolved type: ${typeof resolved}`
           );
         }
 
         if (!cancelled) {
-          setJqApi(resolved);
+          setJqApi(resolved as JqApi);
           setLoading(false);
         }
       } catch (e) {

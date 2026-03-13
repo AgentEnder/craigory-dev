@@ -41,7 +41,7 @@ function jqWasmPlugin(): Plugin {
 
 export default defineConfig({
   plugins: [react(), tailwindcss(), jqWasmPlugin(), vike()],
-  optimizeDeps: { exclude: ['jq-web'] },
+  optimizeDeps: {},
   worker: { format: 'es' },
   build: {},
   base: (process.env.PUBLIC_ENV__BASE_URL ?? '') + '/json-viewer/',
