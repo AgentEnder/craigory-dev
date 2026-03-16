@@ -281,10 +281,13 @@ export async function fetchPrData(
     pull_number: prNumber,
   });
 
-  const patchResponse = await octokit.request('GET ' + pr.patch_url, {
-    headers: { Accept: 'application/vnd.github.patch' },
+  const patchResponse = await octokit.rest.pulls.get({
+    owner,
+    repo,
+    pull_number: prNumber,
+    mediaType: { format: 'patch' },
   });
-  const patchText = patchResponse.data as string;
+  const patchText = patchResponse.data as unknown as string;
   const diffMap = parseDiff(patchText);
 
   const [
@@ -657,9 +660,7 @@ function formatActionItems(timeline: TimelineEvent[]): string {
     items.push(
       h4(
         'Changes Requested',
-        ...changesRequested.map(
-          (r) => `- @${r.author}: ${r.body ?? ''}`
-        )
+        ...changesRequested.map((r) => `- @${r.author}: ${r.body ?? ''}`)
       )
     );
   }
@@ -668,9 +669,7 @@ function formatActionItems(timeline: TimelineEvent[]): string {
     items.push(
       h4(
         'Pending Responses',
-        ...needsResponse.map(
-          (r) => `- @${r.author}: ${r.body ?? ''}`
-        )
+        ...needsResponse.map((r) => `- @${r.author}: ${r.body ?? ''}`)
       )
     );
   }
