@@ -1,3 +1,13 @@
+## 0.1.5 (2026-03-16)
+
+### 🩹 Fixes
+
+- **pr-digest:** fix patch download for private repository prs ([79719cf](https://github.com/AgentEnder/craigory-dev/commit/79719cf))
+
+### ❤️ Thank You
+
+- Craigory Coppola
+
 ## 0.1.4 (2026-02-27)
 
 ### 🩹 Fixes
