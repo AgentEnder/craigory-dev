@@ -1,0 +1,10 @@
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "composite": true,
+    "outDir": "./dist-spec",
+    "tsBuildInfoFile": "../../dist/tsc/npm-trusted-publishing.spec.tsbuildinfo"
+  },
+  "include": ["src/**/*.ts"],
+  "exclude": []
+}

@@ -18,22 +18,22 @@
       }
     }
   },
-  "devDependencies": {},
   "dependencies": {
     "@tailwindcss/vite": "^4.1.12",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.0",
+    "ace-code": "^1.43.6",
+    "ace-linters": "^2.1.1",
     "autoprefixer": "^10.4.21",
+    "jq-web": "^0.6.2",
     "postcss": "^8.5.6",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
     "tailwindcss": "^4.1.12",
+    "typescript": "^5.9.2",
     "vike": "0.4.239-commit-9dcde6d",
     "vike-react": "^0.6.5",
-    "ace-code": "^1.43.6",
-    "ace-linters": "^2.1.1",
-    "jq-web": "^0.6.2",
-    "typescript": "^5.9.2"
+    "zustand": "^5.0.8"
   }
 }

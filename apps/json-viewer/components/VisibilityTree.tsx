@@ -1,4 +1,5 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
+import { getCollectionTraits } from '../src/collection-traits';
 import { PATH_SEP } from '../src/visibility-filter';
 
 interface VisibilityTreeProps {
@@ -28,15 +29,23 @@ function TreeNode({
   hiddenPaths: Set<string>;
   onTogglePath: (path: string) => void;
 }) {
-  const [expanded, setExpanded] = useState(true);
   const isExpandable = value !== null && typeof value === 'object';
   const isHidden = hiddenPaths.has(path);
 
-  const entries = isExpandable
-    ? Array.isArray(value)
+  const entries = useMemo(() => {
+    if (!isExpandable) return [];
+    return Array.isArray(value)
       ? (value as unknown[]).map((v, i) => ({ key: String(i), value: v }))
-      : Object.entries(value as Record<string, unknown>).map(([k, v]) => ({ key: k, value: v }))
-    : [];
+      : Object.entries(value as Record<string, unknown>).map(([k, v]) => ({ key: k, value: v }));
+  }, [value, isExpandable]);
+
+  const traits = useMemo(() => getCollectionTraits(value), [value]);
+
+  const [expanded, setExpanded] = useState(entries.length <= traits.collapseThreshold);
+  const [visibleCount, setVisibleCount] = useState(traits.chunkSize);
+
+  const visibleEntries = entries.slice(0, visibleCount);
+  const remaining = entries.length - visibleCount;
 
   return (
     <div>
@@ -74,6 +83,7 @@ function TreeNode({
         <TypeBadge value={value} />
         <span className={`text-sm font-mono ${isHidden ? 'text-gray-300 line-through' : 'text-gray-700'}`}>
           {keyName}
+          {isExpandable && <span className="text-gray-400 ml-1">({entries.length})</span>}
         </span>
         {!isExpandable && !isHidden && (
           <span
@@ -93,7 +103,7 @@ function TreeNode({
       </div>
       {isExpandable && expanded && (
         <div className="ml-5 border-l border-gray-200 pl-1">
-          {entries.map((entry) => (
+          {visibleEntries.map((entry) => (
             <TreeNode
               key={entry.key}
               keyName={entry.key}
@@ -103,6 +113,14 @@ function TreeNode({
               onTogglePath={onTogglePath}
             />
           ))}
+          {remaining > 0 && (
+            <button
+              onClick={() => setVisibleCount((c) => c + traits.chunkSize)}
+              className="text-xs text-blue-500 hover:text-blue-700 py-1 cursor-pointer"
+            >
+              Show {Math.min(remaining, traits.chunkSize)} more ({remaining} remaining)
+            </button>
+          )}
         </div>
       )}
     </div>

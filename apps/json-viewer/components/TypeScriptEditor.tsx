@@ -1,11 +1,6 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { generateTypeDeclaration } from '../src/type-generator';
-
-interface TypeScriptEditorProps {
-  jsonData: unknown;
-  onResult: (result: unknown) => void;
-  onError: (error: string | null) => void;
-}
+import { useJsonViewerStore } from '../src/store';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AceEditor = any;
@@ -17,11 +12,12 @@ const DEFAULT_CODE = `export default function transform(data: DataType) {
 }
 `;
 
-export function TypeScriptEditor({
-  jsonData,
-  onResult,
-  onError,
-}: TypeScriptEditorProps) {
+export function TypeScriptEditor() {
+  const jsonData = useJsonViewerStore((s) => s.jsonData);
+  const setOutput = useJsonViewerStore((s) => s.setOutput);
+  const setError = useJsonViewerStore((s) => s.setError);
+  const clearError = useJsonViewerStore((s) => s.clearError);
+
   const editorRef = useRef<HTMLDivElement>(null);
   const aceEditorRef = useRef<AceEditor>(null);
   const languageProviderRef = useRef<AceLanguageProvider>(null);
@@ -158,17 +154,17 @@ export function TypeScriptEditor({
 
       const transform = exports.default;
       if (typeof transform !== 'function') {
-        onError('Module must have a default export function');
+        setError('typescript', 'Module must have a default export function');
         return;
       }
 
       const result = transform(jsonData);
-      onResult(result);
-      onError(null);
+      setOutput(result);
+      clearError('typescript');
     } catch (e) {
-      onError(e instanceof Error ? e.message : 'Execution error');
+      setError('typescript', e instanceof Error ? e.message : 'Execution error');
     }
-  }, [jsonData, onResult, onError]);
+  }, [jsonData, setOutput, setError, clearError]);
 
   runTransformRef.current = runTransform;
 

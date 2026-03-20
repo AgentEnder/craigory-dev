@@ -1,16 +1,16 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
+import { useJsonViewerStore } from '../src/store';
 
 interface JqApi {
   json: (data: unknown, filter: string) => unknown;
 }
 
-interface JqEditorProps {
-  jsonData: unknown;
-  onResult: (result: unknown) => void;
-  onError: (error: string | null) => void;
-}
+export function JqEditor() {
+  const jsonData = useJsonViewerStore((s) => s.jsonData);
+  const setOutput = useJsonViewerStore((s) => s.setOutput);
+  const setError = useJsonViewerStore((s) => s.setError);
+  const clearError = useJsonViewerStore((s) => s.clearError);
 
-export function JqEditor({ jsonData, onResult, onError }: JqEditorProps) {
   const [expression, setExpression] = useState('.');
   const [jqApi, setJqApi] = useState<JqApi | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,7 +48,8 @@ export function JqEditor({ jsonData, onResult, onError }: JqEditorProps) {
         }
       } catch (e) {
         if (!cancelled) {
-          onError(
+          setError(
+            'jq',
             `Failed to load jq engine: ${e instanceof Error ? e.message : String(e)}`
           );
           setLoading(false);
@@ -67,13 +68,13 @@ export function JqEditor({ jsonData, onResult, onError }: JqEditorProps) {
       if (!jqApi || !expr.trim()) return;
       try {
         const result = jqApi.json(jsonData, expr);
-        onResult(result);
-        onError(null);
+        setOutput(result);
+        clearError('jq');
       } catch (e) {
-        onError(e instanceof Error ? e.message : 'jq error');
+        setError('jq', e instanceof Error ? e.message : 'jq error');
       }
     },
-    [jqApi, jsonData, onResult, onError]
+    [jqApi, jsonData, setOutput, setError, clearError]
   );
 
   useEffect(() => {

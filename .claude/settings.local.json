@@ -12,7 +12,11 @@
       "Bash(apps/craigory-dev/pages/projects/components/filter-bar.tsx)",
       "Bash(find /Users/agentender/repos/craigory-dev/libs -type f \\\\\\( -name \"*.css\" -o -name \"*.ts\" -o -name \"*.tsx\" \\\\\\) 2>/dev/null | grep -i style)",
       "WebFetch(domain:www.npmjs.com)",
-      "WebFetch(domain:raw.githubusercontent.com)"
+      "WebFetch(domain:raw.githubusercontent.com)",
+      "WebFetch(domain:docs.npmjs.com)",
+      "WebFetch(domain:api-docs.npmjs.com)",
+      "WebSearch",
+      "Bash(gh api:*)"
     ],
     "deny": [],
     "ask": []

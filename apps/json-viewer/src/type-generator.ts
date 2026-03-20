@@ -5,7 +5,14 @@ export function generateTypeDeclaration(data: unknown): string {
 
 function inferType(value: unknown, depth: number): string {
   if (value === null) return 'null';
-  if (typeof value === 'string') return 'string';
+  if (typeof value === 'string') {
+    const escaped = value
+      .replace(/\\/g, '\\\\')
+      .replace(/'/g, "\\'")
+      .replace(/\n/g, '\\n')
+      .replace(/\r/g, '\\r');
+    return `'${escaped}'`;
+  }
   if (typeof value === 'number') return 'number';
   if (typeof value === 'boolean') return 'boolean';
 
@@ -13,7 +20,8 @@ function inferType(value: unknown, depth: number): string {
     if (value.length === 0) return 'unknown[]';
     const elementTypes = value.map((v) => inferType(v, depth + 1));
     const unique = [...new Set(elementTypes)];
-    const elementType = unique.length === 1 ? unique[0] : `(${unique.join(' | ')})`;
+    const elementType =
+      unique.length === 1 ? unique[0] : `(${unique.join(' | ')})`;
     return `Array<${elementType}>`;
   }
 
@@ -24,7 +32,9 @@ function inferType(value: unknown, depth: number): string {
     const closingIndent = '  '.repeat(depth);
     const props = entries
       .map(([key, val]) => {
-        const safeKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key) ? key : `"${key}"`;
+        const safeKey = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/.test(key)
+          ? key
+          : `"${key}"`;
         return `${indent}${safeKey}: ${inferType(val, depth + 1)}`;
       })
       .join(';\n');
