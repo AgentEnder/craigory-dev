@@ -29,11 +29,11 @@ export default function Page() {
       });
       setDigest(result);
     } catch (e) {
-      if (e instanceof Error) {
-        setError(e.stack ?? e.message);
-      } else {
-        setError(String(e));
-      }
+      const err = e instanceof Error ? e : new Error(String(e));
+      const parts = [err.message];
+      if (err.stack) parts.push(err.stack);
+      if ('cause' in err && err.cause) parts.push('Cause: ' + String(err.cause));
+      setError(parts.join('\n\n'));
     } finally {
       setLoading(false);
     }

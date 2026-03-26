@@ -15,11 +15,17 @@ if (typeof globalThis.process === 'undefined') {
     argv: [],
     platform: 'browser',
     version: 'v0.0.0',
+    versions: {},
+    release: {},
     stdout: { write: function() {} },
     stderr: { write: function() {} },
     exit: function() {},
     cwd: function() { return '/'; },
     nextTick: function(fn) { Promise.resolve().then(fn); },
+    emit: function() {},
+    on: function() { return globalThis.process; },
+    off: function() { return globalThis.process; },
+    listeners: function() { return []; },
   };
 }`,
         }}
