@@ -29,7 +29,11 @@ export default function Page() {
       });
       setDigest(result);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Failed to generate digest.');
+      if (e instanceof Error) {
+        setError(e.stack ?? e.message);
+      } else {
+        setError(String(e));
+      }
     } finally {
       setLoading(false);
     }
@@ -106,9 +110,9 @@ export default function Page() {
 
         {/* Error */}
         {error && (
-          <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 animate-fade-in">
+          <pre className="mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 animate-fade-in whitespace-pre-wrap overflow-x-auto">
             {error}
-          </div>
+          </pre>
         )}
 
         {/* Output */}

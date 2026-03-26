@@ -24,12 +24,7 @@ export default defineConfig({
     },
   },
   define: {
-    'process.env': '{}',
-    'process.argv': '[]',
-    'process.platform': '"browser"',
-    'process.version': '"v0.0.0"',
-    'process.stdout': '{}',
-    'process.stderr': '{}',
+    global: 'globalThis',
   },
   build: {},
   base: (process.env.PUBLIC_ENV__BASE_URL ?? '') + '/pr-digest/',
