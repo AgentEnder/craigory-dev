@@ -23,6 +23,14 @@ export default defineConfig({
       util: nodeStub,
     },
   },
+  define: {
+    'process.env': '{}',
+    'process.argv': '[]',
+    'process.platform': '"browser"',
+    'process.version': '"v0.0.0"',
+    'process.stdout': '{}',
+    'process.stderr': '{}',
+  },
   build: {},
   base: (process.env.PUBLIC_ENV__BASE_URL ?? '') + '/pr-digest/',
 });
