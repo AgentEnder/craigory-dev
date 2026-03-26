@@ -89,7 +89,7 @@
           "CNAME": "preview.craigory.dev",
           "syncWithBaseBranch": true,
           "syncStrategy": "merge",
-          "syncGitOptions": ["--allow-unrelated-histories", "-X", "theirs"],
+          "syncGitOptions": ["--allow-unrelated-histories", "-X", "ours"],
           "baseBranch": "gh-pages"
         }
       },
