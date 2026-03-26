@@ -1,0 +1,5 @@
+{
+  "name": "PR Digest",
+  "description": "Generate comprehensive digests of GitHub pull requests. Enter a PR URL and get a formatted summary optimized for AI agent handoffs, with full timeline context, review comments, and CI status.",
+  "technologies": ["TypeScript", "HTML", "CSS"]
+}
