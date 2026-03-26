@@ -1,0 +1,10 @@
+{
+  "extends": ["../../.eslintrc.json"],
+  "ignorePatterns": ["!**/*", "node_modules", "dist"],
+  "overrides": [
+    {
+      "files": ["*.ts"],
+      "rules": {}
+    }
+  ]
+}
