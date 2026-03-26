@@ -6,6 +6,24 @@ export function Head() {
         name="description"
         content="Generate comprehensive digests of GitHub pull requests for AI agent handoffs."
       />
+      <script
+        dangerouslySetInnerHTML={{
+          __html: `
+if (typeof globalThis.process === 'undefined') {
+  globalThis.process = {
+    env: {},
+    argv: [],
+    platform: 'browser',
+    version: 'v0.0.0',
+    stdout: { write: function() {} },
+    stderr: { write: function() {} },
+    exit: function() {},
+    cwd: function() { return '/'; },
+    nextTick: function(fn) { Promise.resolve().then(fn); },
+  };
+}`,
+        }}
+      />
     </>
   );
 }

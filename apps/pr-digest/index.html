@@ -5,22 +5,6 @@
     <link rel="icon" type="image/svg+xml" href="/vite.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>PR Digest</title>
-    <script>
-      // Shim Node.js `process` global for pr-digest and its dependencies
-      if (typeof globalThis.process === 'undefined') {
-        globalThis.process = {
-          env: {},
-          argv: [],
-          platform: 'browser',
-          version: 'v0.0.0',
-          stdout: { write: function() {} },
-          stderr: { write: function() {} },
-          exit: function() {},
-          cwd: function() { return '/'; },
-          nextTick: function(fn) { Promise.resolve().then(fn); },
-        };
-      }
-    </script>
   </head>
   <body>
     <div id="root"></div>
