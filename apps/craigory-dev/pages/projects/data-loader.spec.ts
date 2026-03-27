@@ -1,6 +1,11 @@
+import { dirname, resolve } from 'path';
+import { fileURLToPath } from 'url';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
-const WORKSPACE_ROOT = '/Users/agentender/repos/craigory-dev';
+const WORKSPACE_ROOT = resolve(
+  dirname(fileURLToPath(import.meta.url)),
+  '../../../..'
+);
 const GITHUB_CACHE_PATH = `${WORKSPACE_ROOT}/tmp/github-projects-cache.json`;
 const LOCAL_CACHE_PATH = `${WORKSPACE_ROOT}/tmp/local-projects-cache.json`;
 

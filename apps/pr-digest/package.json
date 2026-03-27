@@ -1,0 +1,35 @@
+{
+  "name": "pr-digest-viewer",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vike dev",
+    "build": "vike build",
+    "preview": "vike preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "dependsOn": [
+          "typecheck"
+        ]
+      }
+    }
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.12",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.0",
+    "postcss": "^8.5.6",
+    "pr-digest": "^1.0.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "tailwindcss": "^4.1.12",
+    "typescript": "^5.9.2",
+    "vike": "0.4.239-commit-9dcde6d",
+    "vike-react": "^0.6.5"
+  }
+}

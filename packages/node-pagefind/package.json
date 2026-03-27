@@ -33,8 +33,6 @@
   },
   "scripts": {
     "build": "tsc -p tsconfig.lib.json",
-    "test": "vitest run",
-    "test:watch": "vitest",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "cli": "node dist/cli.js"
