@@ -109,6 +109,32 @@ export default function Page() {
           </button>
         </div>
 
+        {/* CLI Usage */}
+        {!digest && !loading && (
+          <details className="mb-6 animate-fade-in">
+            <summary className="text-sm text-gray-500 cursor-pointer hover:text-gray-700 transition-colors">
+              Prefer the command line?
+            </summary>
+            <div className="mt-3 bg-white rounded-2xl p-5 border border-gray-100">
+              <p className="text-sm text-gray-600 mb-3">
+                Install <code className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-800">pr-digest</code> and
+                run it directly from your terminal:
+              </p>
+              <pre className="text-sm font-mono bg-gray-50 rounded-xl p-4 overflow-x-auto text-gray-800 mb-3">{`npx pr-digest --url https://github.com/owner/repo/pull/123`}</pre>
+              <p className="text-sm text-gray-600 mb-2">
+                Or auto-detect from a local repo checkout:
+              </p>
+              <pre className="text-sm font-mono bg-gray-50 rounded-xl p-4 overflow-x-auto text-gray-800 mb-3">{`cd your-repo && npx pr-digest`}</pre>
+              <p className="text-sm text-gray-500">
+                Run <code className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-700">npx pr-digest --help</code> for
+                all options including <code className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-700">--output</code>,{' '}
+                <code className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-700">--token</code>, and{' '}
+                <code className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-700">--ai-provider</code>.
+              </p>
+            </div>
+          </details>
+        )}
+
         {/* Error */}
         {error && (
           <pre className="mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 animate-fade-in whitespace-pre-wrap overflow-x-auto">
