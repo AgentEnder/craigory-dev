@@ -14,17 +14,25 @@ let sdkPromise: Promise<(args: Record<string, any>) => Promise<unknown>> | null 
 
 function getSdk() {
   if (!sdkPromise) {
-    sdkPromise = import('pr-digest').then((mod) => {
-      const sdk = mod.cli.sdk();
-      return sdk;
-    });
+    sdkPromise = import('pr-digest')
+      .then((mod) => {
+        const sdk = mod.cli.sdk();
+        return sdk;
+      })
+      .catch((error) => {
+        sdkPromise = null;
+        throw error;
+      });
   }
   return sdkPromise;
 }
 
 export async function generateDigest(input: DigestInput): Promise<string> {
-  // The CLI handler writes the digest to process.stdout and doesn't return it.
-  // Intercept stdout writes to capture the output.
+  // Initialize SDK first — this triggers cli-forge builder which prints
+  // usage text to stdout. We don't want to capture that.
+  const sdk = await getSdk();
+
+  // Now intercept stdout/console.log only during the actual handler execution.
   const chunks: string[] = [];
   const originalWrite = globalThis.process.stdout.write;
   globalThis.process.stdout.write = (chunk: unknown) => {
@@ -32,7 +40,6 @@ export async function generateDigest(input: DigestInput): Promise<string> {
     return true;
   };
 
-  // Also intercept console.log since some code paths use it
   const originalLog = console.log;
   const logChunks: string[] = [];
   console.log = (...args: unknown[]) => {
@@ -40,7 +47,6 @@ export async function generateDigest(input: DigestInput): Promise<string> {
   };
 
   try {
-    const sdk = await getSdk();
     const result = await sdk({
       ...input,
       output: undefined,
