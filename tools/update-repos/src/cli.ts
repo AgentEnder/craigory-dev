@@ -5,6 +5,7 @@ import { cli } from 'cli-forge';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
+import { detailView } from './display.js';
 import { discoverRepos } from './discover.js';
 import { generateReport, type RepoResult } from './report.js';
 import { loadState, selectRepos } from './select.js';
@@ -31,6 +32,11 @@ const updateReposCLI = cli('update-repos', {
         default: false,
       }),
   handler: async (args) => {
+    // Install stdin proxy before any clack prompts.
+    // This replaces process.stdin with a PassThrough so we can
+    // intercept spacebar for the detail view toggle.
+    detailView.install();
+
     p.updateSettings({
       aliases: { k: 'up', j: 'down', h: 'left', l: 'right', '\x03': 'cancel' },
     });
