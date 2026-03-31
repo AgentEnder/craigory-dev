@@ -121,6 +121,13 @@ export async function updateRepo(
     } catch {
       execSilent(`git checkout -B ${branch}`, workDir);
     }
+    // Unset upstream so git status doesn't show "ahead of origin/main"
+    // — the correct upstream gets set when we push with -u later
+    try {
+      execSilent(`git branch --unset-upstream ${branch}`, workDir);
+    } catch {
+      // No upstream set — fine
+    }
 
     const pm = detectPackageManager(workDir);
     setupSpinner.message(`Installing dependencies (${pm})...`);
@@ -167,7 +174,7 @@ export async function updateRepo(
     prSpinner.start('Pushing...');
     const pushResult = await execQuiet(
       'git',
-      ['push', '--force-with-lease', 'origin', branch],
+      ['push', '-u', '--force-with-lease', 'origin', branch],
       { cwd: workDir }
     );
 
