@@ -87,6 +87,16 @@ export async function updateRepo(
 
   const { workDir, worktree } = prepareWorkDir(repo);
 
+  // Remember the original branch so we can restore it if working in-place
+  let originalBranch: string | null = null;
+  if (!worktree) {
+    try {
+      originalBranch = execSilent('git rev-parse --abbrev-ref HEAD', workDir);
+    } catch {
+      // Detached HEAD or other issue — we'll skip restore
+    }
+  }
+
   try {
     if (options.dryRun) {
       p.log.info(`[DRY RUN] Would update ${repo.name}`);
@@ -242,6 +252,21 @@ export async function updateRepo(
   } finally {
     if (worktree) {
       cleanupWorktree(repo, workDir);
+    } else if (originalBranch) {
+      // Restore the original branch when working in-place
+      try {
+        execSilent(`git checkout ${originalBranch}`, workDir);
+      } catch {
+        // Best effort — the branch might not exist anymore
+        try {
+          execSilent(
+            `git checkout ${repo.defaultBranch}`,
+            workDir
+          );
+        } catch {
+          // Leave it — user can fix manually
+        }
+      }
     }
   }
 

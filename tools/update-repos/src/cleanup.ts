@@ -2,6 +2,7 @@ import { existsSync, readdirSync } from 'node:fs';
 import * as p from '@clack/prompts';
 
 import type { DiscoveredRepo } from './discover.js';
+import { logger } from './logger.js';
 import { execSilent } from './utils.js';
 
 const WORKTREE_DIR = '/tmp/upgrade-worktrees';
@@ -75,13 +76,32 @@ function hasLocalBranch(repoPath: string, branch: string): boolean {
 }
 
 /**
+ * Get the main worktree path for a repo (the original clone location).
+ */
+function getMainWorktreePath(repoPath: string): string | null {
+  try {
+    const output = execSilent('git worktree list --porcelain', repoPath);
+    // First worktree entry is always the main worktree
+    for (const line of output.split('\n')) {
+      if (line.startsWith('worktree ')) {
+        return line.replace('worktree ', '');
+      }
+    }
+  } catch {
+    // Fallback
+  }
+  return null;
+}
+
+/**
  * Find any worktree that has `branch` checked out.
- * Returns the worktree path, or null if none.
+ * Returns { path, isMain } or null if none.
  */
 function findWorktreeForBranch(
   repoPath: string,
   branch: string
-): string | null {
+): { path: string; isMain: boolean } | null {
+  const mainPath = getMainWorktreePath(repoPath);
   try {
     const output = execSilent('git worktree list --porcelain', repoPath);
     let currentPath: string | null = null;
@@ -91,9 +111,11 @@ function findWorktreeForBranch(
       }
       if (line.startsWith('branch ') && currentPath) {
         const ref = line.replace('branch ', '');
-        // ref is like refs/heads/chore/update-2026-03-31
         if (ref === `refs/heads/${branch}`) {
-          return currentPath;
+          return {
+            path: currentPath,
+            isMain: currentPath === mainPath,
+          };
         }
       }
     }
@@ -105,50 +127,84 @@ function findWorktreeForBranch(
 
 /**
  * Delete a branch both locally and on the remote.
- * If the branch is checked out in a worktree, removes that worktree first.
+ * If the branch is checked out in a worktree:
+ *   - Secondary worktree: remove the worktree first
+ *   - Main worktree: switch it back to the default branch first
  */
 function deleteBranch(
   repoPath: string,
-  branch: string
+  branch: string,
+  defaultBranch: string
 ): { deleted: string[]; errors: string[] } {
   const deleted: string[] = [];
   const errors: string[] = [];
 
-  // Remove any worktree holding this branch before deleting it
-  const wtPath = findWorktreeForBranch(repoPath, branch);
-  if (wtPath) {
-    try {
-      execSilent(`git worktree remove --force ${wtPath}`, repoPath);
-      deleted.push(`worktree ${wtPath}`);
-    } catch (e) {
-      errors.push(
-        `Failed to remove worktree ${wtPath}: ${e instanceof Error ? e.message : String(e)}`
-      );
-      // Don't attempt branch deletion — it will fail
-      return { deleted, errors };
+  logger.step(`Deleting branch: ${branch}`);
+
+  // Handle worktree that has this branch checked out
+  const wt = findWorktreeForBranch(repoPath, branch);
+  if (wt) {
+    if (wt.isMain) {
+      // Main worktree — switch it to the default branch, don't remove it
+      const cmd = `git checkout ${defaultBranch}`;
+      logger.info(`Main worktree ${wt.path} has ${branch} checked out, switching: ${cmd}`);
+      try {
+        execSilent(cmd, wt.path);
+        deleted.push(`checked out ${defaultBranch} in ${wt.path}`);
+        logger.info(`Switched ${wt.path} to ${defaultBranch}`);
+      } catch (e) {
+        const msg = `Failed to switch ${wt.path} to ${defaultBranch}: ${e instanceof Error ? e.message : String(e)}`;
+        errors.push(msg);
+        logger.error(msg);
+        return { deleted, errors };
+      }
+    } else {
+      // Secondary worktree — remove it
+      const cmd = `git worktree remove --force ${wt.path}`;
+      logger.info(`Removing worktree: ${cmd}`);
+      try {
+        execSilent(cmd, repoPath);
+        deleted.push(`worktree ${wt.path}`);
+        logger.info(`Removed worktree ${wt.path}`);
+      } catch (e) {
+        const msg = `Failed to remove worktree ${wt.path}: ${e instanceof Error ? e.message : String(e)}`;
+        errors.push(msg);
+        logger.error(msg);
+        return { deleted, errors };
+      }
     }
   }
 
   if (hasRemoteBranch(repoPath, branch)) {
+    const cmd = `git push origin --delete ${branch}`;
+    logger.info(`Deleting remote: ${cmd}`);
     try {
-      execSilent(`git push origin --delete ${branch}`, repoPath);
+      execSilent(cmd, repoPath);
       deleted.push(`origin/${branch}`);
+      logger.info(`Deleted origin/${branch}`);
     } catch (e) {
-      errors.push(
-        `Failed to delete origin/${branch}: ${e instanceof Error ? e.message : String(e)}`
-      );
+      const msg = `Failed to delete origin/${branch}: ${e instanceof Error ? e.message : String(e)}`;
+      errors.push(msg);
+      logger.error(msg);
     }
+  } else {
+    logger.info(`No remote branch origin/${branch}`);
   }
 
   if (hasLocalBranch(repoPath, branch)) {
+    const cmd = `git branch -D ${branch}`;
+    logger.info(`Deleting local: ${cmd}`);
     try {
-      execSilent(`git branch -D ${branch}`, repoPath);
+      execSilent(cmd, repoPath);
       deleted.push(branch);
+      logger.info(`Deleted local ${branch}`);
     } catch (e) {
-      errors.push(
-        `Failed to delete local ${branch}: ${e instanceof Error ? e.message : String(e)}`
-      );
+      const msg = `Failed to delete local ${branch}: ${e instanceof Error ? e.message : String(e)}`;
+      errors.push(msg);
+      logger.error(msg);
     }
+  } else {
+    logger.info(`No local branch ${branch}`);
   }
 
   return { deleted, errors };
@@ -181,6 +237,7 @@ export async function cleanupRepos(
 
   // --- Worktree cleanup ---
   const worktrees = findWorktrees();
+  logger.info(`Found ${worktrees.length} worktrees in ${WORKTREE_DIR}`);
   if (worktrees.length > 0) {
     p.log.step(
       `\n━━━ Worktrees (${worktrees.length} in ${WORKTREE_DIR}) ━━━`
@@ -197,27 +254,33 @@ export async function cleanupRepos(
       });
 
       if (p.isCancel(answer)) {
+        logger.info('Cleanup cancelled by user (worktree prompt)');
         p.cancel('Cleanup cancelled');
         return false;
       }
 
       if (answer) {
+        logger.info(`Removing worktree: ${cmd}`);
         try {
           execSilent(cmd, '/tmp');
           p.log.success(`Removed ${wt}`);
+          logger.info(`Removed worktree ${wt}`);
           totalDeleted++;
         } catch (e) {
-          p.log.error(
-            `Failed: ${e instanceof Error ? e.message : String(e)}`
-          );
+          const msg = e instanceof Error ? e.message : String(e);
+          p.log.error(`Failed: ${msg}`);
+          logger.error(`Failed to remove ${wt}: ${msg}`);
           totalErrors++;
         }
+      } else {
+        logger.info(`Skipped worktree ${wt}`);
       }
     }
   }
 
   // --- Branch cleanup per repo ---
   for (const repo of repos) {
+    logger.step(`--- Cleanup: ${repo.name} ---`);
     const fetchSpinner = p.spinner();
     fetchSpinner.start(`Fetching ${repo.name}...`);
     try {
@@ -225,10 +288,12 @@ export async function cleanupRepos(
       fetchSpinner.stop(`Fetched ${repo.name}`);
     } catch {
       fetchSpinner.stop(`Failed to fetch ${repo.name}`);
+      logger.warn(`Failed to fetch ${repo.name}, skipping`);
       continue;
     }
 
     const branches = findUpdateBranches(repo.path);
+    logger.info(`${repo.name}: found ${branches.length} update branches: ${branches.join(', ') || '(none)'}`);
     if (branches.length === 0) {
       continue;
     }
@@ -257,14 +322,24 @@ export async function cleanupRepos(
     });
 
     if (p.isCancel(selected)) {
+      logger.info(`Cleanup cancelled by user (branch select for ${repo.name})`);
       p.cancel('Cleanup cancelled');
       return false;
     }
 
     const toDelete = selected as string[];
+    const skippedBranches = branches.filter((b) => !toDelete.includes(b));
+    logger.info(`${repo.name}: selected ${toDelete.length} for deletion: ${toDelete.join(', ')}`);
+    if (skippedBranches.length > 0) {
+      logger.info(`${repo.name}: skipped: ${skippedBranches.join(', ')}`);
+    }
 
     for (const branch of toDelete) {
-      const { deleted, errors } = deleteBranch(repo.path, branch);
+      const { deleted, errors } = deleteBranch(
+        repo.path,
+        branch,
+        repo.defaultBranch
+      );
       for (const d of deleted) {
         p.log.success(`Deleted ${d}`);
         totalDeleted++;
@@ -281,13 +356,11 @@ export async function cleanupRepos(
     }
   }
 
-  if (totalDeleted === 0 && totalErrors === 0) {
-    p.log.info('Nothing to clean up');
-  } else {
-    p.log.info(
-      `Done: deleted ${totalDeleted} item(s)${totalErrors > 0 ? `, ${totalErrors} error(s)` : ''}`
-    );
-  }
+  const summary = totalDeleted === 0 && totalErrors === 0
+    ? 'Nothing to clean up'
+    : `Done: deleted ${totalDeleted} item(s)${totalErrors > 0 ? `, ${totalErrors} error(s)` : ''}`;
+  p.log.info(summary);
+  logger.info(summary);
 
   return true;
 }
