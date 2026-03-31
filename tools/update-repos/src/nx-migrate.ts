@@ -197,6 +197,7 @@ Respond with ONLY the JSON object.`;
   const result = await execWithActivityTimeout(cmdArgs.cmd, cmdArgs.args, {
     cwd: repoPath,
     idleTimeoutMs: AI_IDLE_TIMEOUT_MS,
+    label: `${agent}: migration triage`,
   });
 
   if (result.timedOut) {
@@ -386,6 +387,8 @@ After completing the migration, delete the file at ${filePath} since it has been
             args: [
               '-p',
               prompt,
+              '--output-format',
+              'stream-json',
               '--allowedTools',
               'Bash,Read,Edit,Write,Glob,Grep',
             ],
@@ -398,6 +401,7 @@ After completing the migration, delete the file at ${filePath} since it has been
     const result = await execWithActivityTimeout(cmdArgs.cmd, cmdArgs.args, {
       cwd: repoPath,
       idleTimeoutMs: AI_IDLE_TIMEOUT_MS,
+      label: `${agent}: ${file}`,
     });
 
     if (result.timedOut) {

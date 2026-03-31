@@ -2,15 +2,15 @@ import * as p from '@clack/prompts';
 
 import {
   type PackageManager,
-  execSilent,
   execQuiet,
+  execSilent,
   execWithActivityTimeout,
   getAuditCommand,
   getAuditFixCommand,
 } from './utils.js';
 
 /** Default idle timeout for AI agents: 3 minutes with no output. */
-const AGENT_IDLE_TIMEOUT_MS = 3 * 60 * 1000;
+const AGENT_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
 
 const AI_AUDIT_PROMPT = `You are fixing npm audit vulnerabilities in this repository.
 
@@ -151,8 +151,44 @@ function hasChanges(repoPath: string): boolean {
 }
 
 /**
+ * Parse a line of Claude stream-json output into a human-readable summary.
+ * stream-json emits one JSON object per line with a "type" field.
+ */
+function parseClaudeStreamLine(line: string): string | null {
+  if (!line.trim()) return null;
+  try {
+    const event = JSON.parse(line);
+    switch (event.type) {
+      case 'assistant':
+        // Assistant text message
+        if (event.message?.content) {
+          const textBlocks = event.message.content.filter(
+            (b: { type: string }) => b.type === 'text'
+          );
+          if (textBlocks.length > 0) {
+            return textBlocks.map((b: { text: string }) => b.text).join('');
+          }
+        }
+        return null;
+      case 'tool_use':
+        return `[tool] ${event.tool?.name ?? 'unknown'}`;
+      case 'tool_result':
+        return `[result] ${(event.content ?? '').toString().slice(0, 200)}`;
+      case 'result':
+        return `[done] cost: $${event.cost_usd?.toFixed(4) ?? '?'}, duration: ${event.duration_ms ? Math.round(event.duration_ms / 1000) + 's' : '?'}`;
+      default:
+        return null;
+    }
+  } catch {
+    // Not JSON — return the raw line
+    return line;
+  }
+}
+
+/**
  * Run an AI agent with a spinner and idle-timeout watchdog.
- * Kills the agent if it produces no output for AGENT_IDLE_TIMEOUT_MS.
+ * Uses --output-format stream-json for Claude so progress is visible
+ * in the detail view. Kills if no output for AGENT_IDLE_TIMEOUT_MS.
  */
 async function runAiAgent(
   agent: 'claude' | 'codex',
@@ -162,13 +198,18 @@ async function runAiAgent(
   const s = p.spinner();
   s.start(`${agent} is fixing audit vulnerabilities...`);
 
-  let lastLine = '';
   const onData = (chunk: string) => {
-    // Update spinner with the last non-empty line from the agent
+    // Update spinner with the latest meaningful line
     const lines = chunk.split('\n').filter((l) => l.trim());
-    if (lines.length > 0) {
-      lastLine = lines[lines.length - 1].slice(0, 80);
-      s.message(`${agent}: ${lastLine}`);
+    for (const line of lines) {
+      if (agent === 'claude') {
+        const parsed = parseClaudeStreamLine(line);
+        if (parsed) {
+          s.message(`${agent}: ${parsed.slice(0, 80)}`);
+        }
+      } else {
+        s.message(`${agent}: ${line.slice(0, 80)}`);
+      }
     }
   };
 
@@ -176,7 +217,14 @@ async function runAiAgent(
     agent === 'claude'
       ? {
           cmd: 'claude',
-          args: ['-p', prompt, '--allowedTools', 'Bash,Read,Edit,Write'],
+          args: [
+            '-p',
+            prompt,
+            '--output-format',
+            'stream-json',
+            '--allowedTools',
+            'Bash,Read,Edit,Write',
+          ],
         }
       : {
           cmd: 'codex',
@@ -186,11 +234,14 @@ async function runAiAgent(
   const result = await execWithActivityTimeout(cmdArgs.cmd, cmdArgs.args, {
     cwd: repoPath,
     idleTimeoutMs: AGENT_IDLE_TIMEOUT_MS,
+    label: `${agent}: audit fix`,
     onData,
   });
 
   if (result.timedOut) {
-    s.stop(`${agent} timed out (no output for ${AGENT_IDLE_TIMEOUT_MS / 1000}s)`);
+    s.stop(
+      `${agent} timed out (no output for ${AGENT_IDLE_TIMEOUT_MS / 1000}s)`
+    );
     return { success: false, timedOut: true };
   }
 
@@ -226,7 +277,9 @@ export async function fixAudit(
   }
 
   p.log.warn(
-    `Found ${audit.total} vulnerabilities: ${formatSeverities(audit.severities)}`
+    `Found ${audit.total} vulnerabilities: ${formatSeverities(
+      audit.severities
+    )}`
   );
 
   if (aiAgent === 'false') {
@@ -243,8 +296,7 @@ export async function fixAudit(
   }
 
   // AI-driven path
-  const agent: 'claude' | 'codex' =
-    aiAgent === 'codex' ? 'codex' : 'claude';
+  const agent: 'claude' | 'codex' = aiAgent === 'codex' ? 'codex' : 'claude';
 
   const prompt = `${AI_AUDIT_PROMPT}
 
@@ -262,7 +314,9 @@ Fix these vulnerabilities now.`;
 
   if (timedOut) {
     p.log.error(
-      `${agent} appeared to hang — killed after ${AGENT_IDLE_TIMEOUT_MS / 1000}s of silence`
+      `${agent} appeared to hang — killed after ${
+        AGENT_IDLE_TIMEOUT_MS / 1000
+      }s of silence`
     );
     return false;
   }

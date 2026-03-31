@@ -101,8 +101,9 @@ export function execQuiet(
 
 /**
  * Run a command and kill it if no stdout/stderr output is received
- * within `idleTimeoutMs`. Output is captured but not printed (caller
- * controls display via onData callback).
+ * within `idleTimeoutMs`. Output is buffered into the detail view
+ * for interactive viewing. The onData callback receives raw chunks
+ * for caller-specific processing (e.g. spinner updates).
  */
 export function execWithActivityTimeout(
   command: string,
@@ -111,14 +112,19 @@ export function execWithActivityTimeout(
     cwd: string;
     env?: NodeJS.ProcessEnv;
     idleTimeoutMs: number;
+    label?: string;
     onData?: (chunk: string) => void;
   }
 ): Promise<{ exitCode: number; stdout: string; stderr: string; timedOut: boolean }> {
+  const label = options.label ?? `${command} ${args[0] ?? ''}`;
+
   return new Promise((resolve) => {
+    detailView.start(label);
+
     const proc = spawn(command, args, {
       cwd: options.cwd,
       env: options.env ?? process.env,
-      stdio: ['inherit', 'pipe', 'pipe'],
+      stdio: ['pipe', 'pipe', 'pipe'],
     });
 
     let stdout = '';
@@ -141,6 +147,7 @@ export function execWithActivityTimeout(
     proc.stdout.on('data', (data: Buffer) => {
       const str = data.toString();
       stdout += str;
+      detailView.write(str);
       options.onData?.(str);
       resetTimer();
     });
@@ -148,12 +155,14 @@ export function execWithActivityTimeout(
     proc.stderr.on('data', (data: Buffer) => {
       const str = data.toString();
       stderr += str;
+      detailView.write(str);
       options.onData?.(str);
       resetTimer();
     });
 
     proc.on('close', (code) => {
       clearTimeout(timer);
+      detailView.stop();
       resolve({ exitCode: code ?? 1, stdout, stderr, timedOut });
     });
   });
