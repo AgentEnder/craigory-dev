@@ -65,7 +65,7 @@ const updateReposCLI = cli('update-repos', {
     p.log.info(`Updating ${selected.length} repo(s)...`);
     if (process.stdin.isTTY) {
       p.log.message(
-        '\x1b[2m␣ press Space during commands to view full output\x1b[0m'
+        '\x1b[2mpress Space/Enter/Esc during commands to view full output\x1b[0m'
       );
     }
 

@@ -119,13 +119,18 @@ export class DetailView {
         return;
       }
 
-      // When listening (command running), intercept spacebar for toggle
-      if (this.listening && key?.name === 'space') {
+      // When a command is running, intercept toggle keys to open detail view
+      if (
+        this.listening &&
+        (key?.name === 'space' ||
+          key?.name === 'return' ||
+          key?.name === 'escape')
+      ) {
         this.enterAltScreen();
         return;
       }
 
-      // Forward everything else to the proxy for clack
+      // Forward everything else to the proxy for clack (prompts, spinners)
       if (key?.sequence) {
         this.stdinProxy.write(key.sequence);
       } else if (str) {
@@ -192,8 +197,12 @@ export class DetailView {
   private handleDetailViewKey(str: string, key: KeyInfo): void {
     if (!key) return;
 
-    // Spacebar or Escape exits detail view
-    if (key.name === 'space' || key.name === 'escape') {
+    // Space, Enter, or Escape exits detail view
+    if (
+      key.name === 'space' ||
+      key.name === 'return' ||
+      key.name === 'escape'
+    ) {
       this.leaveAltScreen();
       return;
     }
@@ -309,7 +318,7 @@ export class DetailView {
         ? `${this.scrollOffset + 1}–${currentLine} of ${totalLines}`
         : 'empty';
     const followIndicator = this.following ? ' [following]' : '';
-    const statusText = ` ${position}${followIndicator}  ${DIM}↑↓ scroll │ PgUp/PgDn page │ g/G top/bottom │ Space/Esc close${RESET}`;
+    const statusText = ` ${position}${followIndicator}  ${DIM}↑↓ scroll │ PgUp/PgDn page │ g/G top/bottom │ Space/Enter/Esc close${RESET}`;
 
     process.stdout.write(`\x1b[${rows};1H`);
     process.stdout.write(INVERSE + statusText.padEnd(cols) + RESET);
