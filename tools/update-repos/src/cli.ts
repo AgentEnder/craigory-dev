@@ -195,17 +195,30 @@ const updateReposCLI = cli('update-repos', {
           'Delete remote update branches (chore/update-*) with confirmation',
         builder: (c) => c,
         handler: async (opts) => {
+          logger.open();
           detailView.install();
           setupClack();
+
+          logger.info(`cleanup: reposDir=${opts.reposDir}`);
+
+          process.on('SIGINT', () => {
+            detailView.stop();
+            process.stderr.write(`\nInterrupted! Log: ${logger.logPath}\n`);
+            logger.close('SIGINT');
+            setTimeout(() => process.exit(130), 50);
+          });
+
           p.intro('update-repos cleanup');
 
           const s = p.spinner();
           s.start('Discovering repos...');
           const repos = discoverRepos(opts.reposDir);
           s.stop(`Found ${repos.length} unique repos`);
+          logger.info(`Discovered ${repos.length} repos`);
 
           if (repos.length === 0) {
             p.outro('No repos found.');
+            logger.close('no repos found');
             return;
           }
 
@@ -214,10 +227,15 @@ const updateReposCLI = cli('update-repos', {
 
           if (selected.length === 0) {
             p.outro('No repos selected.');
+            logger.close('no repos selected');
             return;
           }
 
+          logger.info(`Cleanup: ${selected.map((r) => r.name).join(', ')}`);
           await cleanupRepos(selected);
+
+          p.log.info(`Log: ${logger.logPath}`);
+          logger.close('completed');
           p.outro('Cleanup complete!');
         },
       }),
