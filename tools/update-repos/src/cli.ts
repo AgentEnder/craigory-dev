@@ -7,6 +7,7 @@ import { join } from 'node:path';
 
 import { detailView } from './display.js';
 import { discoverRepos } from './discover.js';
+import { logger } from './logger.js';
 import { generateReport, type RepoResult } from './report.js';
 import { loadState, selectRepos } from './select.js';
 import { updateRepo } from './update.js';
@@ -32,13 +33,61 @@ const updateReposCLI = cli('update-repos', {
         default: false,
       }),
   handler: async (args) => {
-    // Install stdin proxy before any clack prompts.
-    // This replaces process.stdin with a PassThrough so we can
-    // intercept spacebar for the detail view toggle.
+    // Initialize logger and stdin proxy before anything else
+    logger.open();
     detailView.install();
 
+    logger.info(`args: aiAgent=${args.aiAgent} reposDir=${args.reposDir} dryRun=${args.dryRun}`);
+
+    // Track state for graceful shutdown
+    const results: RepoResult[] = [];
+    let currentRepo = '';
+    let state = loadState();
+    let shuttingDown = false;
+
+    // Graceful shutdown handler
+    const shutdown = (signal: string) => {
+      if (shuttingDown) return;
+      shuttingDown = true;
+
+      logger.warn(`Received ${signal}, shutting down gracefully...`);
+
+      // Leave alt screen if active
+      detailView.stop();
+
+      // Generate partial report if we have any results
+      if (results.length > 0) {
+        try {
+          const { markdownPath } = generateReport(results, state);
+          logger.info(`Partial report written to ${markdownPath}`);
+          p.log.warn(`\nInterrupted! Partial report: ${markdownPath}`);
+        } catch (e) {
+          logger.error(`Failed to write partial report: ${e}`);
+        }
+      }
+
+      if (currentRepo) {
+        p.log.warn(`Was processing: ${currentRepo}`);
+        logger.info(`Interrupted while processing: ${currentRepo}`);
+      }
+
+      p.log.info(`Log file: ${logger.logPath}`);
+      logger.close(signal);
+
+      process.exit(130);
+    };
+
+    process.on('SIGINT', () => shutdown('SIGINT'));
+    process.on('SIGTERM', () => shutdown('SIGTERM'));
+
     p.updateSettings({
-      aliases: { k: 'up', j: 'down', h: 'left', l: 'right', '\x03': 'cancel' },
+      aliases: {
+        k: 'up',
+        j: 'down',
+        h: 'left',
+        l: 'right',
+        '\x03': 'cancel',
+      },
     });
     p.intro('update-repos');
 
@@ -47,20 +96,27 @@ const updateReposCLI = cli('update-repos', {
     s.start('Discovering repos...');
     const repos = discoverRepos(args.reposDir);
     s.stop(`Found ${repos.length} unique repos`);
+    logger.info(`Discovered ${repos.length} unique repos in ${args.reposDir}`);
 
     if (repos.length === 0) {
       p.outro('No repos found.');
+      logger.close('no repos found');
       return;
     }
 
     // 2. Select repos
-    const state = loadState();
+    state = loadState();
     const selected = await selectRepos(repos, state);
 
     if (selected.length === 0) {
       p.outro('No repos selected.');
+      logger.close('no repos selected');
       return;
     }
+
+    logger.info(
+      `Selected ${selected.length} repos: ${selected.map((r) => r.name).join(', ')}`
+    );
 
     p.log.info(`Updating ${selected.length} repo(s)...`);
     if (process.stdin.isTTY) {
@@ -70,15 +126,22 @@ const updateReposCLI = cli('update-repos', {
     }
 
     // 3. Update each repo sequentially
-    const results: RepoResult[] = [];
     for (const repo of selected) {
+      currentRepo = repo.name;
+      logger.info(`--- Starting: ${repo.name} (${repo.remoteUrl}) ---`);
       p.log.step(`\n━━━ ${repo.name} ━━━`);
+
       const result = await updateRepo(repo, {
         aiAgent: args.aiAgent,
         dryRun: args.dryRun,
       });
+
       results.push(result);
+      logger.info(
+        `--- Finished: ${repo.name} → ${result.status}${result.error ? ` (${result.error})` : ''}${result.prUrl ? ` PR: ${result.prUrl}` : ''} ---`
+      );
     }
+    currentRepo = '';
 
     // 4. Generate report
     const { markdownPath } = generateReport(results, state);
@@ -92,6 +155,12 @@ const updateReposCLI = cli('update-repos', {
       `Results: ${succeeded} success, ${failed} failed, ${skipped} skipped`
     );
     p.log.info(`Report: ${markdownPath}`);
+    p.log.info(`Log: ${logger.logPath}`);
+
+    logger.info(
+      `Final: ${succeeded} success, ${failed} failed, ${skipped} skipped`
+    );
+    logger.close('completed');
 
     p.outro('Done!');
   },

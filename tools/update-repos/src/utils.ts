@@ -3,6 +3,7 @@ import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
 import { detailView } from './display.js';
+import { logger } from './logger.js';
 
 export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
 
@@ -63,6 +64,8 @@ export function execQuiet(
   const dumpOnFailure = options.dumpOnFailure ?? true;
   const label = options.label ?? `${command} ${args.join(' ')}`;
 
+  logger.step(`exec: ${label}`);
+
   return new Promise((resolve) => {
     detailView.start(label);
 
@@ -90,9 +93,13 @@ export function execQuiet(
     proc.on('close', (code) => {
       detailView.stop();
       const exitCode = code ?? 1;
-      if (exitCode !== 0 && dumpOnFailure) {
-        if (stdout) process.stderr.write(stdout);
-        if (stderr) process.stderr.write(stderr);
+      logger.output(label, stdout, stderr);
+      if (exitCode !== 0) {
+        logger.error(`${label} exited with code ${exitCode}`);
+        if (dumpOnFailure) {
+          if (stdout) process.stderr.write(stdout);
+          if (stderr) process.stderr.write(stderr);
+        }
       }
       resolve({ exitCode, stdout, stderr });
     });
@@ -122,6 +129,7 @@ export function execWithActivityTimeout(
   timedOut: boolean;
 }> {
   const label = options.label ?? `${command} ${args[0] ?? ''}`;
+  logger.step(`exec (timeout ${options.idleTimeoutMs / 1000}s): ${label}`);
 
   return new Promise((resolve) => {
     detailView.start(label);
@@ -169,7 +177,11 @@ export function execWithActivityTimeout(
       clearTimeout(timer);
       detailView.stop();
       const exitCode = code ?? 1;
-      if (exitCode !== 0) {
+      logger.output(label, stdout, stderr);
+      if (timedOut) {
+        logger.error(`${label} timed out after ${options.idleTimeoutMs / 1000}s of silence`);
+      } else if (exitCode !== 0) {
+        logger.error(`${label} exited with code ${exitCode}`);
         if (stdout) process.stderr.write(stdout);
         if (stderr) process.stderr.write(stderr);
       }

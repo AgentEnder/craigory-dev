@@ -1,7 +1,9 @@
-import { basename } from 'node:path';
 import * as p from '@clack/prompts';
+import { basename } from 'node:path';
 
+import { fixAudit } from './audit-fix.js';
 import type { DiscoveredRepo } from './discover.js';
+import { runNxMigrate } from './nx-migrate.js';
 import type { RepoResult } from './report.js';
 import {
   detectPackageManager,
@@ -13,8 +15,6 @@ import {
   isNxWorkspace,
   nextUpdateBranchName,
 } from './utils.js';
-import { runNxMigrate } from './nx-migrate.js';
-import { fixAudit } from './audit-fix.js';
 
 interface UpdateOptions {
   aiAgent: string;
@@ -179,13 +179,17 @@ export async function updateRepo(
       .filter(Boolean)
       .join('\n');
 
+    const prTitle = `chore: automated dependency update ${
+      new Date().toISOString().split('T')[0]
+    }`;
+
     const prResult = await execQuiet(
       'gh',
       [
         'pr',
         'create',
         '--title',
-        `chore: automated dependency update ${new Date().toISOString().split('T')[0]}`,
+        prTitle,
         '--body',
         prBody,
         '--base',
@@ -207,16 +211,16 @@ export async function updateRepo(
       } catch {
         // PR creation failed — build a manual create URL
         // Format: https://github.com/owner/repo/compare/base...head
-        const compareUrl = `https://${repo.remoteUrl}/compare/${repo.defaultBranch}...${branch}?expand=1`;
+        const compareUrl = `https://${repo.remoteUrl}/compare/${
+          repo.defaultBranch
+        }...${branch}?expand=1&title=${prTitle}&body=${encodeURIComponent(
+          prBody
+        )}`;
         result.manualPrUrl = compareUrl;
-        p.log.warn(
-          `PR creation failed. Create manually: ${compareUrl}`
-        );
+        p.log.warn(`PR creation failed. Create manually: ${compareUrl}`);
       }
     } else {
-      const urlMatch = prResult.stdout.match(
-        /https:\/\/github\.com\/[^\s]+/
-      );
+      const urlMatch = prResult.stdout.match(/https:\/\/github\.com\/[^\s]+/);
       if (urlMatch) {
         result.prUrl = urlMatch[0];
       }
