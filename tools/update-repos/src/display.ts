@@ -134,17 +134,22 @@ export class DetailView {
       }
 
       if (!this.active) {
-        // Enter opens detail view
+        // Enter opens detail view, everything else is ignored
         if (key.name === 'return') {
           this.enterAltScreen();
         }
         return;
       }
 
+      // Escape only exits detail view, never cancels the process
+      if (key.name === 'escape') {
+        this.leaveAltScreen();
+        return;
+      }
+
       // --- Keys active in detail view ---
       switch (key.name) {
         case 'return':
-        case 'escape':
           this.leaveAltScreen();
           break;
 
