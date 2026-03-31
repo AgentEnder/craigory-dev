@@ -3,7 +3,7 @@ import * as p from '@clack/prompts';
 import {
   type PackageManager,
   execSilent,
-  execWithOutput,
+  execQuiet,
   execWithActivityTimeout,
   getAuditCommand,
   getAuditFixCommand,
@@ -43,9 +43,10 @@ async function runAuditJson(
   const auditCmd = getAuditCommand(pm, true);
   if (!auditCmd) return null;
 
-  // Run silently — we just want the JSON
-  const result = await execWithOutput(auditCmd[0], auditCmd[1], {
+  // Run quietly — non-zero exit is expected when vulnerabilities exist
+  const result = await execQuiet(auditCmd[0], auditCmd[1], {
     cwd: repoPath,
+    dumpOnFailure: false,
   });
 
   const rawJson = result.stdout;
@@ -237,7 +238,7 @@ export async function fixAudit(
     }
 
     p.log.step('Running audit fix...');
-    await execWithOutput(fixCmd[0], fixCmd[1], { cwd: repoPath });
+    await execQuiet(fixCmd[0], fixCmd[1], { cwd: repoPath });
     return hasChanges(repoPath);
   }
 

@@ -40,6 +40,46 @@ export function execWithOutput(
 }
 
 /**
+ * Run a command silently, capturing all output. If the command fails
+ * (non-zero exit) and `dumpOnFailure` is true (the default), dump the
+ * captured output to stderr so the user can see what went wrong.
+ */
+export function execQuiet(
+  command: string,
+  args: string[],
+  options: { cwd: string; env?: NodeJS.ProcessEnv; dumpOnFailure?: boolean }
+): Promise<{ exitCode: number; stdout: string; stderr: string }> {
+  const dumpOnFailure = options.dumpOnFailure ?? true;
+  return new Promise((resolve) => {
+    const proc = spawn(command, args, {
+      cwd: options.cwd,
+      env: options.env ?? process.env,
+      stdio: ['inherit', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    let stderr = '';
+
+    proc.stdout.on('data', (data: Buffer) => {
+      stdout += data.toString();
+    });
+
+    proc.stderr.on('data', (data: Buffer) => {
+      stderr += data.toString();
+    });
+
+    proc.on('close', (code) => {
+      const exitCode = code ?? 1;
+      if (exitCode !== 0 && dumpOnFailure) {
+        if (stdout) process.stderr.write(stdout);
+        if (stderr) process.stderr.write(stderr);
+      }
+      resolve({ exitCode, stdout, stderr });
+    });
+  });
+}
+
+/**
  * Run a command and kill it if no stdout/stderr output is received
  * within `idleTimeoutMs`. Output is captured but not printed (caller
  * controls display via onData callback).
@@ -223,8 +263,31 @@ export function todayString(): string {
 }
 
 /**
- * Branch name for today's update using calver: chore/update-YYYY-MM-DD.N
+ * Determine the next available calver branch name for a repo.
+ * Checks remote branches matching chore/update-YYYY-MM-DD.* and
+ * picks the next available number.
  */
-export function updateBranchName(runNumber: number): string {
-  return `chore/update-${todayString()}.${runNumber}`;
+export function nextUpdateBranchName(repoPath: string): string {
+  const today = todayString();
+  const prefix = `chore/update-${today}.`;
+  let maxN = 0;
+
+  try {
+    const refs = execSilent(
+      `git branch -r --list "origin/${prefix}*"`,
+      repoPath
+    );
+    for (const line of refs.split('\n')) {
+      const trimmed = line.trim();
+      // e.g. "origin/chore/update-2026-03-31.2"
+      const match = trimmed.match(/\.(\d+)$/);
+      if (match) {
+        maxN = Math.max(maxN, parseInt(match[1], 10));
+      }
+    }
+  } catch {
+    // No remote branches or git error — start at 1
+  }
+
+  return `${prefix}${maxN + 1}`;
 }

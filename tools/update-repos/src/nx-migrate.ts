@@ -4,7 +4,7 @@ import * as p from '@clack/prompts';
 
 import {
   type PackageManager,
-  execWithOutput,
+  execQuiet,
   execWithActivityTimeout,
   execSilent,
   getInstallCommand,
@@ -225,7 +225,7 @@ async function runMigrationsWithRecovery(
         : `Retrying migrations (attempt ${attempt + 1})...`
     );
 
-    const runResult = await execWithOutput(
+    const runResult = await execQuiet(
       pmx,
       ['nx', 'migrate', '--run-migrations', '--create-commits', '--no-interactive'],
       { cwd: repoPath }
@@ -322,7 +322,7 @@ export async function runNxMigrate(
     p.log.step(`Migrating to nx@${targetVersion}...`);
 
     // Run nx migrate <target>
-    const migrateResult = await execWithOutput(
+    const migrateResult = await execQuiet(
       pmx,
       ['nx', 'migrate', targetVersion, '--no-interactive'],
       { cwd: repoPath }
@@ -350,7 +350,7 @@ export async function runNxMigrate(
     // Install updated deps
     const [installCmd, installArgs] = getInstallCommand(pm);
     p.log.step('Installing updated dependencies...');
-    await execWithOutput(installCmd, installArgs, { cwd: repoPath });
+    await execQuiet(installCmd, installArgs, { cwd: repoPath });
 
     // Run migrations with recovery
     const migrationsOk = await runMigrationsWithRecovery(
@@ -388,7 +388,7 @@ export async function runNxMigrate(
     );
     if (pkg.scripts?.['post-nx-update']) {
       p.log.step('Running post-nx-update script...');
-      await execWithOutput(pm, ['run', 'post-nx-update'], { cwd: repoPath });
+      await execQuiet(pm, ['run', 'post-nx-update'], { cwd: repoPath });
       execSilent(
         'git add -A && git commit -m "chore: run post-nx-update"',
         repoPath
@@ -402,7 +402,7 @@ export async function runNxMigrate(
 
   // Reset Nx cache
   try {
-    await execWithOutput(pmx, ['nx', 'reset'], { cwd: repoPath });
+    await execQuiet(pmx, ['nx', 'reset'], { cwd: repoPath });
   } catch {
     // Non-critical
   }

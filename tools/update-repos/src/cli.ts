@@ -6,10 +6,9 @@ import { join } from 'node:path';
 import * as p from '@clack/prompts';
 
 import { discoverRepos } from './discover.js';
-import { loadState, saveState, selectRepos } from './select.js';
+import { loadState, selectRepos } from './select.js';
 import { updateRepo } from './update.js';
 import { generateReport, type RepoResult } from './report.js';
-import { todayString } from './utils.js';
 
 const updateReposCLI = cli('update-repos', {
   description:
@@ -54,30 +53,15 @@ const updateReposCLI = cli('update-repos', {
       return;
     }
 
-    // 3. Compute calver run number for branch naming
-    const today = todayString();
-    let runNumber: number;
-    if (state.lastRunDate === today && state.runNumber) {
-      runNumber = state.runNumber + 1;
-    } else {
-      runNumber = 1;
-    }
-    state.lastRunDate = today;
-    state.runNumber = runNumber;
-    saveState(state);
+    p.log.info(`Updating ${selected.length} repo(s)...`);
 
-    p.log.info(
-      `Updating ${selected.length} repo(s)... (run ${today}.${runNumber})`
-    );
-
-    // 4. Update each repo sequentially
+    // 3. Update each repo sequentially
     const results: RepoResult[] = [];
     for (const repo of selected) {
       p.log.step(`\n━━━ ${repo.name} ━━━`);
       const result = await updateRepo(repo, {
         aiAgent: args.aiAgent,
         dryRun: args.dryRun,
-        runNumber,
       });
       results.push(result);
     }

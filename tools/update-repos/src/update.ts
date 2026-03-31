@@ -5,13 +5,13 @@ import type { DiscoveredRepo } from './discover.js';
 import type { RepoResult } from './report.js';
 import {
   detectPackageManager,
-  execWithOutput,
+  execQuiet,
   execSilent,
   getInstallCommand,
   isClean,
   isNodeProject,
   isNxWorkspace,
-  updateBranchName,
+  nextUpdateBranchName,
 } from './utils.js';
 import { runNxMigrate } from './nx-migrate.js';
 import { fixAudit } from './audit-fix.js';
@@ -19,7 +19,6 @@ import { fixAudit } from './audit-fix.js';
 interface UpdateOptions {
   aiAgent: string;
   dryRun: boolean;
-  runNumber: number;
 }
 
 /**
@@ -93,12 +92,12 @@ export async function updateRepo(
       return result;
     }
 
-    // Fetch latest
+    // Fetch latest (quiet — only show output on failure)
     p.log.step('Fetching latest...');
-    await execWithOutput('git', ['fetch', 'origin'], { cwd: workDir });
+    await execQuiet('git', ['fetch', 'origin'], { cwd: workDir });
 
-    // Create update branch
-    const branch = updateBranchName(options.runNumber);
+    // Determine next available calver branch for this repo
+    const branch = nextUpdateBranchName(workDir);
     p.log.step(`Creating branch ${branch}...`);
     try {
       execSilent(
@@ -109,13 +108,13 @@ export async function updateRepo(
       execSilent(`git checkout -B ${branch}`, workDir);
     }
 
-    // Detect package manager and install
+    // Detect package manager and install (quiet)
     const pm = detectPackageManager(workDir);
     p.log.step(`Package manager: ${pm}`);
 
     const [installCmd, installArgs] = getInstallCommand(pm);
     p.log.step('Installing dependencies...');
-    await execWithOutput(installCmd, installArgs, { cwd: workDir });
+    await execQuiet(installCmd, installArgs, { cwd: workDir });
 
     // Nx migrate first (if applicable) — changes dep versions
     if (isNxWorkspace(workDir)) {
@@ -144,7 +143,6 @@ export async function updateRepo(
         `git diff --quiet origin/${repo.defaultBranch}...HEAD`,
         workDir
       );
-      // No diff means no changes
       p.log.info('No changes to push');
       result.status = 'skipped';
       result.error = 'no changes needed';
@@ -153,9 +151,9 @@ export async function updateRepo(
       // There are changes — continue to push
     }
 
-    // Push and create PR
+    // Push (quiet) and create PR
     p.log.step('Pushing...');
-    const pushResult = await execWithOutput(
+    const pushResult = await execQuiet(
       'git',
       ['push', '--force-with-lease', 'origin', branch],
       { cwd: workDir }
@@ -167,7 +165,7 @@ export async function updateRepo(
       return result;
     }
 
-    // Create or update PR
+    // Create or update PR (quiet)
     p.log.step('Creating PR...');
     const prBody = [
       '## Automated Update',
@@ -180,7 +178,7 @@ export async function updateRepo(
       .filter(Boolean)
       .join('\n');
 
-    const prResult = await execWithOutput(
+    const prResult = await execQuiet(
       'gh',
       [
         'pr',
