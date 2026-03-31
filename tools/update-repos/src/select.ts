@@ -25,6 +25,10 @@ export interface RepoState {
   >;
   /** ISO timestamp of last run */
   lastRun?: string;
+  /** Last run date (YYYY-MM-DD) for calver tracking */
+  lastRunDate?: string;
+  /** Run number within the current date (starts at 1) */
+  runNumber?: number;
 }
 
 export function loadState(): RepoState {

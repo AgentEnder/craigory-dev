@@ -223,8 +223,8 @@ export function todayString(): string {
 }
 
 /**
- * Branch name for today's update.
+ * Branch name for today's update using calver: chore/update-YYYY-MM-DD.N
  */
-export function updateBranchName(): string {
-  return `chore/update-${todayString()}`;
+export function updateBranchName(runNumber: number): string {
+  return `chore/update-${todayString()}.${runNumber}`;
 }

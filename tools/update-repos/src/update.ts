@@ -19,6 +19,7 @@ import { fixAudit } from './audit-fix.js';
 interface UpdateOptions {
   aiAgent: string;
   dryRun: boolean;
+  runNumber: number;
 }
 
 /**
@@ -43,7 +44,7 @@ function prepareWorkDir(repo: DiscoveredRepo): {
   }
 
   execSilent(
-    `git worktree add ${worktreePath} ${repo.defaultBranch}`,
+    `git worktree add --detach ${worktreePath} ${repo.defaultBranch}`,
     repo.path
   );
 
@@ -97,7 +98,7 @@ export async function updateRepo(
     await execWithOutput('git', ['fetch', 'origin'], { cwd: workDir });
 
     // Create update branch
-    const branch = updateBranchName();
+    const branch = updateBranchName(options.runNumber);
     p.log.step(`Creating branch ${branch}...`);
     try {
       execSilent(
