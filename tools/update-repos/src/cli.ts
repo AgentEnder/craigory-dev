@@ -80,22 +80,34 @@ const updateReposCLI = cli('update-repos', {
               logger.info(msg);
             };
 
-            if (results.length > 0) {
-              try {
-                const { markdownPath } = generateReport(
-                  results,
-                  state
-                );
-                write(`Interrupted! Partial report: ${markdownPath}`);
-              } catch (e) {
-                logger.error(
-                  `Failed to write partial report: ${e}`
-                );
+            // Mark the current repo as interrupted if it was in progress
+            if (currentRepo) {
+              const alreadyRecorded = results.some(
+                (r) => r.name === currentRepo
+              );
+              if (!alreadyRecorded) {
+                results.push({
+                  name: currentRepo,
+                  remoteUrl: '',
+                  status: 'failure',
+                  auditFixed: false,
+                  error: `interrupted (${signal})`,
+                });
               }
+              write(`Was processing: ${currentRepo}`);
             }
 
-            if (currentRepo) {
-              write(`Was processing: ${currentRepo}`);
+            // Write partial report (even if empty — shows what was selected)
+            try {
+              const { markdownPath } = generateReport(
+                results,
+                state
+              );
+              write(`Partial report: ${markdownPath}`);
+            } catch (e) {
+              logger.error(
+                `Failed to write partial report: ${e}`
+              );
             }
 
             write(`Log file: ${logger.logPath}`);
