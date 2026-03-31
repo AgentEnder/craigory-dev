@@ -205,7 +205,13 @@ export async function updateRepo(
         );
         result.prUrl = existingPr;
       } catch {
-        // PR creation failed for another reason
+        // PR creation failed — build a manual create URL
+        // Format: https://github.com/owner/repo/compare/base...head
+        const compareUrl = `https://${repo.remoteUrl}/compare/${repo.defaultBranch}...${branch}?expand=1`;
+        result.manualPrUrl = compareUrl;
+        p.log.warn(
+          `PR creation failed. Create manually: ${compareUrl}`
+        );
       }
     } else {
       const urlMatch = prResult.stdout.match(
@@ -216,7 +222,13 @@ export async function updateRepo(
       }
     }
 
-    prSpinner.stop(result.prUrl ? `PR: ${result.prUrl}` : 'Pushed');
+    if (result.prUrl) {
+      prSpinner.stop(`PR: ${result.prUrl}`);
+    } else if (result.manualPrUrl) {
+      prSpinner.stop('Pushed (PR creation failed — see link above)');
+    } else {
+      prSpinner.stop('Pushed');
+    }
     result.status = 'success';
     p.log.success(`Updated ${repo.name}`);
   } catch (e) {

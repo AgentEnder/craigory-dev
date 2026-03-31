@@ -15,6 +15,8 @@ export interface RepoResult {
   nxMigrated?: { oldVersion: string; newVersion: string } | null;
   auditFixed: boolean;
   prUrl?: string;
+  /** URL the user can visit to manually create a PR (when gh pr create fails) */
+  manualPrUrl?: string;
   error?: string;
 }
 
@@ -64,7 +66,11 @@ export function generateReport(
               ? `${r.nxMigrated.oldVersion} → ${r.nxMigrated.newVersion}`
               : '—',
             auditFixed: r.auditFixed ? 'Yes' : 'No',
-            pr: r.prUrl ?? '—',
+            pr: r.prUrl
+              ? r.prUrl
+              : r.manualPrUrl
+                ? `[create PR](${r.manualPrUrl})`
+                : '—',
           })),
           [
             { label: 'Repo', field: 'name' },
@@ -72,6 +78,23 @@ export function generateReport(
             { label: 'Audit Fixed', field: 'auditFixed' },
             { label: 'PR', field: 'pr' },
           ]
+        )
+      )
+    );
+  }
+
+  // Repos that pushed successfully but failed to create a PR
+  const needsManualPr = results.filter(
+    (r) => r.status === 'success' && !r.prUrl && r.manualPrUrl
+  );
+  if (needsManualPr.length > 0) {
+    sections.push(
+      h2(
+        `Needs Manual PR (${needsManualPr.length})`,
+        unorderedList(
+          needsManualPr.map(
+            (r) => `[\`${r.name}\`](${r.manualPrUrl})`
+          )
         )
       )
     );
