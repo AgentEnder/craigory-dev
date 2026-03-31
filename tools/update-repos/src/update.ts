@@ -171,9 +171,10 @@ export async function updateRepo(
     );
 
     if (pushResult.exitCode !== 0) {
-      prSpinner.stop('Push failed');
+      const pushError = (pushResult.stdout + pushResult.stderr).trim().split('\n')[0];
+      prSpinner.stop(`Push failed: ${pushError}`);
       result.status = 'failure';
-      result.error = 'push failed (no access?)';
+      result.error = `push failed: ${pushError}`;
       return result;
     }
 
@@ -211,23 +212,33 @@ export async function updateRepo(
     );
 
     if (prResult.exitCode !== 0) {
-      // PR might already exist — try to get its URL
-      try {
-        const existingPr = execSilent(
-          `gh pr view ${branch} --json url --jq .url`,
-          workDir
-        );
-        result.prUrl = existingPr;
-      } catch {
-        // PR creation failed — build a manual create URL
-        // Format: https://github.com/owner/repo/compare/base...head
+      const prError = (prResult.stdout + prResult.stderr).trim();
+      const isDuplicate = prError.includes('already exists');
+
+      if (isDuplicate) {
+        // PR already exists for this branch — get its URL
+        try {
+          const existingPr = execSilent(
+            `gh pr view ${branch} --json url --jq .url`,
+            workDir
+          );
+          result.prUrl = existingPr;
+        } catch {
+          // Fall through to manual URL
+        }
+      }
+
+      if (!result.prUrl) {
+        // PR creation failed (permission error, API error, etc.)
         const compareUrl = `https://${repo.remoteUrl}/compare/${
           repo.defaultBranch
-        }...${branch}?expand=1&title=${prTitle}&body=${encodeURIComponent(
+        }...${branch}?expand=1&title=${encodeURIComponent(prTitle)}&body=${encodeURIComponent(
           prBody
         )}`;
         result.manualPrUrl = compareUrl;
-        p.log.warn(`PR creation failed. Create manually: ${compareUrl}`);
+        p.log.warn(`PR creation failed: ${prError.split('\n')[0]}`);
+        p.log.warn(`Create manually: ${compareUrl}`);
+        logger.error(`PR creation failed for ${repo.name}: ${prError}`);
       }
     } else {
       const urlMatch = prResult.stdout.match(/https:\/\/github\.com\/[^\s]+/);

@@ -182,8 +182,8 @@ export function execWithActivityTimeout(
         logger.error(`${label} timed out after ${options.idleTimeoutMs / 1000}s of silence`);
       } else if (exitCode !== 0) {
         logger.error(`${label} exited with code ${exitCode}`);
-        if (stdout) process.stderr.write(stdout);
-        if (stderr) process.stderr.write(stderr);
+        // Don't dump full output to terminal — it can be very long
+        // (e.g. claude stream-json). Point to the log file instead.
       }
       resolve({ exitCode, stdout, stderr, timedOut });
     });
@@ -265,8 +265,8 @@ export function getAuditFixCommand(
     case 'pnpm':
       return ['pnpm', ['audit', '--fix']];
     case 'yarn':
-      // Yarn Berry doesn't have audit fix — needs manual intervention
-      return null;
+      // Yarn Berry doesn't have a native audit fix, fall back to npm
+      return ['npm', ['audit', 'fix']];
     case 'bun':
       return null;
     case 'npm':

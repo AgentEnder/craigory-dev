@@ -242,7 +242,7 @@ async function runAiAgent(
   if (result.exitCode === 0) {
     s.stop(`${agent} finished successfully`);
   } else {
-    s.stop(`${agent} exited with code ${result.exitCode}`);
+    s.stop(`${agent} exited with code ${result.exitCode} (see log file for details)`);
   }
 
   return { success: result.exitCode === 0, timedOut: false };
