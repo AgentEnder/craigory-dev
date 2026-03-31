@@ -3,6 +3,12 @@
 import { cli } from 'cli-forge';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
+import * as p from '@clack/prompts';
+
+import { discoverRepos } from './discover.js';
+import { loadState, selectRepos } from './select.js';
+import { updateRepo } from './update.js';
+import { generateReport, type RepoResult } from './report.js';
 
 const updateReposCLI = cli('update-repos', {
   description:
@@ -25,8 +31,55 @@ const updateReposCLI = cli('update-repos', {
         default: false,
       }),
   handler: async (args) => {
-    // Will be filled in as we implement each module
-    console.log('update-repos', args);
+    p.intro('update-repos');
+
+    // 1. Discover repos
+    const s = p.spinner();
+    s.start('Discovering repos...');
+    const repos = discoverRepos(args.reposDir);
+    s.stop(`Found ${repos.length} unique repos`);
+
+    if (repos.length === 0) {
+      p.outro('No repos found.');
+      return;
+    }
+
+    // 2. Select repos
+    const state = loadState();
+    const selected = await selectRepos(repos, state);
+
+    if (selected.length === 0) {
+      p.outro('No repos selected.');
+      return;
+    }
+
+    p.log.info(`Updating ${selected.length} repo(s)...`);
+
+    // 3. Update each repo sequentially
+    const results: RepoResult[] = [];
+    for (const repo of selected) {
+      p.log.step(`\n━━━ ${repo.name} ━━━`);
+      const result = await updateRepo(repo, {
+        aiAgent: args.aiAgent,
+        dryRun: args.dryRun,
+      });
+      results.push(result);
+    }
+
+    // 4. Generate report
+    const { markdownPath } = generateReport(results, state);
+
+    // 5. Summary
+    const succeeded = results.filter((r) => r.status === 'success').length;
+    const failed = results.filter((r) => r.status === 'failure').length;
+    const skipped = results.filter((r) => r.status === 'skipped').length;
+
+    p.log.info(
+      `Results: ${succeeded} success, ${failed} failed, ${skipped} skipped`
+    );
+    p.log.info(`Report: ${markdownPath}`);
+
+    p.outro('Done!');
   },
 });
 
