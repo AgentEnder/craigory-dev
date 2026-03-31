@@ -171,10 +171,11 @@ function findWorktrees(): string[] {
 /**
  * Run the cleanup flow for a set of repos.
  * Cleans up: worktrees, then update branches (remote + local in lockstep).
+ * Returns true if completed, false if cancelled by user.
  */
 export async function cleanupRepos(
   repos: DiscoveredRepo[]
-): Promise<void> {
+): Promise<boolean> {
   let totalDeleted = 0;
   let totalErrors = 0;
 
@@ -197,7 +198,7 @@ export async function cleanupRepos(
 
       if (p.isCancel(answer)) {
         p.cancel('Cleanup cancelled');
-        return;
+        return false;
       }
 
       if (answer) {
@@ -257,10 +258,7 @@ export async function cleanupRepos(
 
     if (p.isCancel(selected)) {
       p.cancel('Cleanup cancelled');
-      p.log.info(
-        `Deleted ${totalDeleted} item(s), ${totalErrors} error(s)`
-      );
-      return;
+      return false;
     }
 
     const toDelete = selected as string[];
@@ -290,4 +288,6 @@ export async function cleanupRepos(
       `Done: deleted ${totalDeleted} item(s)${totalErrors > 0 ? `, ${totalErrors} error(s)` : ''}`
     );
   }
+
+  return true;
 }

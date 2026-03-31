@@ -232,11 +232,14 @@ const updateReposCLI = cli('update-repos', {
           }
 
           logger.info(`Cleanup: ${selected.map((r) => r.name).join(', ')}`);
-          await cleanupRepos(selected);
+          const completed = await cleanupRepos(selected);
 
-          p.log.info(`Log: ${logger.logPath}`);
-          logger.close('completed');
-          p.outro('Cleanup complete!');
+          if (completed) {
+            logger.close('completed');
+            p.outro('Cleanup complete!');
+          } else {
+            logger.close('cancelled');
+          }
         },
       }),
 });

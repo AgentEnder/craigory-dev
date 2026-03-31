@@ -47,11 +47,14 @@ class Logger {
     this.info(`update-repos started at ${new Date().toISOString()}`);
     this.info('='.repeat(60));
 
-    // Ensure log is closed on any exit (including clack's process.exit(0))
+    // Ensure log is closed on any exit (including clack's process.exit(0)).
+    // Only prints log path if we haven't already closed cleanly.
     process.on('exit', (code) => {
-      this.closeSync(`process.exit(${code})`);
-      if (this._logPath) {
-        process.stderr.write(`Log: ${this._logPath}\n`);
+      if (!this.closed) {
+        this.closeSync(`process.exit(${code})`);
+        if (this._logPath) {
+          process.stderr.write(`Log: ${this._logPath}\n`);
+        }
       }
     });
   }
