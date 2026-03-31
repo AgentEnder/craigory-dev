@@ -119,7 +119,7 @@ export async function updateRepo(
     // Nx migrate first (if applicable) — changes dep versions
     if (isNxWorkspace(workDir)) {
       p.log.step('Running Nx migration...');
-      result.nxMigrated = await runNxMigrate(workDir, pm);
+      result.nxMigrated = await runNxMigrate(workDir, pm, options.aiAgent);
     }
 
     // Audit fix runs after Nx migrate so it sees post-migration deps
