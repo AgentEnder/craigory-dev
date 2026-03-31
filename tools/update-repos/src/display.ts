@@ -132,6 +132,13 @@ export class DetailView {
         return;
       }
 
+      // Never forward escape to clack — clack's default aliases map it
+      // to 'cancel' which calls process.exit(0) from block()/spinner.
+      // We handle escape ourselves for the detail view toggle.
+      if (key?.name === 'escape') {
+        return;
+      }
+
       // Forward everything else to the proxy for clack (prompts, spinners)
       if (key?.sequence) {
         this.stdinProxy.write(key.sequence);
