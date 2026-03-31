@@ -1,14 +1,14 @@
 #!/usr/bin/env node
 
+import * as p from '@clack/prompts';
 import { cli } from 'cli-forge';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
-import * as p from '@clack/prompts';
 
 import { discoverRepos } from './discover.js';
+import { generateReport, type RepoResult } from './report.js';
 import { loadState, selectRepos } from './select.js';
 import { updateRepo } from './update.js';
-import { generateReport, type RepoResult } from './report.js';
 
 const updateReposCLI = cli('update-repos', {
   description:
@@ -31,6 +31,9 @@ const updateReposCLI = cli('update-repos', {
         default: false,
       }),
   handler: async (args) => {
+    p.updateSettings({
+      aliases: { k: 'up', j: 'down', h: 'left', l: 'right', '\x03': 'cancel' },
+    });
     p.intro('update-repos');
 
     // 1. Discover repos
@@ -55,7 +58,9 @@ const updateReposCLI = cli('update-repos', {
 
     p.log.info(`Updating ${selected.length} repo(s)...`);
     if (process.stdin.isTTY) {
-      p.log.message('\x1b[2m↵ press Enter during commands to view full output\x1b[0m');
+      p.log.message(
+        '\x1b[2m␣ press Space during commands to view full output\x1b[0m'
+      );
     }
 
     // 3. Update each repo sequentially

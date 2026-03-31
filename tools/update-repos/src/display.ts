@@ -133,15 +133,21 @@ export class DetailView {
         process.exit(130);
       }
 
-      if (!this.active) {
-        // Enter opens detail view, everything else is ignored
-        if (key.name === 'return') {
+      // Spacebar toggles detail view on/off
+      if (key.name === 'space') {
+        if (this.active) {
+          this.leaveAltScreen();
+        } else {
           this.enterAltScreen();
         }
         return;
       }
 
-      // Escape only exits detail view, never cancels the process
+      if (!this.active) {
+        return;
+      }
+
+      // Escape exits detail view
       if (key.name === 'escape') {
         this.leaveAltScreen();
         return;
@@ -149,9 +155,6 @@ export class DetailView {
 
       // --- Keys active in detail view ---
       switch (key.name) {
-        case 'return':
-          this.leaveAltScreen();
-          break;
 
         case 'up':
           this.scroll(-1);
@@ -279,7 +282,7 @@ export class DetailView {
       ? `${this.scrollOffset + 1}–${currentLine} of ${totalLines}`
       : 'empty';
     const followIndicator = this.following ? ' [following]' : '';
-    const statusText = ` ${position}${followIndicator}  ${DIM}↑↓ scroll │ PgUp/PgDn page │ g/G top/bottom │ Enter/Esc close${RESET}`;
+    const statusText = ` ${position}${followIndicator}  ${DIM}↑↓ scroll │ PgUp/PgDn page │ g/G top/bottom │ Space/Esc close${RESET}`;
 
     // Move to last row
     process.stdout.write(`\x1b[${rows};1H`);

@@ -151,41 +151,6 @@ function hasChanges(repoPath: string): boolean {
 }
 
 /**
- * Parse a line of Claude stream-json output into a human-readable summary.
- * stream-json emits one JSON object per line with a "type" field.
- */
-function parseClaudeStreamLine(line: string): string | null {
-  if (!line.trim()) return null;
-  try {
-    const event = JSON.parse(line);
-    switch (event.type) {
-      case 'assistant':
-        // Assistant text message
-        if (event.message?.content) {
-          const textBlocks = event.message.content.filter(
-            (b: { type: string }) => b.type === 'text'
-          );
-          if (textBlocks.length > 0) {
-            return textBlocks.map((b: { text: string }) => b.text).join('');
-          }
-        }
-        return null;
-      case 'tool_use':
-        return `[tool] ${event.tool?.name ?? 'unknown'}`;
-      case 'tool_result':
-        return `[result] ${(event.content ?? '').toString().slice(0, 200)}`;
-      case 'result':
-        return `[done] cost: $${event.cost_usd?.toFixed(4) ?? '?'}, duration: ${event.duration_ms ? Math.round(event.duration_ms / 1000) + 's' : '?'}`;
-      default:
-        return null;
-    }
-  } catch {
-    // Not JSON — return the raw line
-    return line;
-  }
-}
-
-/**
  * Run an AI agent with a spinner and idle-timeout watchdog.
  * Uses --output-format stream-json for Claude so progress is visible
  * in the detail view. Kills if no output for AGENT_IDLE_TIMEOUT_MS.
@@ -197,21 +162,6 @@ async function runAiAgent(
 ): Promise<{ success: boolean; timedOut: boolean }> {
   const s = p.spinner();
   s.start(`${agent} is fixing audit vulnerabilities...`);
-
-  const onData = (chunk: string) => {
-    // Update spinner with the latest meaningful line
-    const lines = chunk.split('\n').filter((l) => l.trim());
-    for (const line of lines) {
-      if (agent === 'claude') {
-        const parsed = parseClaudeStreamLine(line);
-        if (parsed) {
-          s.message(`${agent}: ${parsed.slice(0, 80)}`);
-        }
-      } else {
-        s.message(`${agent}: ${line.slice(0, 80)}`);
-      }
-    }
-  };
 
   const cmdArgs =
     agent === 'claude'
@@ -236,7 +186,6 @@ async function runAiAgent(
     cwd: repoPath,
     idleTimeoutMs: AGENT_IDLE_TIMEOUT_MS,
     label: `${agent}: audit fix`,
-    onData,
   });
 
   if (result.timedOut) {

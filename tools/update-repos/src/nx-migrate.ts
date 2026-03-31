@@ -369,8 +369,8 @@ Follow the instructions in this migration guide. Make all the changes described,
 
 After completing the migration, delete the file at ${filePath} since it has been applied.`;
 
-    const s = p.spinner();
-    s.start(`${agent} is applying ${file}...`);
+    const aiS = p.spinner();
+    aiS.start(`${agent} is applying ${file}...`);
 
     const cmdArgs =
       agent === 'claude'
@@ -398,15 +398,15 @@ After completing the migration, delete the file at ${filePath} since it has been
     });
 
     if (result.timedOut) {
-      s.stop(`${agent} timed out on ${file}`);
+      aiS.stop(`${agent} timed out on ${file}`);
       p.log.warn(`Skipping ${file} — agent timed out`);
       continue;
     }
 
     if (result.exitCode === 0) {
-      s.stop(`Applied ${file}`);
+      aiS.stop(`Applied ${file}`);
     } else {
-      s.stop(`${agent} failed on ${file}`);
+      aiS.stop(`${agent} failed on ${file}`);
       p.log.warn(`Failed to apply ${file}, continuing`);
     }
 
