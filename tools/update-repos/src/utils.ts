@@ -2,6 +2,8 @@ import { spawn, execSync } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
+import { detailView } from './display.js';
+
 export type PackageManager = 'npm' | 'yarn' | 'pnpm' | 'bun';
 
 /**
@@ -40,35 +42,53 @@ export function execWithOutput(
 }
 
 /**
- * Run a command silently, capturing all output. If the command fails
- * (non-zero exit) and `dumpOnFailure` is true (the default), dump the
- * captured output to stderr so the user can see what went wrong.
+ * Run a command silently, capturing all output. The user can press
+ * Enter to toggle a full-output detail view in the terminal's
+ * alternate screen buffer.
+ *
+ * If the command fails (non-zero exit) and `dumpOnFailure` is true
+ * (the default), dump the captured output to stderr.
  */
 export function execQuiet(
   command: string,
   args: string[],
-  options: { cwd: string; env?: NodeJS.ProcessEnv; dumpOnFailure?: boolean }
+  options: {
+    cwd: string;
+    env?: NodeJS.ProcessEnv;
+    dumpOnFailure?: boolean;
+    /** Label shown in the detail view header. Defaults to the command. */
+    label?: string;
+  }
 ): Promise<{ exitCode: number; stdout: string; stderr: string }> {
   const dumpOnFailure = options.dumpOnFailure ?? true;
+  const label = options.label ?? `${command} ${args.join(' ')}`;
+
   return new Promise((resolve) => {
+    detailView.start(label);
+
     const proc = spawn(command, args, {
       cwd: options.cwd,
       env: options.env ?? process.env,
-      stdio: ['inherit', 'pipe', 'pipe'],
+      stdio: ['pipe', 'pipe', 'pipe'],
     });
 
     let stdout = '';
     let stderr = '';
 
     proc.stdout.on('data', (data: Buffer) => {
-      stdout += data.toString();
+      const str = data.toString();
+      stdout += str;
+      detailView.write(str);
     });
 
     proc.stderr.on('data', (data: Buffer) => {
-      stderr += data.toString();
+      const str = data.toString();
+      stderr += str;
+      detailView.write(str);
     });
 
     proc.on('close', (code) => {
+      detailView.stop();
       const exitCode = code ?? 1;
       if (exitCode !== 0 && dumpOnFailure) {
         if (stdout) process.stderr.write(stdout);

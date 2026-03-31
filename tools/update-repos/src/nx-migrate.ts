@@ -1,18 +1,18 @@
+import * as p from '@clack/prompts';
 import {
   existsSync,
   readFileSync,
   readdirSync,
-  writeFileSync,
   unlinkSync,
+  writeFileSync,
 } from 'node:fs';
 import { join } from 'node:path';
-import * as p from '@clack/prompts';
 
 import {
   type PackageManager,
   execQuiet,
-  execWithActivityTimeout,
   execSilent,
+  execWithActivityTimeout,
   getInstallCommand,
 } from './utils.js';
 
@@ -210,10 +210,7 @@ Respond with ONLY the JSON object.`;
     const jsonMatch = result.stdout.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
       const parsed = JSON.parse(jsonMatch[0]);
-      if (
-        parsed.action === 'exclude-and-retry' ||
-        parsed.action === 'halt'
-      ) {
+      if (parsed.action === 'exclude-and-retry' || parsed.action === 'halt') {
         return parsed as AiTriageResult;
       }
     }
@@ -353,9 +350,7 @@ async function processAiMigrationFiles(
 
   if (files.length === 0) return;
 
-  p.log.step(
-    `Found ${files.length} AI migration file(s): ${files.join(', ')}`
-  );
+  p.log.step(`Found ${files.length} AI migration file(s): ${files.join(', ')}`);
 
   if (aiAgent === 'false') {
     p.log.warn('AI agent disabled, skipping AI migration files');
@@ -508,7 +503,7 @@ export async function runNxMigrate(
     const migrateResult = await execQuiet(
       pmx,
       ['nx', 'migrate', targetVersion, '--no-interactive'],
-      { cwd: repoPath }
+      { cwd: repoPath, env: { ...process.env, CI: 'true' } }
     );
 
     if (migrateResult.exitCode !== 0) {
