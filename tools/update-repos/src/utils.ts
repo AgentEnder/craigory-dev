@@ -1,4 +1,4 @@
-import { spawn, execSync } from 'node:child_process';
+import { execSync, spawn } from 'node:child_process';
 import { existsSync, readFileSync } from 'node:fs';
 import { join } from 'node:path';
 
@@ -115,7 +115,12 @@ export function execWithActivityTimeout(
     label?: string;
     onData?: (chunk: string) => void;
   }
-): Promise<{ exitCode: number; stdout: string; stderr: string; timedOut: boolean }> {
+): Promise<{
+  exitCode: number;
+  stdout: string;
+  stderr: string;
+  timedOut: boolean;
+}> {
   const label = options.label ?? `${command} ${args[0] ?? ''}`;
 
   return new Promise((resolve) => {
@@ -124,7 +129,7 @@ export function execWithActivityTimeout(
     const proc = spawn(command, args, {
       cwd: options.cwd,
       env: options.env ?? process.env,
-      stdio: ['pipe', 'pipe', 'pipe'],
+      stdio: ['ignore', 'pipe', 'pipe'],
     });
 
     let stdout = '';
@@ -163,7 +168,12 @@ export function execWithActivityTimeout(
     proc.on('close', (code) => {
       clearTimeout(timer);
       detailView.stop();
-      resolve({ exitCode: code ?? 1, stdout, stderr, timedOut });
+      const exitCode = code ?? 1;
+      if (exitCode !== 0) {
+        if (stdout) process.stderr.write(stdout);
+        if (stderr) process.stderr.write(stderr);
+      }
+      resolve({ exitCode, stdout, stderr, timedOut });
     });
   });
 }
@@ -197,9 +207,7 @@ export function detectPackageManager(repoPath: string): PackageManager {
 /**
  * Get the install command for a package manager.
  */
-export function getInstallCommand(
-  pm: PackageManager
-): [string, string[]] {
+export function getInstallCommand(pm: PackageManager): [string, string[]] {
   switch (pm) {
     case 'pnpm':
       return ['pnpm', ['install', '--no-frozen-lockfile']];
@@ -303,10 +311,7 @@ export function nextUpdateBranchName(repoPath: string): string {
 
   // Check both local and remote branches in a single call
   try {
-    const refs = execSilent(
-      `git branch -a --list "*${prefix}*"`,
-      repoPath
-    );
+    const refs = execSilent(`git branch -a --list "*${prefix}*"`, repoPath);
     for (const line of refs.split('\n')) {
       const match = line.trim().match(/\.(\d+)$/);
       if (match) {
