@@ -264,29 +264,28 @@ export function todayString(): string {
 
 /**
  * Determine the next available calver branch name for a repo.
- * Checks remote branches matching chore/update-YYYY-MM-DD.* and
- * picks the next available number.
+ * Checks both local and remote branches matching chore/update-YYYY-MM-DD.*
+ * and picks the next available number.
  */
 export function nextUpdateBranchName(repoPath: string): string {
   const today = todayString();
   const prefix = `chore/update-${today}.`;
   let maxN = 0;
 
+  // Check both local and remote branches in a single call
   try {
     const refs = execSilent(
-      `git branch -r --list "origin/${prefix}*"`,
+      `git branch -a --list "*${prefix}*"`,
       repoPath
     );
     for (const line of refs.split('\n')) {
-      const trimmed = line.trim();
-      // e.g. "origin/chore/update-2026-03-31.2"
-      const match = trimmed.match(/\.(\d+)$/);
+      const match = line.trim().match(/\.(\d+)$/);
       if (match) {
         maxN = Math.max(maxN, parseInt(match[1], 10));
       }
     }
   } catch {
-    // No remote branches or git error — start at 1
+    // No matching branches or git error — start at 1
   }
 
   return `${prefix}${maxN + 1}`;
