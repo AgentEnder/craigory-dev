@@ -519,10 +519,21 @@ export async function runNxMigrate(
       }
     }
 
-    // Phase 2: install updated deps
+    // Phase 2: install updated deps and commit package.json + lockfile
     s.message(`nx@${targetVersion}: installing dependencies...`);
     const [installCmd, installArgs] = getInstallCommand(pm);
     await execQuiet(installCmd, installArgs, { cwd: repoPath });
+
+    s.message(`nx@${targetVersion}: committing dependency updates...`);
+    try {
+      execSilent('git add -A', repoPath);
+      execSilent(
+        `git commit -m "chore: update to nx@${targetVersion}" --allow-empty-message`,
+        repoPath
+      );
+    } catch {
+      // Nothing to commit (no changes) — fine
+    }
 
     // Phase 3: run migrations with recovery (updates spinner internally)
     const stats = await runMigrationsWithRecovery(repoPath, pmx, aiAgent, s);
