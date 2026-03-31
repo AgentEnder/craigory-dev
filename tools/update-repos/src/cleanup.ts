@@ -7,41 +7,77 @@ import { execSilent } from './utils.js';
 const WORKTREE_DIR = '/tmp/upgrade-worktrees';
 
 /**
- * Find remote branches matching our update branch pattern
- * (chore/update-YYYY-MM-DD.N) for a given repo.
+ * Find all update branches (remote and local) for a repo.
+ * Returns deduplicated branch names — deletion handles both
+ * remote and local in lockstep.
  */
 function findUpdateBranches(repoPath: string): string[] {
+  const branches = new Set<string>();
+
   try {
-    const refs = execSilent(
+    const remote = execSilent(
       'git branch -r --list "origin/chore/update-*"',
       repoPath
     );
-    return refs
-      .split('\n')
-      .map((l) => l.trim())
-      .filter((l) => l.startsWith('origin/chore/update-'))
-      .map((l) => l.replace('origin/', ''));
+    for (const line of remote.split('\n')) {
+      const trimmed = line.trim();
+      if (trimmed.startsWith('origin/chore/update-')) {
+        branches.add(trimmed.replace('origin/', ''));
+      }
+    }
   } catch {
-    return [];
+    // No remote branches
   }
-}
 
-/**
- * Find local branches matching our update branch pattern.
- */
-function findLocalUpdateBranches(repoPath: string): string[] {
   try {
-    const refs = execSilent(
+    const local = execSilent(
       'git branch --list "chore/update-*"',
       repoPath
     );
-    return refs
-      .split('\n')
-      .map((l) => l.trim().replace(/^\* /, ''))
-      .filter((l) => l.startsWith('chore/update-'));
+    for (const line of local.split('\n')) {
+      const trimmed = line.trim().replace(/^\* /, '');
+      if (trimmed.startsWith('chore/update-')) {
+        branches.add(trimmed);
+      }
+    }
   } catch {
-    return [];
+    // No local branches
   }
+
+  return [...branches].sort();
+}
+
+/**
+ * Delete a branch both locally and on the remote.
+ */
+function deleteBranch(
+  repoPath: string,
+  branch: string
+): { deleted: string[]; errors: string[] } {
+  const deleted: string[] = [];
+  const errors: string[] = [];
+
+  // Delete remote
+  try {
+    execSilent(`git push origin --delete ${branch}`, repoPath);
+    deleted.push(`origin/${branch}`);
+  } catch {
+    // May not exist on remote (local-only branch)
+  }
+
+  // Delete local
+  try {
+    execSilent(`git branch -D ${branch}`, repoPath);
+    deleted.push(branch);
+  } catch {
+    // May not exist locally (remote-only branch)
+  }
+
+  if (deleted.length === 0) {
+    errors.push(`Failed to delete ${branch} (neither local nor remote)`);
+  }
+
+  return { deleted, errors };
 }
 
 /**
@@ -60,19 +96,19 @@ function findWorktrees(): string[] {
 
 /**
  * Run the cleanup flow for a set of repos.
- * Cleans up: remote branches, local branches, and worktrees.
+ * Cleans up: worktrees, then update branches (remote + local in lockstep).
  */
 export async function cleanupRepos(
   repos: DiscoveredRepo[]
 ): Promise<void> {
   let totalDeleted = 0;
-  let totalSkipped = 0;
+  let totalErrors = 0;
 
   // --- Worktree cleanup ---
   const worktrees = findWorktrees();
   if (worktrees.length > 0) {
     p.log.step(
-      `\n━━━ Worktrees (${worktrees.length} found in ${WORKTREE_DIR}) ━━━`
+      `\n━━━ Worktrees (${worktrees.length} in ${WORKTREE_DIR}) ━━━`
     );
 
     for (const wt of worktrees) {
@@ -97,91 +133,87 @@ export async function cleanupRepos(
           totalDeleted++;
         } catch (e) {
           p.log.error(
-            `Failed to remove ${wt}: ${e instanceof Error ? e.message : String(e)}`
+            `Failed: ${e instanceof Error ? e.message : String(e)}`
           );
-          totalSkipped++;
+          totalErrors++;
         }
-      } else {
-        p.log.info(`Skipped ${wt}`);
-        totalSkipped++;
       }
     }
   }
 
   // --- Branch cleanup per repo ---
   for (const repo of repos) {
-    // Fetch to make sure we see all remote branches
+    const fetchSpinner = p.spinner();
+    fetchSpinner.start(`Fetching ${repo.name}...`);
     try {
       execSilent('git fetch --prune origin', repo.path);
+      fetchSpinner.stop(`Fetched ${repo.name}`);
     } catch {
-      p.log.warn(`Failed to fetch ${repo.name}, skipping`);
+      fetchSpinner.stop(`Failed to fetch ${repo.name}`);
       continue;
     }
 
-    const remoteBranches = findUpdateBranches(repo.path);
-    const localBranches = findLocalUpdateBranches(repo.path);
-    const allBranches = [
-      ...remoteBranches.map((b) => ({ name: b, type: 'remote' as const })),
-      ...localBranches.map((b) => ({ name: b, type: 'local' as const })),
-    ];
-
-    if (allBranches.length === 0) {
+    const branches = findUpdateBranches(repo.path);
+    if (branches.length === 0) {
       continue;
     }
 
     p.log.step(
-      `\n━━━ ${repo.name} (${allBranches.length} update branches) ━━━`
+      `\n━━━ ${repo.name} (${branches.length} update branches) ━━━`
     );
 
-    for (const branch of allBranches) {
-      const cmd =
-        branch.type === 'remote'
-          ? `git push origin --delete ${branch.name}`
-          : `git branch -D ${branch.name}`;
-      const label =
-        branch.type === 'remote'
-          ? `origin/${branch.name}`
-          : `${branch.name} (local)`;
+    // Show commands that will run for context
+    for (const branch of branches) {
+      p.log.message(
+        `  \x1b[2m$ git push origin --delete ${branch}\x1b[0m`
+      );
+      p.log.message(
+        `  \x1b[2m$ git branch -D ${branch}\x1b[0m`
+      );
+    }
 
-      p.log.message(`  Branch: \x1b[1m${label}\x1b[0m`);
-      p.log.message(`  \x1b[2m$ ${cmd}\x1b[0m`);
+    const selected = await p.multiselect({
+      message: `Select branches to delete (remote + local):`,
+      options: branches.map((b) => ({
+        value: b,
+        label: b,
+      })),
+      initialValues: branches,
+    });
 
-      const answer = await p.confirm({
-        message: `Delete ${label}?`,
-        initialValue: true,
-      });
+    if (p.isCancel(selected)) {
+      p.cancel('Cleanup cancelled');
+      p.log.info(
+        `Deleted ${totalDeleted} item(s), ${totalErrors} error(s)`
+      );
+      return;
+    }
 
-      if (p.isCancel(answer)) {
-        p.cancel('Cleanup cancelled');
-        p.log.info(
-          `Deleted ${totalDeleted} item(s), skipped ${totalSkipped}`
-        );
-        return;
+    const toDelete = selected as string[];
+
+    for (const branch of toDelete) {
+      const { deleted, errors } = deleteBranch(repo.path, branch);
+      for (const d of deleted) {
+        p.log.success(`Deleted ${d}`);
+        totalDeleted++;
       }
-
-      if (answer) {
-        try {
-          execSilent(cmd, repo.path);
-          p.log.success(`Deleted ${label}`);
-          totalDeleted++;
-        } catch (e) {
-          p.log.error(
-            `Failed to delete ${label}: ${e instanceof Error ? e.message : String(e)}`
-          );
-          totalSkipped++;
-        }
-      } else {
-        p.log.info(`Skipped ${label}`);
-        totalSkipped++;
+      for (const e of errors) {
+        p.log.error(e);
+        totalErrors++;
       }
+    }
+
+    const skipped = branches.length - toDelete.length;
+    if (skipped > 0) {
+      p.log.info(`Skipped ${skipped} branch(es)`);
     }
   }
 
-  if (totalDeleted === 0 && totalSkipped === 0) {
+  if (totalDeleted === 0 && totalErrors === 0) {
     p.log.info('Nothing to clean up');
   } else {
     p.log.info(
-      `Done: deleted ${totalDeleted} item(s), skipped ${totalSkipped}`
+      `Done: deleted ${totalDeleted} item(s)${totalErrors > 0 ? `, ${totalErrors} error(s)` : ''}`
     );
   }
 }
