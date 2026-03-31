@@ -48,7 +48,35 @@ function findUpdateBranches(repoPath: string): string[] {
 }
 
 /**
+ * Check if a remote branch exists.
+ */
+function hasRemoteBranch(repoPath: string, branch: string): boolean {
+  try {
+    execSilent(
+      `git rev-parse --verify origin/${branch}`,
+      repoPath
+    );
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Check if a local branch exists.
+ */
+function hasLocalBranch(repoPath: string, branch: string): boolean {
+  try {
+    execSilent(`git rev-parse --verify ${branch}`, repoPath);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+/**
  * Delete a branch both locally and on the remote.
+ * Only attempts deletion on sides where the branch actually exists.
  */
 function deleteBranch(
   repoPath: string,
@@ -57,24 +85,26 @@ function deleteBranch(
   const deleted: string[] = [];
   const errors: string[] = [];
 
-  // Delete remote
-  try {
-    execSilent(`git push origin --delete ${branch}`, repoPath);
-    deleted.push(`origin/${branch}`);
-  } catch {
-    // May not exist on remote (local-only branch)
+  if (hasRemoteBranch(repoPath, branch)) {
+    try {
+      execSilent(`git push origin --delete ${branch}`, repoPath);
+      deleted.push(`origin/${branch}`);
+    } catch (e) {
+      errors.push(
+        `Failed to delete origin/${branch}: ${e instanceof Error ? e.message : String(e)}`
+      );
+    }
   }
 
-  // Delete local
-  try {
-    execSilent(`git branch -D ${branch}`, repoPath);
-    deleted.push(branch);
-  } catch {
-    // May not exist locally (remote-only branch)
-  }
-
-  if (deleted.length === 0) {
-    errors.push(`Failed to delete ${branch} (neither local nor remote)`);
+  if (hasLocalBranch(repoPath, branch)) {
+    try {
+      execSilent(`git branch -D ${branch}`, repoPath);
+      deleted.push(branch);
+    } catch (e) {
+      errors.push(
+        `Failed to delete local ${branch}: ${e instanceof Error ? e.message : String(e)}`
+      );
+    }
   }
 
   return { deleted, errors };
