@@ -95,13 +95,13 @@ export async function updateRepo(
       return result;
     }
 
-    // Fetch latest (quiet — only show output on failure)
-    p.log.step('Fetching latest...');
+    // Setup phase: fetch, branch, install — single spinner
+    const setupSpinner = p.spinner();
+    setupSpinner.start('Fetching latest...');
     await execQuiet('git', ['fetch', 'origin'], { cwd: workDir });
 
-    // Determine next available calver branch for this repo
     const branch = nextUpdateBranchName(workDir);
-    p.log.step(`Creating branch ${branch}...`);
+    setupSpinner.message(`Creating branch ${branch}...`);
     try {
       execSilent(
         `git checkout -B ${branch} origin/${repo.defaultBranch}`,
@@ -111,17 +111,14 @@ export async function updateRepo(
       execSilent(`git checkout -B ${branch}`, workDir);
     }
 
-    // Detect package manager and install (quiet)
     const pm = detectPackageManager(workDir);
-    p.log.step(`Package manager: ${pm}`);
-
+    setupSpinner.message(`Installing dependencies (${pm})...`);
     const [installCmd, installArgs] = getInstallCommand(pm);
-    p.log.step('Installing dependencies...');
     await execQuiet(installCmd, installArgs, { cwd: workDir });
+    setupSpinner.stop(`Ready (${pm}, branch: ${branch})`);
 
     // Nx migrate first (if applicable) — changes dep versions
     if (isNxWorkspace(workDir)) {
-      p.log.step('Running Nx migration...');
       result.nxMigrated = await runNxMigrate(workDir, pm, options.aiAgent);
     }
 
@@ -154,8 +151,9 @@ export async function updateRepo(
       // There are changes — continue to push
     }
 
-    // Push (quiet) and create PR
-    p.log.step('Pushing...');
+    // Push + PR phase — single spinner
+    const prSpinner = p.spinner();
+    prSpinner.start('Pushing...');
     const pushResult = await execQuiet(
       'git',
       ['push', '--force-with-lease', 'origin', branch],
@@ -163,13 +161,13 @@ export async function updateRepo(
     );
 
     if (pushResult.exitCode !== 0) {
+      prSpinner.stop('Push failed');
       result.status = 'failure';
       result.error = 'push failed (no access?)';
       return result;
     }
 
-    // Create or update PR (quiet)
-    p.log.step('Creating PR...');
+    prSpinner.message('Creating PR...');
     const prBody = [
       '## Automated Update',
       '',
@@ -218,6 +216,7 @@ export async function updateRepo(
       }
     }
 
+    prSpinner.stop(result.prUrl ? `PR: ${result.prUrl}` : 'Pushed');
     result.status = 'success';
     p.log.success(`Updated ${repo.name}`);
   } catch (e) {
