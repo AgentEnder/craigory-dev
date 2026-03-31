@@ -1,4 +1,10 @@
-import { existsSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
+import {
+  existsSync,
+  readFileSync,
+  readdirSync,
+  writeFileSync,
+  unlinkSync,
+} from 'node:fs';
 import { join } from 'node:path';
 import * as p from '@clack/prompts';
 
@@ -35,15 +41,12 @@ function getNxVersion(repoPath: string): string | null {
  * Parse a semver string and return the major version number.
  */
 function parseMajor(version: string): number {
-  // Handle ranges like "^22.5.0" or "~22.5.0"
   const cleaned = version.replace(/^[^0-9]*/, '');
   return parseInt(cleaned.split('.')[0], 10);
 }
 
 /**
  * Get the latest published version for a given Nx major via `npm view`.
- * Uses semver range `^major.0.0` and picks the highest version.
- * Returns null if no version exists for that major.
  */
 function getLatestForMajor(major: number): string | null {
   try {
@@ -52,9 +55,9 @@ function getLatestForMajor(major: number): string | null {
       process.cwd()
     );
     const parsed = JSON.parse(raw);
-    // npm returns a string for a single match, or an array for multiple
     if (typeof parsed === 'string') return parsed;
-    if (Array.isArray(parsed) && parsed.length > 0) return parsed[parsed.length - 1];
+    if (Array.isArray(parsed) && parsed.length > 0)
+      return parsed[parsed.length - 1];
     return null;
   } catch {
     return null;
@@ -72,9 +75,6 @@ function getLatestNxVersion(): string | null {
   }
 }
 
-/**
- * Get the runner prefix for nx commands based on package manager.
- */
 function getPmx(pm: PackageManager): string {
   switch (pm) {
     case 'pnpm':
@@ -88,19 +88,58 @@ function getPmx(pm: PackageManager): string {
   }
 }
 
+/**
+ * Count the number of migrations defined in a migrations.json file.
+ */
+function countMigrations(migrationsJsonPath: string): number {
+  if (!existsSync(migrationsJsonPath)) return 0;
+  try {
+    const content = JSON.parse(readFileSync(migrationsJsonPath, 'utf-8'));
+    if (content.migrations && typeof content.migrations === 'object') {
+      return Object.keys(content.migrations).length;
+    }
+  } catch {
+    // Corrupt file
+  }
+  return 0;
+}
+
+/**
+ * Count commits between two refs.
+ */
+function countCommitsBetween(
+  repoPath: string,
+  fromRef: string,
+  toRef: string
+): number {
+  try {
+    const output = execSilent(
+      `git rev-list --count ${fromRef}..${toRef}`,
+      repoPath
+    );
+    return parseInt(output, 10) || 0;
+  } catch {
+    return 0;
+  }
+}
+
+/**
+ * Get the current HEAD sha.
+ */
+function getHeadSha(repoPath: string): string {
+  return execSilent('git rev-parse HEAD', repoPath);
+}
+
+// --- AI triage for migration failures ---
+
 type MigrationErrorAction = 'exclude-and-retry' | 'halt';
 
 interface AiTriageResult {
   action: MigrationErrorAction;
-  /** Migration names to exclude from migrations.json (if action is 'exclude-and-retry') */
   excludeMigrations?: string[];
   reason: string;
 }
 
-/**
- * Ask an AI agent to triage a migration failure.
- * The agent decides whether to exclude specific migrations and retry, or halt.
- */
 async function triageMigrationFailure(
   repoPath: string,
   errorOutput: string,
@@ -146,8 +185,14 @@ Respond with ONLY the JSON object.`;
 
   const cmdArgs =
     agent === 'claude'
-      ? { cmd: 'claude', args: ['-p', prompt, '--allowedTools', 'Bash,Read'] }
-      : { cmd: 'codex', args: ['--approval-mode', 'full-auto', '-q', prompt] };
+      ? {
+          cmd: 'claude',
+          args: ['-p', prompt, '--allowedTools', 'Bash,Read'],
+        }
+      : {
+          cmd: 'codex',
+          args: ['--approval-mode', 'full-auto', '-q', prompt],
+        };
 
   const result = await execWithActivityTimeout(cmdArgs.cmd, cmdArgs.args, {
     cwd: repoPath,
@@ -161,7 +206,6 @@ Respond with ONLY the JSON object.`;
 
   s.stop(`${agent} finished analysis`);
 
-  // Parse the AI response — look for JSON in the output
   try {
     const jsonMatch = result.stdout.match(/\{[\s\S]*\}/);
     if (jsonMatch) {
@@ -174,18 +218,12 @@ Respond with ONLY the JSON object.`;
       }
     }
   } catch {
-    // Failed to parse AI response
+    // Failed to parse
   }
 
-  return {
-    action: 'halt',
-    reason: 'Could not parse AI triage response',
-  };
+  return { action: 'halt', reason: 'Could not parse AI triage response' };
 }
 
-/**
- * Remove specific migrations from migrations.json by key.
- */
 function excludeMigrationsFromJson(
   migrationsJsonPath: string,
   toExclude: string[]
@@ -202,37 +240,60 @@ function excludeMigrationsFromJson(
   writeFileSync(migrationsJsonPath, JSON.stringify(content, null, 2));
 }
 
-/**
- * Run `nx migrate --run-migrations` with AI-assisted error recovery.
- * Returns true if migrations ran successfully (possibly after excluding some),
- * or false if the repo should be halted.
- */
+// --- Run migrations with stats and recovery ---
+
+interface MigrationRunStats {
+  ok: boolean;
+  totalMigrations: number;
+  migrationsWithChanges: number;
+}
+
 async function runMigrationsWithRecovery(
   repoPath: string,
   pmx: string,
   aiAgent: string
-): Promise<boolean> {
+): Promise<MigrationRunStats> {
   const migrationsJsonPath = join(repoPath, 'migrations.json');
   if (!existsSync(migrationsJsonPath)) {
-    return true; // No migrations to run
+    return { ok: true, totalMigrations: 0, migrationsWithChanges: 0 };
   }
+
+  const totalMigrations = countMigrations(migrationsJsonPath);
 
   const maxRetries = 3;
   for (let attempt = 0; attempt <= maxRetries; attempt++) {
     p.log.step(
       attempt === 0
-        ? 'Running migrations...'
+        ? `Running ${totalMigrations} migrations...`
         : `Retrying migrations (attempt ${attempt + 1})...`
     );
 
+    const beforeSha = getHeadSha(repoPath);
+
     const runResult = await execQuiet(
       pmx,
-      ['nx', 'migrate', '--run-migrations', '--create-commits', '--no-interactive'],
+      [
+        'nx',
+        'migrate',
+        '--run-migrations',
+        '--create-commits',
+        '--no-interactive',
+      ],
       { cwd: repoPath }
     );
 
+    const afterSha = getHeadSha(repoPath);
+    const migrationsWithChanges = countCommitsBetween(
+      repoPath,
+      beforeSha,
+      afterSha
+    );
+
     if (runResult.exitCode === 0) {
-      return true;
+      p.log.success(
+        `Ran ${totalMigrations} migrations, ${migrationsWithChanges} made changes`
+      );
+      return { ok: true, totalMigrations, migrationsWithChanges };
     }
 
     const errorOutput = runResult.stdout + runResult.stderr;
@@ -240,10 +301,9 @@ async function runMigrationsWithRecovery(
 
     if (attempt >= maxRetries) {
       p.log.error(`Exhausted ${maxRetries} retries`);
-      return false;
+      return { ok: false, totalMigrations, migrationsWithChanges };
     }
 
-    // Ask AI to triage
     const triage = await triageMigrationFailure(
       repoPath,
       errorOutput,
@@ -254,7 +314,7 @@ async function runMigrationsWithRecovery(
     p.log.info(`AI triage: ${triage.action} — ${triage.reason}`);
 
     if (triage.action === 'halt') {
-      return false;
+      return { ok: false, totalMigrations, migrationsWithChanges };
     }
 
     if (
@@ -268,8 +328,130 @@ async function runMigrationsWithRecovery(
     }
   }
 
-  return false;
+  return { ok: false, totalMigrations: 0, migrationsWithChanges: 0 };
 }
+
+// --- AI migration files (tools/ai-migrations/*.md) ---
+
+/**
+ * Find and process AI migration markdown files that Nx migrations may have
+ * generated (e.g. tools/ai-migrations/MIGRATE_VITEST_4.md).
+ */
+async function processAiMigrationFiles(
+  repoPath: string,
+  aiAgent: string
+): Promise<void> {
+  const aiMigrationsDir = join(repoPath, 'tools', 'ai-migrations');
+  if (!existsSync(aiMigrationsDir)) return;
+
+  let files: string[];
+  try {
+    files = readdirSync(aiMigrationsDir).filter((f) => f.endsWith('.md'));
+  } catch {
+    return;
+  }
+
+  if (files.length === 0) return;
+
+  p.log.step(
+    `Found ${files.length} AI migration file(s): ${files.join(', ')}`
+  );
+
+  if (aiAgent === 'false') {
+    p.log.warn('AI agent disabled, skipping AI migration files');
+    return;
+  }
+
+  const agent = aiAgent === 'codex' ? 'codex' : 'claude';
+
+  for (const file of files) {
+    const filePath = join(aiMigrationsDir, file);
+    const content = readFileSync(filePath, 'utf-8');
+
+    p.log.step(`Processing ${file}...`);
+
+    const prompt = `You are performing an automated migration in this repository.
+The following migration guide was generated by an Nx migration and describes changes you need to make:
+
+---
+${content}
+---
+
+Follow the instructions in this migration guide. Make all the changes described, then commit your work with a message like "chore: apply AI migration ${file}".
+
+After completing the migration, delete the file at ${filePath} since it has been applied.`;
+
+    const s = p.spinner();
+    s.start(`${agent} is applying ${file}...`);
+
+    const cmdArgs =
+      agent === 'claude'
+        ? {
+            cmd: 'claude',
+            args: [
+              '-p',
+              prompt,
+              '--allowedTools',
+              'Bash,Read,Edit,Write,Glob,Grep',
+            ],
+          }
+        : {
+            cmd: 'codex',
+            args: ['--approval-mode', 'full-auto', '-q', prompt],
+          };
+
+    const result = await execWithActivityTimeout(cmdArgs.cmd, cmdArgs.args, {
+      cwd: repoPath,
+      idleTimeoutMs: AI_IDLE_TIMEOUT_MS,
+    });
+
+    if (result.timedOut) {
+      s.stop(`${agent} timed out on ${file}`);
+      p.log.warn(`Skipping ${file} — agent timed out`);
+      continue;
+    }
+
+    if (result.exitCode === 0) {
+      s.stop(`Applied ${file}`);
+    } else {
+      s.stop(`${agent} failed on ${file}`);
+      p.log.warn(`Failed to apply ${file}, continuing`);
+    }
+
+    // Clean up the file if the agent didn't already
+    if (existsSync(filePath)) {
+      unlinkSync(filePath);
+      try {
+        execSilent(
+          `git add -A && git commit -m "chore: remove applied AI migration ${file}"`,
+          repoPath
+        );
+      } catch {
+        // May already be committed by agent
+      }
+    }
+  }
+
+  // Clean up empty ai-migrations directory
+  try {
+    const remaining = readdirSync(aiMigrationsDir);
+    if (remaining.length === 0) {
+      execSilent(`rm -rf ${aiMigrationsDir}`, repoPath);
+      try {
+        execSilent(
+          'git add -A && git commit -m "chore: remove empty ai-migrations directory"',
+          repoPath
+        );
+      } catch {
+        // Nothing to commit
+      }
+    }
+  } catch {
+    // Directory already gone
+  }
+}
+
+// --- Main entry point ---
 
 /**
  * Run Nx migration on a repo, stepping through one major version at a time.
@@ -301,7 +483,9 @@ export async function runNxMigrate(
   let currentMajor = parseMajor(oldVersion);
   const latestMajor = parseMajor(latest);
 
-  p.log.info(`Migration path: v${currentMajor} → v${latestMajor} (latest: ${latest})`);
+  p.log.info(
+    `Migration path: v${currentMajor} → v${latestMajor} (latest: ${latest})`
+  );
 
   // Step through each major version
   while (currentMajor <= latestMajor) {
@@ -314,7 +498,6 @@ export async function runNxMigrate(
 
     const installedVersion = getNxVersion(repoPath);
     if (installedVersion === targetVersion) {
-      // Already at the latest for this major, move to next
       currentMajor++;
       continue;
     }
@@ -331,7 +514,6 @@ export async function runNxMigrate(
     if (migrateResult.exitCode !== 0) {
       p.log.error(`nx migrate ${targetVersion} failed`);
 
-      // Ask AI to triage the migrate command failure
       const errorOutput = migrateResult.stdout + migrateResult.stderr;
       const triage = await triageMigrationFailure(
         repoPath,
@@ -344,7 +526,6 @@ export async function runNxMigrate(
       if (triage.action === 'halt') {
         return null;
       }
-      // If exclude-and-retry, we continue — migrations will be handled below
     }
 
     // Install updated deps
@@ -352,19 +533,17 @@ export async function runNxMigrate(
     p.log.step('Installing updated dependencies...');
     await execQuiet(installCmd, installArgs, { cwd: repoPath });
 
-    // Run migrations with recovery
-    const migrationsOk = await runMigrationsWithRecovery(
-      repoPath,
-      pmx,
-      aiAgent
-    );
+    // Run migrations with stats and recovery
+    const stats = await runMigrationsWithRecovery(repoPath, pmx, aiAgent);
 
-    if (!migrationsOk) {
-      p.log.error(`Migration to v${currentMajor} failed after recovery attempts`);
+    if (!stats.ok) {
+      p.log.error(
+        `Migration to v${currentMajor} failed after recovery attempts`
+      );
       return null;
     }
 
-    // Clean up migrations.json if it still exists
+    // Clean up migrations.json
     const migrationsJsonPath = join(repoPath, 'migrations.json');
     if (existsSync(migrationsJsonPath)) {
       unlinkSync(migrationsJsonPath);
@@ -380,6 +559,9 @@ export async function runNxMigrate(
 
     currentMajor++;
   }
+
+  // Process AI migration files generated by Nx migrations
+  await processAiMigrationFiles(repoPath, aiAgent);
 
   // Run post-nx-update script if it exists
   try {
