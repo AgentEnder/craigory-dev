@@ -1,5 +1,6 @@
 import * as p from '@clack/prompts';
-import { basename } from 'node:path';
+import { existsSync, readFileSync } from 'node:fs';
+import { basename, join } from 'node:path';
 
 import { fixAudit } from './audit-fix.js';
 import type { DiscoveredRepo } from './discover.js';
@@ -15,6 +16,7 @@ import {
   isNodeProject,
   isNxWorkspace,
   nextUpdateBranchName,
+  type PackageManager,
 } from './utils.js';
 
 interface UpdateOptions {
@@ -62,6 +64,91 @@ function cleanupWorktree(repo: DiscoveredRepo, worktreePath: string): void {
     execSilent(`git worktree remove --force ${worktreePath}`, repo.path);
   } catch {
     p.log.warn(`Failed to clean up worktree at ${worktreePath}`);
+  }
+}
+
+/**
+ * Run available code quality tools (format, lint) and commit any fixes.
+ * Detects what's available from package.json scripts and config files.
+ */
+async function runCodeQualityChecks(
+  workDir: string,
+  pm: PackageManager
+): Promise<void> {
+  let pkg: Record<string, unknown> = {};
+  try {
+    pkg = JSON.parse(
+      readFileSync(join(workDir, 'package.json'), 'utf-8')
+    );
+  } catch {
+    return;
+  }
+
+  const scripts = (pkg.scripts ?? {}) as Record<string, string>;
+  const s = p.spinner();
+  let ranSomething = false;
+
+  // Try each known script name in order of preference
+  const formatScripts = ['format', 'format:write', 'prettier:write'];
+  const formatScript = formatScripts.find((name) => scripts[name]);
+
+  if (formatScript) {
+    s.start(`Running ${formatScript}...`);
+    await execQuiet(pm, ['run', formatScript], {
+      cwd: workDir,
+      dumpOnFailure: false,
+    });
+    s.stop(`Ran ${formatScript}`);
+    ranSomething = true;
+  } else {
+    // No format script — check for prettier config and run directly
+    const prettierConfigs = [
+      '.prettierrc', '.prettierrc.json', '.prettierrc.js',
+      '.prettierrc.cjs', '.prettierrc.mjs', '.prettierrc.yml',
+      'prettier.config.js', 'prettier.config.cjs', 'prettier.config.mjs',
+    ];
+    if (prettierConfigs.some((f) => existsSync(join(workDir, f)))) {
+      s.start('Running prettier...');
+      await execQuiet('npx', ['prettier', '--write', '.'], {
+        cwd: workDir,
+        dumpOnFailure: false,
+      });
+      s.stop('Ran prettier');
+      ranSomething = true;
+    }
+  }
+
+  // Linting — prefer fix variant
+  const lintScript = scripts['lint:fix'] ? 'lint:fix' : scripts.lint ? 'lint' : null;
+  if (lintScript) {
+    s.start(`Running ${lintScript}...`);
+    await execQuiet(pm, ['run', lintScript], {
+      cwd: workDir,
+      dumpOnFailure: false,
+    });
+    s.stop(`Ran ${lintScript}`);
+    ranSomething = true;
+  }
+
+  if (!ranSomething) {
+    return;
+  }
+
+  // Commit any formatting/linting fixes
+  try {
+    execSilent('git add -A', workDir);
+    execSilent('git diff --cached --quiet', workDir);
+  } catch {
+    // There are staged changes from formatting/linting
+    try {
+      execSilent(
+        'git commit -m "chore: format and lint fixes"',
+        workDir
+      );
+      p.log.success('Committed format/lint fixes');
+    } catch {
+      // Nothing to commit
+    }
   }
 }
 
@@ -154,6 +241,9 @@ export async function updateRepo(
         );
       }
     }
+
+    // Run formatters/linters and commit any fixes
+    await runCodeQualityChecks(workDir, pm);
 
     // Check if we actually have any changes vs the default branch
     try {
