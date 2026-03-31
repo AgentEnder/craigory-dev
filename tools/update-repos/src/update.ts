@@ -68,12 +68,31 @@ function cleanupWorktree(repo: DiscoveredRepo, worktreePath: string): void {
 }
 
 /**
+ * Get the list of files changed compared to the base branch.
+ */
+function getChangedFiles(workDir: string, baseBranch: string): string[] {
+  try {
+    const output = execSilent(
+      `git diff --name-only origin/${baseBranch}...HEAD`,
+      workDir
+    );
+    return output
+      .split('\n')
+      .map((f) => f.trim())
+      .filter((f) => f.length > 0);
+  } catch {
+    return [];
+  }
+}
+
+/**
  * Run available code quality tools (format, lint) and commit any fixes.
- * Detects what's available from package.json scripts and config files.
+ * Only formats files that were actually changed to avoid slow full-repo runs.
  */
 async function runCodeQualityChecks(
   workDir: string,
-  pm: PackageManager
+  pm: PackageManager,
+  baseBranch: string
 ): Promise<void> {
   let pkg: Record<string, unknown> = {};
   try {
@@ -101,20 +120,25 @@ async function runCodeQualityChecks(
     s.stop(`Ran ${formatScript}`);
     ranSomething = true;
   } else {
-    // No format script — check for prettier config and run directly
+    // No format script — check for prettier config and run on changed files only
     const prettierConfigs = [
       '.prettierrc', '.prettierrc.json', '.prettierrc.js',
       '.prettierrc.cjs', '.prettierrc.mjs', '.prettierrc.yml',
       'prettier.config.js', 'prettier.config.cjs', 'prettier.config.mjs',
     ];
     if (prettierConfigs.some((f) => existsSync(join(workDir, f)))) {
-      s.start('Running prettier...');
-      await execQuiet('npx', ['prettier', '--write', '.'], {
-        cwd: workDir,
-        dumpOnFailure: false,
-      });
-      s.stop('Ran prettier');
-      ranSomething = true;
+      const changedFiles = getChangedFiles(workDir, baseBranch);
+      if (changedFiles.length > 0) {
+        s.start(`Running prettier on ${changedFiles.length} changed file(s)...`);
+        // prettier --write accepts file paths directly
+        await execQuiet(
+          'npx',
+          ['prettier', '--write', '--ignore-unknown', ...changedFiles],
+          { cwd: workDir, dumpOnFailure: false }
+        );
+        s.stop(`Formatted ${changedFiles.length} file(s)`);
+        ranSomething = true;
+      }
     }
   }
 
@@ -243,7 +267,7 @@ export async function updateRepo(
     }
 
     // Run formatters/linters and commit any fixes
-    await runCodeQualityChecks(workDir, pm);
+    await runCodeQualityChecks(workDir, pm, repo.defaultBranch);
 
     // Check if we actually have any changes vs the default branch
     try {
