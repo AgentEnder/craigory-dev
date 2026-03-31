@@ -40,6 +40,66 @@ export function execWithOutput(
 }
 
 /**
+ * Run a command and kill it if no stdout/stderr output is received
+ * within `idleTimeoutMs`. Output is captured but not printed (caller
+ * controls display via onData callback).
+ */
+export function execWithActivityTimeout(
+  command: string,
+  args: string[],
+  options: {
+    cwd: string;
+    env?: NodeJS.ProcessEnv;
+    idleTimeoutMs: number;
+    onData?: (chunk: string) => void;
+  }
+): Promise<{ exitCode: number; stdout: string; stderr: string; timedOut: boolean }> {
+  return new Promise((resolve) => {
+    const proc = spawn(command, args, {
+      cwd: options.cwd,
+      env: options.env ?? process.env,
+      stdio: ['inherit', 'pipe', 'pipe'],
+    });
+
+    let stdout = '';
+    let stderr = '';
+    let timedOut = false;
+
+    let timer = setTimeout(() => {
+      timedOut = true;
+      proc.kill('SIGTERM');
+    }, options.idleTimeoutMs);
+
+    function resetTimer() {
+      clearTimeout(timer);
+      timer = setTimeout(() => {
+        timedOut = true;
+        proc.kill('SIGTERM');
+      }, options.idleTimeoutMs);
+    }
+
+    proc.stdout.on('data', (data: Buffer) => {
+      const str = data.toString();
+      stdout += str;
+      options.onData?.(str);
+      resetTimer();
+    });
+
+    proc.stderr.on('data', (data: Buffer) => {
+      const str = data.toString();
+      stderr += str;
+      options.onData?.(str);
+      resetTimer();
+    });
+
+    proc.on('close', (code) => {
+      clearTimeout(timer);
+      resolve({ exitCode: code ?? 1, stdout, stderr, timedOut });
+    });
+  });
+}
+
+/**
  * Run a command silently and return stdout.
  */
 export function execSilent(command: string, cwd: string): string {
@@ -84,22 +144,24 @@ export function getInstallCommand(
 }
 
 /**
- * Get the audit command for a package manager.
+ * Get the audit command for a package manager (with --json flag).
  * Returns null for package managers that don't support audit.
  */
 export function getAuditCommand(
-  pm: PackageManager
+  pm: PackageManager,
+  json = false
 ): [string, string[]] | null {
+  const jsonFlag = json ? ['--json'] : [];
   switch (pm) {
     case 'pnpm':
-      return ['pnpm', ['audit']];
+      return ['pnpm', ['audit', ...jsonFlag]];
     case 'yarn':
-      return ['yarn', ['npm', 'audit']];
+      return ['yarn', ['npm', 'audit', ...jsonFlag]];
     case 'bun':
       // Bun does not have an audit command
       return null;
     case 'npm':
-      return ['npm', ['audit']];
+      return ['npm', ['audit', ...jsonFlag]];
   }
 }
 

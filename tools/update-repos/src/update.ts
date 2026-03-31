@@ -62,7 +62,9 @@ function cleanupWorktree(repo: DiscoveredRepo, worktreePath: string): void {
 }
 
 /**
- * Update a single repo: audit fix + nx migrate + push + PR.
+ * Update a single repo: nx migrate first, then audit fix, then push + PR.
+ * Nx migrate runs first because it changes dependency versions, and we want
+ * the audit fix to run against the post-migration dependency state.
  */
 export async function updateRepo(
   repo: DiscoveredRepo,
@@ -114,8 +116,13 @@ export async function updateRepo(
     p.log.step('Installing dependencies...');
     await execWithOutput(installCmd, installArgs, { cwd: workDir });
 
-    // Audit fix
-    p.log.step('Fixing audit vulnerabilities...');
+    // Nx migrate first (if applicable) — changes dep versions
+    if (isNxWorkspace(workDir)) {
+      p.log.step('Running Nx migration...');
+      result.nxMigrated = await runNxMigrate(workDir, pm);
+    }
+
+    // Audit fix runs after Nx migrate so it sees post-migration deps
     result.auditFixed = await fixAudit(workDir, pm, options.aiAgent);
     if (result.auditFixed) {
       try {
@@ -128,12 +135,6 @@ export async function updateRepo(
           workDir
         );
       }
-    }
-
-    // Nx migrate (if applicable)
-    if (isNxWorkspace(workDir)) {
-      p.log.step('Running Nx migration...');
-      result.nxMigrated = await runNxMigrate(workDir, pm);
     }
 
     // Check if we actually have any changes vs the default branch
