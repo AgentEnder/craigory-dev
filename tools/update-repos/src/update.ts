@@ -155,7 +155,7 @@ export async function updateRepo(
     p.log.step('Pushing...');
     const pushResult = await execWithOutput(
       'git',
-      ['push', '-f', 'origin', branch],
+      ['push', '--force-with-lease', 'origin', branch],
       { cwd: workDir }
     );
 

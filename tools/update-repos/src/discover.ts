@@ -1,5 +1,5 @@
 import { readdirSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, relative } from 'node:path';
 import { execSync } from 'node:child_process';
 
 export interface DiscoveredRepo {
@@ -86,7 +86,7 @@ export function discoverRepos(rootDir: string): DiscoveredRepo[] {
           seenUrls.add(normalized);
           repos.push({
             path: dir,
-            name: dir.replace(rootDir + '/', ''),
+            name: relative(rootDir, dir),
             remoteUrl: normalized,
             rawRemoteUrl: rawUrl,
             defaultBranch: detectDefaultBranch(dir),

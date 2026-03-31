@@ -2,6 +2,7 @@ import * as p from '@clack/prompts';
 
 import {
   type PackageManager,
+  execSilent,
   execWithOutput,
   getAuditCommand,
   getAuditFixCommand,
@@ -19,6 +20,19 @@ Rules:
 The goal is to fix vulnerabilities AND keep dependencies up to date.`;
 
 /**
+ * Check if the working tree has uncommitted changes.
+ */
+function hasChanges(repoPath: string): boolean {
+  try {
+    execSilent('git diff --quiet', repoPath);
+    execSilent('git diff --cached --quiet', repoPath);
+    return false;
+  } catch {
+    return true;
+  }
+}
+
+/**
  * Fix npm audit vulnerabilities, optionally using an AI agent.
  * Returns true if any changes were made.
  */
@@ -28,9 +42,14 @@ export async function fixAudit(
   aiAgent: string
 ): Promise<boolean> {
   // Capture current audit output
-  const [auditCmd, auditArgs] = getAuditCommand(pm);
+  const auditCmd = getAuditCommand(pm);
+  if (!auditCmd) {
+    p.log.warn(`Audit not supported for ${pm}, skipping`);
+    return false;
+  }
+
   p.log.step('Running audit...');
-  const auditResult = await execWithOutput(auditCmd, auditArgs, {
+  const auditResult = await execWithOutput(auditCmd[0], auditCmd[1], {
     cwd: repoPath,
   });
 
@@ -44,10 +63,15 @@ export async function fixAudit(
 
   if (aiAgent === 'false') {
     // Non-AI path: just run audit fix
+    const fixCmd = getAuditFixCommand(pm);
+    if (!fixCmd) {
+      p.log.warn(`Audit fix not supported for ${pm}, skipping`);
+      return false;
+    }
+
     p.log.step('Running audit fix...');
-    const [fixCmd, fixArgs] = getAuditFixCommand(pm);
-    const fixResult = await execWithOutput(fixCmd, fixArgs, { cwd: repoPath });
-    return fixResult.exitCode === 0;
+    await execWithOutput(fixCmd[0], fixCmd[1], { cwd: repoPath });
+    return hasChanges(repoPath);
   }
 
   // AI-driven path

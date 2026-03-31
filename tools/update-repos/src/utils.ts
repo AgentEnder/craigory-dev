@@ -85,17 +85,19 @@ export function getInstallCommand(
 
 /**
  * Get the audit command for a package manager.
+ * Returns null for package managers that don't support audit.
  */
 export function getAuditCommand(
   pm: PackageManager
-): [string, string[]] {
+): [string, string[]] | null {
   switch (pm) {
     case 'pnpm':
       return ['pnpm', ['audit']];
     case 'yarn':
       return ['yarn', ['npm', 'audit']];
     case 'bun':
-      return ['bun', ['audit']];
+      // Bun does not have an audit command
+      return null;
     case 'npm':
       return ['npm', ['audit']];
   }
@@ -103,17 +105,19 @@ export function getAuditCommand(
 
 /**
  * Get the audit fix command for a package manager (non-AI path).
+ * Returns null for package managers that don't support audit fix.
  */
 export function getAuditFixCommand(
   pm: PackageManager
-): [string, string[]] {
+): [string, string[]] | null {
   switch (pm) {
     case 'pnpm':
       return ['pnpm', ['audit', '--fix']];
     case 'yarn':
-      return ['yarn', ['npm', 'audit', '--fix']];
+      // Yarn Berry doesn't have audit fix — needs manual intervention
+      return null;
     case 'bun':
-      return ['bun', ['audit', '--fix']];
+      return null;
     case 'npm':
       return ['npm', ['audit', 'fix']];
   }

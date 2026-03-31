@@ -80,11 +80,15 @@ export async function runNxMigrate(
   const migrationsJson = join(repoPath, 'migrations.json');
   if (existsSync(migrationsJson)) {
     p.log.step('Running migrations...');
-    await execWithOutput(
+    const runResult = await execWithOutput(
       pmx,
       ['nx', 'migrate', '--run-migrations', '--create-commits'],
       { cwd: repoPath }
     );
+    if (runResult.exitCode !== 0) {
+      p.log.error('nx migrate --run-migrations failed');
+      return null;
+    }
   }
 
   // Run post-nx-update script if it exists
@@ -100,8 +104,10 @@ export async function runNxMigrate(
         repoPath
       );
     }
-  } catch {
-    // No post-update script or it failed — continue
+  } catch (e) {
+    p.log.warn(
+      `post-nx-update failed: ${e instanceof Error ? e.message : String(e)}`
+    );
   }
 
   // Reset Nx cache
