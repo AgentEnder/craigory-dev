@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync, unlinkSync } from 'node:fs';
+import { mkdirSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs';
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import * as p from '@clack/prompts';
@@ -10,6 +10,7 @@ import {
   execWithActivityTimeout,
   getAuditCommand,
   getAuditFixCommand,
+  getInstallCommand,
 } from './utils.js';
 
 /** Idle timeout for AI agents: 10 minutes with no output. */
@@ -30,24 +31,64 @@ const AI_AUDIT_SYSTEM_PROMPT = `You are an expert dependency manager fixing npm 
 3. **Use \`npm audit fix\` or equivalent** for straightforward semver-compatible fixes
    after you've handled the major upgrades.
 
-4. **As an absolute last resort**, add overrides/resolutions for vulnerabilities that
-   cannot be fixed any other way. Before adding an override, you MUST verify:
-   - The direct dependency has no newer version that fixes the issue
-   - There is no alternative package that could replace it
-   - Document WHY the override is needed in a code comment
+4. **As an absolute last resort**, add overrides/resolutions — but ONLY scoped to the
+   specific vulnerable transitive path, NEVER as a global version pin. See the
+   "Override Rules" section below.
+
+## Override Rules — CRITICAL
+
+Global overrides (e.g. \`"minimatch": "3.1.5"\`) are DANGEROUS. They force EVERY
+package in the tree to use that version, even packages that require a different
+major. This WILL break things.
+
+**If you must add an override:**
+
+1. First run \`npm ls <package>\` to see which packages depend on it and what
+   versions they require. Check that your override version is compatible with
+   ALL consumers.
+
+2. **Scope the override** to the specific vulnerable path rather than globally:
+   \`\`\`json
+   // WRONG — global override, breaks packages needing minimatch@10
+   "overrides": { "minimatch": "3.1.2" }
+
+   // RIGHT — scoped to the specific vulnerable transitive path
+   "overrides": { "vulnerable-parent>minimatch": "3.1.2" }
+
+   // pnpm equivalent
+   "pnpm": { "overrides": { "vulnerable-parent>minimatch": "3.1.2" } }
+   \`\`\`
+
+3. After adding any override, run install and verify:
+   - No peer dependency conflicts or resolution errors
+   - The project still builds/works (\`npm run build\` or equivalent)
+   - The override actually fixes the vulnerability (\`npm audit\`)
+
+4. If an override would force a DOWNGRADE of a package that other deps need at a
+   higher major version, DO NOT add it. Instead, skip that vulnerability and note
+   it in your commit message.
+
+## Verification Checklist (run before committing)
+
+After ALL changes, verify:
+1. \`<pm> install\` succeeds without errors
+2. \`<pm> audit\` shows improvement (fewer/less severe vulnerabilities)
+3. No override forces a global version that conflicts with other packages
+4. Check \`npm ls <overridden-package>\` to confirm no version conflicts
 
 ## Rules
 
 - NEVER add overrides/resolutions as a first step. Always try upgrading first.
+- NEVER add global (unscoped) overrides. Always scope to the vulnerable path.
 - When upgrading, go to the LATEST version, not just the minimum fix version.
   The goal is to keep deps current, not just patch vulnerabilities.
-- After making changes, run install and re-run audit to verify improvements.
 - If a package has a peer dep warning suggesting a newer major (e.g. "requires
   vite >=7"), that's a signal to UPGRADE, not to add a peer dep override.
 - Commit your changes when done with a descriptive message.
 - Focus on critical and high severity first, then moderate, then low.
 - If you cannot fix a vulnerability without breaking the project, skip it and
-  note it in your commit message.`;
+  note it in your commit message — leaving it unfixed is better than breaking
+  the dependency tree.`;
 
 interface AuditSummary {
   rawJson: string;
@@ -145,6 +186,57 @@ function formatSeverities(severities: Record<string, number>): string {
     }
   }
   return parts.join(', ') || 'unknown';
+}
+
+/**
+ * Check package.json for unscoped global overrides that could break the
+ * dependency tree. Returns a list of problems found.
+ */
+function validateOverrides(repoPath: string): string[] {
+  const problems: string[] = [];
+  try {
+    const pkg = JSON.parse(
+      readFileSync(join(repoPath, 'package.json'), 'utf-8')
+    );
+
+    // Check npm overrides
+    if (pkg.overrides && typeof pkg.overrides === 'object') {
+      for (const [key, value] of Object.entries(pkg.overrides)) {
+        // Scoped overrides use "parent>dep" syntax; unscoped are just "dep"
+        if (!key.includes('>') && typeof value === 'string') {
+          problems.push(
+            `Unscoped npm override: "${key}": "${value}" — should use "parent>${key}" syntax`
+          );
+        }
+      }
+    }
+
+    // Check pnpm overrides
+    if (pkg.pnpm?.overrides && typeof pkg.pnpm.overrides === 'object') {
+      for (const [key, value] of Object.entries(pkg.pnpm.overrides)) {
+        if (!key.includes('>') && typeof value === 'string') {
+          problems.push(
+            `Unscoped pnpm override: "${key}": "${value}" — should use "parent>${key}" syntax`
+          );
+        }
+      }
+    }
+
+    // Check yarn resolutions
+    if (pkg.resolutions && typeof pkg.resolutions === 'object') {
+      for (const [key, value] of Object.entries(pkg.resolutions)) {
+        // Yarn resolutions use "**/<dep>" for global, or "parent/dep" for scoped
+        if (!key.includes('/') && typeof value === 'string') {
+          problems.push(
+            `Unscoped yarn resolution: "${key}": "${value}" — may conflict with other packages`
+          );
+        }
+      }
+    }
+  } catch {
+    // Can't read package.json — skip validation
+  }
+  return problems;
 }
 
 function hasChanges(repoPath: string): boolean {
@@ -290,6 +382,11 @@ export async function fixAudit(
 
   const agent: 'claude' | 'codex' = aiAgent === 'codex' ? 'codex' : 'claude';
 
+  // Snapshot existing overrides before the agent runs so we only flag new ones
+  const preExistingProblems = new Set(
+    validateOverrides(repoPath).map((p) => p)
+  );
+
   const { success, timedOut } = await runAiAgent(agent, audit, pm, repoPath);
 
   if (timedOut) {
@@ -301,5 +398,35 @@ export async function fixAudit(
     return false;
   }
 
-  return success;
+  if (!success) {
+    return false;
+  }
+
+  // Post-fix validation: check for NEW problematic overrides added by the agent
+  const allProblems = validateOverrides(repoPath);
+  const newProblems = allProblems.filter((p) => !preExistingProblems.has(p));
+  if (newProblems.length > 0) {
+    p.log.warn(`Agent introduced ${newProblems.length} problematic override(s):`);
+    for (const problem of newProblems) {
+      p.log.warn(`  ${problem}`);
+    }
+    p.log.warn(
+      'Unscoped overrides can break the dependency tree — review before merging'
+    );
+  }
+
+  // Verify install still works after all changes
+  const [installCmd, installArgs] = getInstallCommand(pm);
+  const installResult = await execQuiet(installCmd, installArgs, {
+    cwd: repoPath,
+    dumpOnFailure: false,
+  });
+
+  if (installResult.exitCode !== 0) {
+    p.log.error(
+      'Install failed after audit fix — changes may be broken (see log file)'
+    );
+  }
+
+  return hasChanges(repoPath);
 }
