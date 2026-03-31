@@ -13,7 +13,6 @@
     "@octokit/rest": "^21.0.1",
     "@swc/helpers": "0.5.18",
     "@types/mdx": "^2.0.11",
-    "cli-forge": "^1.2.0",
     "date-fns": "^3.3.1",
     "hast-util-from-html-isomorphic": "^2.0.0",
     "hastscript": "^9.0.0",
@@ -43,6 +42,7 @@
     "vite-plugin-static-copy": "3.1.1"
   },
   "devDependencies": {
+    "@clack/prompts": "^0.10.0",
     "@babel/core": "^7.14.5",
     "@babel/preset-react": "^7.14.5",
     "@nx/cypress": "22.5.0",
@@ -66,6 +66,7 @@
     "@vitejs/plugin-react": "5.0.2",
     "@vitest/coverage-v8": "4.0.9",
     "@vitest/ui": "4.0.9",
+    "cli-forge": "^1.2.0",
     "cypress": "15.9.0",
     "eslint": "8.57.0",
     "eslint-config-prettier": "10.1.8",
