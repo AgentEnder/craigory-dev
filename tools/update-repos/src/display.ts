@@ -106,10 +106,12 @@ export class DetailView {
     emitKeypressEvents(this.realStdin);
 
     this.realStdin.on('keypress', (str: string, key: KeyInfo) => {
-      // Always forward Ctrl+C so the process can exit
+      // Ctrl+C: forward to proxy for clack, and also emit SIGINT
+      // since raw mode disables the terminal's default SIGINT handling.
       if (key?.name === 'c' && key?.ctrl) {
         if (this.active) this.leaveAltScreen();
         if (key.sequence) this.stdinProxy.write(key.sequence);
+        process.kill(process.pid, 'SIGINT');
         return;
       }
 
