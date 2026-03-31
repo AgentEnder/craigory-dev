@@ -206,6 +206,7 @@ async function runAiAgent(
             '--verbose',
             '--output-format',
             'stream-json',
+            '--include-partial-messages',
             '--system-prompt-file',
             systemPromptFilePath,
             '--allowedTools',

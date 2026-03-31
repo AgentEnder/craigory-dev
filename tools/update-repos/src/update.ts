@@ -3,6 +3,7 @@ import { basename } from 'node:path';
 
 import { fixAudit } from './audit-fix.js';
 import type { DiscoveredRepo } from './discover.js';
+import { logger } from './logger.js';
 import { runNxMigrate } from './nx-migrate.js';
 import type { RepoResult } from './report.js';
 import {
@@ -171,7 +172,9 @@ export async function updateRepo(
     );
 
     if (pushResult.exitCode !== 0) {
-      const pushError = (pushResult.stdout + pushResult.stderr).trim().split('\n')[0];
+      const pushError = (pushResult.stdout + pushResult.stderr)
+        .trim()
+        .split('\n')[0];
       prSpinner.stop(`Push failed: ${pushError}`);
       result.status = 'failure';
       result.error = `push failed: ${pushError}`;
@@ -230,12 +233,15 @@ export async function updateRepo(
 
       if (!result.prUrl) {
         // PR creation failed (permission error, API error, etc.)
-        const compareUrl = `https://${repo.remoteUrl}/compare/${
-          repo.defaultBranch
-        }...${branch}?expand=1&title=${encodeURIComponent(prTitle)}&body=${encodeURIComponent(
-          prBody
-        )}`;
-        result.manualPrUrl = compareUrl;
+        const compareUrl = new URL(
+          `https://${repo.remoteUrl}/compare/${repo.defaultBranch}...${branch}`
+        );
+        compareUrl.search = new URLSearchParams([
+          ['expand', '1'],
+          ['title', prTitle],
+          ['body', prBody],
+        ]).toString();
+        result.manualPrUrl = compareUrl.toString();
         p.log.warn(`PR creation failed: ${prError.split('\n')[0]}`);
         p.log.warn(`Create manually: ${compareUrl}`);
         logger.error(`PR creation failed for ${repo.name}: ${prError}`);
@@ -270,10 +276,7 @@ export async function updateRepo(
       } catch {
         // Best effort — the branch might not exist anymore
         try {
-          execSilent(
-            `git checkout ${repo.defaultBranch}`,
-            workDir
-          );
+          execSilent(`git checkout ${repo.defaultBranch}`, workDir);
         } catch {
           // Leave it — user can fix manually
         }

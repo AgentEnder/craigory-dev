@@ -17,7 +17,7 @@ import {
 } from './utils.js';
 
 /** Idle timeout for AI agent during migration error recovery. */
-const AI_IDLE_TIMEOUT_MS = 3 * 60 * 1000;
+const AI_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
 
 /**
  * Get the current Nx version from node_modules or package.json.
@@ -382,6 +382,7 @@ After completing the migration, delete the file at ${filePath} since it has been
               '--verbose',
               '--output-format',
               'stream-json',
+              '--include-partial-messages',
               '--allowedTools',
               'Bash,Read,Edit,Write,Glob,Grep',
             ],
