@@ -379,6 +379,7 @@ After completing the migration, delete the file at ${filePath} since it has been
             args: [
               '-p',
               prompt,
+              '--verbose',
               '--output-format',
               'stream-json',
               '--allowedTools',

@@ -220,6 +220,7 @@ async function runAiAgent(
           args: [
             '-p',
             prompt,
+            '--verbose',
             '--output-format',
             'stream-json',
             '--allowedTools',
