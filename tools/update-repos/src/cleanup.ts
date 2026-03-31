@@ -75,8 +75,37 @@ function hasLocalBranch(repoPath: string, branch: string): boolean {
 }
 
 /**
+ * Find any worktree that has `branch` checked out.
+ * Returns the worktree path, or null if none.
+ */
+function findWorktreeForBranch(
+  repoPath: string,
+  branch: string
+): string | null {
+  try {
+    const output = execSilent('git worktree list --porcelain', repoPath);
+    let currentPath: string | null = null;
+    for (const line of output.split('\n')) {
+      if (line.startsWith('worktree ')) {
+        currentPath = line.replace('worktree ', '');
+      }
+      if (line.startsWith('branch ') && currentPath) {
+        const ref = line.replace('branch ', '');
+        // ref is like refs/heads/chore/update-2026-03-31
+        if (ref === `refs/heads/${branch}`) {
+          return currentPath;
+        }
+      }
+    }
+  } catch {
+    // git worktree list failed
+  }
+  return null;
+}
+
+/**
  * Delete a branch both locally and on the remote.
- * Only attempts deletion on sides where the branch actually exists.
+ * If the branch is checked out in a worktree, removes that worktree first.
  */
 function deleteBranch(
   repoPath: string,
@@ -84,6 +113,21 @@ function deleteBranch(
 ): { deleted: string[]; errors: string[] } {
   const deleted: string[] = [];
   const errors: string[] = [];
+
+  // Remove any worktree holding this branch before deleting it
+  const wtPath = findWorktreeForBranch(repoPath, branch);
+  if (wtPath) {
+    try {
+      execSilent(`git worktree remove --force ${wtPath}`, repoPath);
+      deleted.push(`worktree ${wtPath}`);
+    } catch (e) {
+      errors.push(
+        `Failed to remove worktree ${wtPath}: ${e instanceof Error ? e.message : String(e)}`
+      );
+      // Don't attempt branch deletion — it will fail
+      return { deleted, errors };
+    }
+  }
 
   if (hasRemoteBranch(repoPath, branch)) {
     try {
