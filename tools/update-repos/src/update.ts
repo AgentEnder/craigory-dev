@@ -42,8 +42,11 @@ function prepareWorkDir(repo: DiscoveredRepo): {
     // Doesn't exist yet
   }
 
+  // Use origin/<branch> to avoid "branch already checked out" errors —
+  // the local branch name is in use by the main worktree, but the
+  // remote tracking ref is always available as a detached HEAD target.
   execSilent(
-    `git worktree add --detach ${worktreePath} ${repo.defaultBranch}`,
+    `git worktree add --detach ${worktreePath} origin/${repo.defaultBranch}`,
     repo.path
   );
 
