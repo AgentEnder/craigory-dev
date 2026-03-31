@@ -74,18 +74,19 @@ const updateReposCLI = cli('update-repos', {
             );
             detailView.stop();
 
+            // Write directly to stderr to avoid clack spinner interference
+            const write = (msg: string) => {
+              process.stderr.write(`\n${msg}\n`);
+              logger.info(msg);
+            };
+
             if (results.length > 0) {
               try {
                 const { markdownPath } = generateReport(
                   results,
                   state
                 );
-                logger.info(
-                  `Partial report written to ${markdownPath}`
-                );
-                p.log.warn(
-                  `\nInterrupted! Partial report: ${markdownPath}`
-                );
+                write(`Interrupted! Partial report: ${markdownPath}`);
               } catch (e) {
                 logger.error(
                   `Failed to write partial report: ${e}`
@@ -94,15 +95,14 @@ const updateReposCLI = cli('update-repos', {
             }
 
             if (currentRepo) {
-              p.log.warn(`Was processing: ${currentRepo}`);
-              logger.info(
-                `Interrupted while processing: ${currentRepo}`
-              );
+              write(`Was processing: ${currentRepo}`);
             }
 
-            p.log.info(`Log file: ${logger.logPath}`);
+            write(`Log file: ${logger.logPath}`);
             logger.close(signal);
-            process.exit(130);
+
+            // Use setTimeout to let stdio flush before exiting
+            setTimeout(() => process.exit(130), 50);
           };
 
           process.on('SIGINT', () => shutdown('SIGINT'));
