@@ -150,7 +150,7 @@ function deleteBranch(
       logger.info(`Main worktree ${wt.path} has ${branch} checked out, switching: ${cmd}`);
       try {
         execSilent(cmd, wt.path);
-        deleted.push(`checked out ${defaultBranch} in ${wt.path}`);
+        p.log.info(`Switched ${wt.path} to ${defaultBranch}`);
         logger.info(`Switched ${wt.path} to ${defaultBranch}`);
       } catch (e) {
         const msg = `Failed to switch ${wt.path} to ${defaultBranch}: ${e instanceof Error ? e.message : String(e)}`;
