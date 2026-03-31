@@ -1,3 +1,6 @@
+import { mkdirSync, writeFileSync, unlinkSync } from 'node:fs';
+import { join } from 'node:path';
+import { tmpdir } from 'node:os';
 import * as p from '@clack/prompts';
 
 import {
@@ -9,33 +12,49 @@ import {
   getAuditFixCommand,
 } from './utils.js';
 
-/** Default idle timeout for AI agents: 3 minutes with no output. */
+/** Idle timeout for AI agents: 10 minutes with no output. */
 const AGENT_IDLE_TIMEOUT_MS = 10 * 60 * 1000;
 
-const AI_AUDIT_PROMPT = `You are fixing npm audit vulnerabilities in this repository.
+const AI_AUDIT_SYSTEM_PROMPT = `You are an expert dependency manager fixing npm audit vulnerabilities.
 
-Rules:
-1. PREFER upgrading/updating packages to compatible versions over adding resolutions or overrides
-2. If a peer dependency indicates a newer major version is needed (e.g., "requires vite 8"), upgrade that package rather than overriding the peer dep
-3. Run install and verify the audit output is cleaner after your changes
-4. Do NOT add "resolutions", "overrides", or "pnpm.overrides" unless there is absolutely no other option
-5. Commit your changes when done
+## Strategy (in order of preference)
 
-The goal is to fix vulnerabilities AND keep dependencies up to date.`;
+1. **Upgrade to the latest version** of vulnerable packages. Check what the latest
+   version is (e.g. \`npm view <pkg> version\`) and upgrade to it. If vite 6 has a
+   vulnerability and vite 7 exists, upgrade to vite 7 — don't stop at vite 6.
+
+2. **Upgrade transitive dependency parents.** If a vulnerability is in a transitive
+   dependency, upgrade the direct dependency that pulls it in. This often resolves
+   the vulnerability without touching the transitive dep directly.
+
+3. **Use \`npm audit fix\` or equivalent** for straightforward semver-compatible fixes
+   after you've handled the major upgrades.
+
+4. **As an absolute last resort**, add overrides/resolutions for vulnerabilities that
+   cannot be fixed any other way. Before adding an override, you MUST verify:
+   - The direct dependency has no newer version that fixes the issue
+   - There is no alternative package that could replace it
+   - Document WHY the override is needed in a code comment
+
+## Rules
+
+- NEVER add overrides/resolutions as a first step. Always try upgrading first.
+- When upgrading, go to the LATEST version, not just the minimum fix version.
+  The goal is to keep deps current, not just patch vulnerabilities.
+- After making changes, run install and re-run audit to verify improvements.
+- If a package has a peer dep warning suggesting a newer major (e.g. "requires
+  vite >=7"), that's a signal to UPGRADE, not to add a peer dep override.
+- Commit your changes when done with a descriptive message.
+- Focus on critical and high severity first, then moderate, then low.
+- If you cannot fix a vulnerability without breaking the project, skip it and
+  note it in your commit message.`;
 
 interface AuditSummary {
-  /** Raw JSON output from the audit command */
   rawJson: string;
-  /** Severity counts: { critical: N, high: N, moderate: N, low: N, info: N } */
   severities: Record<string, number>;
-  /** Total vulnerability count */
   total: number;
 }
 
-/**
- * Run `<pm> audit --json` and parse the severity counts.
- * npm and pnpm return different JSON shapes, so we handle both.
- */
 async function runAuditJson(
   repoPath: string,
   pm: PackageManager
@@ -43,7 +62,6 @@ async function runAuditJson(
   const auditCmd = getAuditCommand(pm, true);
   if (!auditCmd) return null;
 
-  // Run quietly — non-zero exit is expected when vulnerabilities exist
   const result = await execQuiet(auditCmd[0], auditCmd[1], {
     cwd: repoPath,
     dumpOnFailure: false,
@@ -51,7 +69,6 @@ async function runAuditJson(
 
   const rawJson = result.stdout;
 
-  // Exit code 0 = no vulnerabilities
   if (result.exitCode === 0) {
     return { rawJson, severities: {}, total: 0 };
   }
@@ -60,7 +77,6 @@ async function runAuditJson(
     const parsed = JSON.parse(rawJson);
     return parseAuditJson(parsed, rawJson);
   } catch {
-    // JSON parse failed — fall back to non-json audit
     return null;
   }
 }
@@ -69,7 +85,7 @@ function parseAuditJson(
   parsed: Record<string, unknown>,
   rawJson: string
 ): AuditSummary {
-  // npm v7+ format: { metadata: { vulnerabilities: { critical: N, ... } } }
+  // npm v7+ format
   if (parsed.metadata && typeof parsed.metadata === 'object') {
     const meta = parsed.metadata as Record<string, unknown>;
     if (meta.vulnerabilities && typeof meta.vulnerabilities === 'object') {
@@ -86,7 +102,7 @@ function parseAuditJson(
     }
   }
 
-  // pnpm format: { advisories: { ... } } with severity field per advisory
+  // pnpm format
   if (parsed.advisories && typeof parsed.advisories === 'object') {
     const advisories = Object.values(
       parsed.advisories as Record<string, { severity?: string }>
@@ -96,11 +112,10 @@ function parseAuditJson(
       const sev = adv.severity ?? 'unknown';
       severities[sev] = (severities[sev] ?? 0) + 1;
     }
-    const total = advisories.length;
-    return { rawJson, severities, total };
+    return { rawJson, severities, total: advisories.length };
   }
 
-  // Fallback: count top-level vulnerabilities object
+  // Fallback
   if (parsed.vulnerabilities && typeof parsed.vulnerabilities === 'object') {
     const vulns = Object.values(
       parsed.vulnerabilities as Record<string, { severity?: string }>
@@ -116,10 +131,6 @@ function parseAuditJson(
   return { rawJson, severities: {}, total: 0 };
 }
 
-/**
- * Format severity counts for display.
- * e.g. "3 critical, 5 high, 12 moderate"
- */
 function formatSeverities(severities: Record<string, number>): string {
   const order = ['critical', 'high', 'moderate', 'low', 'info'];
   const parts: string[] = [];
@@ -128,7 +139,6 @@ function formatSeverities(severities: Record<string, number>): string {
       parts.push(`${severities[sev]} ${sev}`);
     }
   }
-  // Include any severities not in the standard order
   for (const [sev, count] of Object.entries(severities)) {
     if (!order.includes(sev) && count > 0) {
       parts.push(`${count} ${sev}`);
@@ -137,9 +147,6 @@ function formatSeverities(severities: Record<string, number>): string {
   return parts.join(', ') || 'unknown';
 }
 
-/**
- * Check if the working tree has uncommitted changes.
- */
 function hasChanges(repoPath: string): boolean {
   try {
     execSilent('git diff --quiet', repoPath);
@@ -151,15 +158,41 @@ function hasChanges(repoPath: string): boolean {
 }
 
 /**
- * Run an AI agent with a spinner and idle-timeout watchdog.
- * Uses --output-format stream-json for Claude so progress is visible
- * in the detail view. Kills if no output for AGENT_IDLE_TIMEOUT_MS.
+ * Write the audit JSON and prompt to temp files, then invoke the AI agent
+ * pointing at those files. This avoids E2BIG errors from large audit output.
  */
 async function runAiAgent(
   agent: 'claude' | 'codex',
-  prompt: string,
+  audit: AuditSummary,
+  pm: PackageManager,
   repoPath: string
 ): Promise<{ success: boolean; timedOut: boolean }> {
+  // Write audit output and prompt to temp files
+  const tempDir = join(tmpdir(), 'update-repos-audit');
+  mkdirSync(tempDir, { recursive: true });
+
+  const auditFilePath = join(tempDir, 'audit.json');
+  const promptFilePath = join(tempDir, 'prompt.md');
+  const systemPromptFilePath = join(tempDir, 'system-prompt.md');
+
+  writeFileSync(auditFilePath, audit.rawJson);
+  writeFileSync(systemPromptFilePath, AI_AUDIT_SYSTEM_PROMPT);
+
+  const userPrompt = [
+    `Fix the npm audit vulnerabilities in this repository.`,
+    ``,
+    `Package manager: ${pm}`,
+    `Summary: ${audit.total} vulnerabilities — ${formatSeverities(audit.severities)}`,
+    ``,
+    `The full audit JSON output is at: ${auditFilePath}`,
+    `Read that file to understand the specific vulnerabilities.`,
+    ``,
+    `Remember: upgrade to the LATEST versions, not just minimum fixes.`,
+    `Check \`npm view <pkg> version\` to find the latest before upgrading.`,
+  ].join('\n');
+
+  writeFileSync(promptFilePath, userPrompt);
+
   const s = p.spinner();
   s.start(`${agent} is fixing audit vulnerabilities...`);
 
@@ -169,17 +202,19 @@ async function runAiAgent(
           cmd: 'claude',
           args: [
             '-p',
-            prompt,
+            userPrompt,
             '--verbose',
             '--output-format',
             'stream-json',
+            '--system-prompt-file',
+            systemPromptFilePath,
             '--allowedTools',
             'Bash,Read,Edit,Write',
           ],
         }
       : {
           cmd: 'codex',
-          args: ['--approval-mode', 'full-auto', '-q', prompt],
+          args: ['--approval-mode', 'full-auto', '-q', userPrompt],
         };
 
   const result = await execWithActivityTimeout(cmdArgs.cmd, cmdArgs.args, {
@@ -187,6 +222,15 @@ async function runAiAgent(
     idleTimeoutMs: AGENT_IDLE_TIMEOUT_MS,
     label: `${agent}: audit fix`,
   });
+
+  // Clean up temp files
+  try {
+    unlinkSync(auditFilePath);
+    unlinkSync(promptFilePath);
+    unlinkSync(systemPromptFilePath);
+  } catch {
+    // Non-critical
+  }
 
   if (result.timedOut) {
     s.stop(
@@ -213,7 +257,6 @@ export async function fixAudit(
   pm: PackageManager,
   aiAgent: string
 ): Promise<boolean> {
-  // Run audit with --json to get structured severity info
   const audit = await runAuditJson(repoPath, pm);
 
   if (!audit) {
@@ -233,7 +276,6 @@ export async function fixAudit(
   );
 
   if (aiAgent === 'false') {
-    // Non-AI path: just run audit fix
     const fixCmd = getAuditFixCommand(pm);
     if (!fixCmd) {
       p.log.warn(`Audit fix not supported for ${pm}, skipping`);
@@ -245,22 +287,9 @@ export async function fixAudit(
     return hasChanges(repoPath);
   }
 
-  // AI-driven path
   const agent: 'claude' | 'codex' = aiAgent === 'codex' ? 'codex' : 'claude';
 
-  const prompt = `${AI_AUDIT_PROMPT}
-
-Here is the current audit output (JSON):
-
-\`\`\`json
-${audit.rawJson}
-\`\`\`
-
-Summary: ${audit.total} vulnerabilities — ${formatSeverities(audit.severities)}
-
-Fix these vulnerabilities now.`;
-
-  const { success, timedOut } = await runAiAgent(agent, prompt, repoPath);
+  const { success, timedOut } = await runAiAgent(agent, audit, pm, repoPath);
 
   if (timedOut) {
     p.log.error(
