@@ -9,7 +9,12 @@ import { cleanupRepos } from './cleanup.js';
 import { detailView } from './display.js';
 import { discoverRepos } from './discover.js';
 import { logger } from './logger.js';
-import { generateReport, type RepoResult } from './report.js';
+import {
+  generateReport,
+  generateHtmlFromExistingReport,
+  getAvailableReportDates,
+  type RepoResult,
+} from './report.js';
 import { loadState, selectRepos } from './select.js';
 import { updateRepo } from './update.js';
 
@@ -41,14 +46,12 @@ const updateReposCLI = cli('update-repos', {
           c
             .option('aiAgent', {
               type: 'string',
-              description:
-                'AI agent for audit fix: false, claude, or codex',
+              description: 'AI agent for audit fix: false, claude, or codex',
               default: 'claude',
             })
             .option('dryRun', {
               type: 'boolean',
-              description:
-                'Show what would happen without making changes',
+              description: 'Show what would happen without making changes',
               default: false,
             }),
         handler: async (opts) => {
@@ -69,9 +72,7 @@ const updateReposCLI = cli('update-repos', {
             if (shuttingDown) return;
             shuttingDown = true;
 
-            logger.warn(
-              `Received ${signal}, shutting down gracefully...`
-            );
+            logger.warn(`Received ${signal}, shutting down gracefully...`);
             detailView.stop();
 
             // Write directly to stderr to avoid clack spinner interference
@@ -99,15 +100,10 @@ const updateReposCLI = cli('update-repos', {
 
             // Write partial report (even if empty — shows what was selected)
             try {
-              const { markdownPath } = generateReport(
-                results,
-                state
-              );
+              const { markdownPath } = generateReport(results, state);
               write(`Partial report: ${markdownPath}`);
             } catch (e) {
-              logger.error(
-                `Failed to write partial report: ${e}`
-              );
+              logger.error(`Failed to write partial report: ${e}`);
             }
 
             write(`Log file: ${logger.logPath}`);
@@ -146,7 +142,9 @@ const updateReposCLI = cli('update-repos', {
           }
 
           logger.info(
-            `Selected ${selected.length} repos: ${selected.map((r) => r.name).join(', ')}`
+            `Selected ${selected.length} repos: ${selected
+              .map((r) => r.name)
+              .join(', ')}`
           );
 
           p.log.info(`Updating ${selected.length} repo(s)...`);
@@ -158,9 +156,7 @@ const updateReposCLI = cli('update-repos', {
 
           for (const repo of selected) {
             currentRepo = repo.name;
-            logger.info(
-              `--- Starting: ${repo.name} (${repo.remoteUrl}) ---`
-            );
+            logger.info(`--- Starting: ${repo.name} (${repo.remoteUrl}) ---`);
             p.log.step(`\n━━━ ${repo.name} ━━━`);
 
             const result = await updateRepo(repo, {
@@ -170,27 +166,26 @@ const updateReposCLI = cli('update-repos', {
 
             results.push(result);
             logger.info(
-              `--- Finished: ${repo.name} → ${result.status}${result.error ? ` (${result.error})` : ''}${result.prUrl ? ` PR: ${result.prUrl}` : ''} ---`
+              `--- Finished: ${repo.name} → ${result.status}${
+                result.error ? ` (${result.error})` : ''
+              }${result.prUrl ? ` PR: ${result.prUrl}` : ''} ---`
             );
           }
           currentRepo = '';
 
-          const { markdownPath } = generateReport(results, state);
+          const { markdownPath, htmlPath } = generateReport(results, state);
 
           const succeeded = results.filter(
             (r) => r.status === 'success'
           ).length;
-          const failed = results.filter(
-            (r) => r.status === 'failure'
-          ).length;
-          const skipped = results.filter(
-            (r) => r.status === 'skipped'
-          ).length;
+          const failed = results.filter((r) => r.status === 'failure').length;
+          const skipped = results.filter((r) => r.status === 'skipped').length;
 
           p.log.info(
             `Results: ${succeeded} success, ${failed} failed, ${skipped} skipped`
           );
           p.log.info(`Report: ${markdownPath}`);
+          p.log.info(`HTML:   ${htmlPath}`);
           p.log.info(`Log: ${logger.logPath}`);
 
           logger.info(
@@ -251,6 +246,57 @@ const updateReposCLI = cli('update-repos', {
             p.outro('Cleanup complete!');
           } else {
             logger.close('cancelled');
+          }
+        },
+      })
+      .command('view', {
+        description:
+          'Generate (or regenerate) the HTML report for an existing run',
+        builder: (c) =>
+          c.option('date', {
+            type: 'string',
+            description:
+              'Report date (YYYY-MM-DD). Prompts if multiple reports exist.',
+          }),
+        handler: async (opts) => {
+          setupClack();
+
+          let date = opts.date;
+
+          if (!date) {
+            const dates = getAvailableReportDates();
+            if (dates.length === 0) {
+              p.log.error('No report JSON files found.');
+              process.exit(1);
+            } else if (dates.length === 1) {
+              date = dates[0];
+            } else {
+              const selected = await p.select({
+                message: 'Select a report',
+                options: dates.map((d) => ({ value: d, label: d })),
+              });
+              if (p.isCancel(selected)) {
+                p.cancel('Cancelled.');
+                process.exit(0);
+              }
+              date = selected;
+            }
+          }
+
+          try {
+            const { htmlPath } = generateHtmlFromExistingReport(date);
+            p.log.info(`HTML report for ${date}: ${htmlPath}`);
+
+            try {
+              const open = (await import('open')).default;
+              await open(htmlPath);
+            } catch {
+              const fileUrl = `file://${htmlPath}`;
+              p.log.info(`Open manually: ${fileUrl}`);
+            }
+          } catch (e) {
+            p.log.error(e instanceof Error ? e.message : String(e));
+            process.exit(1);
           }
         },
       }),

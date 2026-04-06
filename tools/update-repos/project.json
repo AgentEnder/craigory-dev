@@ -1,8 +1,16 @@
 {
   "name": "update-repos",
   "targets": {
-    "update-repos": {
+    "build-report-viewer": {
       "executor": "nx:run-commands",
+      "options": {
+        "command": "npx vite build",
+        "cwd": "tools/update-repos/report-viewer"
+      }
+    },
+    "run": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build-report-viewer"],
       "options": {
         "command": "tsx tools/update-repos/src/cli.ts"
       }
