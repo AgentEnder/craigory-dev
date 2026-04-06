@@ -16,7 +16,19 @@
       "WebFetch(domain:docs.npmjs.com)",
       "WebFetch(domain:api-docs.npmjs.com)",
       "WebSearch",
-      "Bash(gh api:*)"
+      "Bash(gh api:*)",
+      "Bash(./node_modules/.bin/tsx tools/update-repos/src/cli.ts --help)",
+      "WebFetch(domain:opentui.com)",
+      "Bash(OPENTUI_BASE=\"node_modules/.pnpm/@opentui+react@0.1.95_react-devtools-core@7.0.1_react@19.1.1_stage-js@1.0.1_typescript@5.9.2__i5jo47n7nvynudenj24tkkzgxe/node_modules/@opentui/react\")",
+      "Read(//Users/agentender/repos/craigory-dev/$OPENTUI_BASE/src/hooks/**)",
+      "Bash(CORE_DIR=\"node_modules/.pnpm/@opentui+core@0.1.95_stage-js@1.0.1_typescript@5.9.2_web-tree-sitter@0.25.10/node_modules/@opentui/core\")",
+      "Read(//Users/agentender/repos/craigory-dev/$CORE_DIR/lib/**)",
+      "Bash(CORE_DIR=node_modules/.pnpm/@opentui+core@0.1.95_stage-js@1.0.1_typescript@5.9.2_web-tree-sitter@0.25.10/node_modules/@opentui/core grep -r \"close\\\\|destroy\\\\|exit\\\\|shutdown\\\\|stop\\\\|cleanup\" $CORE_DIR/CliRenderer.d.ts)",
+      "Read(//Users/agentender/repos/craigory-dev/**)",
+      "Bash(CORE_DIR=\"node_modules/.pnpm/@opentui+core@0.1.95_stage-js@1.0.1_typescript@5.9.2_web-tree-sitter@0.25.10/node_modules/@opentui/core\" cat \"$CORE_DIR/renderer.d.ts\")",
+      "Bash(CORE_DIR=\"node_modules/.pnpm/@opentui+core@0.1.95_stage-js@1.0.1_typescript@5.9.2_web-tree-sitter@0.25.10/node_modules/@opentui/core\" grep -n \"KeyEvent\\\\|export type.*Key\" \"$CORE_DIR/lib/KeyHandler.d.ts\")",
+      "Bash(bun:*)",
+      "Bash(CORE_DIR=\"node_modules/.pnpm/@opentui+core@0.1.95_stage-js@1.0.1_typescript@5.9.2_web-tree-sitter@0.25.10/node_modules/@opentui/core\" cat \"$CORE_DIR/lib/parse.keypress.d.ts\")"
     ],
     "deny": [],
     "ask": []
