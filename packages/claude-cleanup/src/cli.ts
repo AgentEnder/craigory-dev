@@ -3,7 +3,7 @@
 import { cli } from 'cli-forge';
 import * as p from '@clack/prompts';
 import { unlinkSync } from 'node:fs';
-import { execFile } from 'node:child_process';
+import { spawn } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
@@ -46,7 +46,7 @@ function parseAge(age: string): number {
 function callClaude(conversationFile: string): Promise<string> {
   const claudeDir = join(homedir(), '.claude');
   return new Promise((resolve) => {
-    execFile(
+    const child = spawn(
       'claude',
       [
         '--model', 'haiku',
@@ -55,17 +55,28 @@ function callClaude(conversationFile: string): Promise<string> {
         '-p',
         `Use the Read tool to read ${conversationFile} then summarize what this Claude Code session is about in one brief sentence (under 15 words). Output ONLY the sentence.`,
       ],
-      { timeout: 30000 },
-      (err, stdout, stderr) => {
-        if (err) {
-          console.error(`[summarize error] ${conversationFile}: ${err.message}`);
-          if (stderr) console.error(`  stderr: ${stderr.trim()}`);
-          resolve('');
-          return;
-        }
-        resolve(stdout.trim());
-      }
+      { stdio: ['ignore', 'pipe', 'pipe'], timeout: 30000 },
     );
+
+    let stdout = '';
+    let stderr = '';
+    child.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
+    child.stderr.on('data', (d: Buffer) => { stderr += d.toString(); });
+
+    child.on('close', (code) => {
+      if (code !== 0) {
+        console.error(`[summarize error] ${conversationFile}: exit code ${code}`);
+        if (stderr.trim()) console.error(`  stderr: ${stderr.trim()}`);
+        resolve('');
+        return;
+      }
+      resolve(stdout.trim());
+    });
+
+    child.on('error', (err) => {
+      console.error(`[summarize error] ${conversationFile}: ${err.message}`);
+      resolve('');
+    });
   });
 }
 
