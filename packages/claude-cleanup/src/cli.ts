@@ -56,8 +56,14 @@ function callClaude(conversationFile: string): Promise<string> {
         `Use the Read tool to read ${conversationFile} then summarize what this Claude Code session is about in one brief sentence (under 15 words). Output ONLY the sentence.`,
       ],
       { timeout: 30000 },
-      (err, stdout) => {
-        resolve(err ? '' : stdout.trim());
+      (err, stdout, stderr) => {
+        if (err) {
+          console.error(`[summarize error] ${conversationFile}: ${err.message}`);
+          if (stderr) console.error(`  stderr: ${stderr.trim()}`);
+          resolve('');
+          return;
+        }
+        resolve(stdout.trim());
       }
     );
   });
