@@ -22,13 +22,14 @@ export interface ClassifiedSession extends SessionInfo {
 }
 
 export function encodeCwd(cwd: string): string {
-  return cwd.replace(/\./g, '').replace(/\//g, '-');
+  return cwd.replace(/\//g, '-').replace(/\./g, '-');
 }
 
 function getLastActivityMs(
   cwd: string,
   sessionId: string,
-  claudeDir: string
+  claudeDir: string,
+  startedAt: number
 ): number {
   const conversationFile = join(
     claudeDir, 'projects', encodeCwd(cwd), `${sessionId}.jsonl`
@@ -36,6 +37,7 @@ function getLastActivityMs(
   try {
     const lastLine = execFileSync('tail', ['-1', conversationFile], {
       encoding: 'utf-8',
+      stdio: ['pipe', 'pipe', 'ignore'],
     }).trim();
     if (lastLine) {
       const entry = JSON.parse(lastLine);
@@ -46,7 +48,7 @@ function getLastActivityMs(
   } catch {
     // Fall back to startedAt
   }
-  return 0;
+  return startedAt;
 }
 
 export function getConversationFilePath(
@@ -77,7 +79,7 @@ export function discoverSessions(
       const data = JSON.parse(raw);
       if (typeof data.pid !== 'number' || !data.sessionId) continue;
       if (data.kind !== 'interactive') continue;
-      const lastActivityMs = getLastActivityMs(data.cwd, data.sessionId, claudeDir);
+      const lastActivityMs = getLastActivityMs(data.cwd, data.sessionId, claudeDir, data.startedAt);
       sessions.push({
         pid: data.pid,
         sessionId: data.sessionId,
