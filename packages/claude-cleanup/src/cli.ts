@@ -47,6 +47,7 @@ function callClaude(conversationFile: string): Promise<string> {
       [
         '--model', 'haiku',
         '--allowedTools', 'Read',
+        '--bare',
         '-p',
         `Use the Read tool to read ${conversationFile} then summarize what this Claude Code session is about in one brief sentence (under 15 words). Output ONLY the sentence.`,
       ],
