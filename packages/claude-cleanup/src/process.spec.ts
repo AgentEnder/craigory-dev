@@ -2,8 +2,9 @@ import { describe, it, expect } from 'vitest';
 import { isProcessRunning, assertPlatform, formatDuration, shortenPath } from './process.js';
 
 describe('isProcessRunning', () => {
-  it('returns true for the current process', () => {
-    expect(isProcessRunning(process.pid)).toBe(true);
+  it('returns false for a non-claude process', () => {
+    // process.pid is the vitest runner, not claude
+    expect(isProcessRunning(process.pid)).toBe(false);
   });
 
   it('returns false for a non-existent PID', () => {
