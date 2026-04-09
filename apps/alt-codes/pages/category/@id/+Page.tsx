@@ -5,6 +5,7 @@ import type { CategoryData } from './+data.server';
 import type { CharacterEntry } from '../../../src/unicode-data';
 import { toSymbolSlug, codePointsKey } from '../../../src/unicode-data';
 import { withBase } from '../../../src/utils';
+import { SearchInput } from '../../../src/SearchInput';
 import '../../../src/style.css';
 
 const CARD_SLOT = 110;
@@ -86,6 +87,9 @@ export default function Page() {
             <div className="brand-title">Glyph Index</div>
             <div className="brand-sub">Unicode &amp; Alt Code Reference</div>
           </a>
+          <div className="header-search">
+            <SearchInput />
+          </div>
           <div className="header-count">
             {characters.length.toLocaleString()} glyphs
           </div>

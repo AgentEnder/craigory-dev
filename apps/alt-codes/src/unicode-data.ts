@@ -18,6 +18,30 @@ export interface CharacterEntry {
   emoji: EmojiMeta | null;    // null for non-emoji
 }
 
+/** Slim version of CharacterEntry for the home page grid — strips emoji metadata
+ *  and decimal (only needed on detail pages) to reduce the SSR payload. */
+export interface GridEntry {
+  codePoints: number[];
+  char: string;
+  hex: string;
+  name: string;
+  categoryId: string;
+  altCode: number | null;
+  aliases: string[];
+}
+
+export function toGridEntry(entry: CharacterEntry): GridEntry {
+  return {
+    codePoints: entry.codePoints,
+    char: entry.char,
+    hex: entry.hex,
+    name: entry.name,
+    categoryId: entry.categoryId,
+    altCode: entry.altCode,
+    aliases: entry.aliases,
+  };
+}
+
 /** Returns the map key for a codepoints array.
  *  e.g. [0x1F468, 0x200D, 0x1F4BB] → "1f468_200d_1f4bb" */
 export function codePointsKey(codePoints: number[]): string {
@@ -28,7 +52,7 @@ export function codePointsKey(codePoints: number[]): string {
  *  Single codepoint:  "2190-leftwards-arrow"
  *  Multi codepoint:   "1f468_200d_1f4bb-man-technologist"
  *  Codepoints joined with _ to avoid ambiguity with 4-char hex name words (e.g. "face"). */
-export function toSymbolSlug(entry: CharacterEntry): string {
+export function toSymbolSlug(entry: Pick<CharacterEntry, 'codePoints' | 'name'>): string {
   const hexPrefix = codePointsKey(entry.codePoints);
   if (!entry.name) return hexPrefix;
   const slug = entry.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
@@ -74,6 +98,10 @@ export const CATEGORIES: Category[] = [
   { id: 'symbols-emoji', name: 'Symbols (Emoji)' },
   { id: 'flags', name: 'Flags' },
 ];
+
+/** Categories included in the initial SSR payload for fast FCP/LCP.
+ *  Remaining categories are lazy-loaded as JSON from /generated/{id}.json. */
+export const HERO_CATEGORIES = new Set(['alt-codes', 'smileys-emotion', 'ascii']);
 
 // CP437: [alt code, unicode code point]  (alt 32–126 map directly to ASCII)
 export const CP437_SPECIAL: ReadonlyArray<readonly [number, number]> = [

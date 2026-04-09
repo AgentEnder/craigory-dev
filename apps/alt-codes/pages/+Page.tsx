@@ -7,16 +7,16 @@ import {
 } from 'react';
 import { useData } from 'vike-react/useData';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { CATEGORIES, toSymbolSlug, codePointsKey, type CharacterEntry } from '../src/unicode-data';
+import { CATEGORIES, HERO_CATEGORIES, toSymbolSlug, codePointsKey, type GridEntry } from '../src/unicode-data';
 import type { Data } from './+data.server';
 import { withBase } from '../src/utils';
+import { SearchInput } from '../src/SearchInput';
 import '../src/style.css';
 
-function matchesSearch(c: CharacterEntry, q: string): boolean {
+function matchesSearch(c: GridEntry, q: string): boolean {
   return (
     c.char === q ||
     c.hex.toLowerCase().includes(q) ||
-    c.decimal.toString().includes(q) ||
     c.name.toLowerCase().includes(q) ||
     c.aliases.some((a) => a.toLowerCase().includes(q)) ||
     (c.altCode !== null && c.altCode.toString().includes(q))
@@ -30,7 +30,7 @@ const ROW_HEIGHT = 90; // fixed card height + gap — must match CSS
 // ── Virtual grid ──────────────────────────────────────────────────────────
 
 interface GridProps {
-  characters: CharacterEntry[];
+  characters: GridEntry[];
 }
 
 function useColumnCount(containerRef: RefObject<HTMLDivElement | null>): number {
@@ -100,12 +100,11 @@ function VirtualGrid({ characters }: GridProps) {
 
 // ── Card ──────────────────────────────────────────────────────────────────
 
-function CharCard({ entry: c }: { entry: CharacterEntry }) {
+function CharCard({ entry: c }: { entry: GridEntry }) {
   const tooltip = [
     c.name,
     ...c.aliases,
     c.hex,
-    `decimal ${c.decimal}`,
     c.altCode !== null ? `Alt+${c.altCode}` : null,
     'click for details',
   ]
@@ -129,13 +128,46 @@ function CharCard({ entry: c }: { entry: CharacterEntry }) {
 // ── Page ──────────────────────────────────────────────────────────────────
 
 export default function Page() {
-  const { characters } = useData<Data>();
+  const { characters: heroCharacters } = useData<Data>();
+  const [extraCharacters, setExtraCharacters] = useState<GridEntry[]>([]);
+  const [loadedCategories, setLoadedCategories] = useState<Set<string>>(() => new Set(HERO_CATEGORIES));
+
+  // Lazy-load remaining categories after hydration, during idle time
+  useEffect(() => {
+    const remaining = CATEGORIES.filter(c => !HERO_CATEGORIES.has(c.id));
+    const loadAll = () => {
+      for (const cat of remaining) {
+        fetch(withBase(`/generated/${cat.id}.json`))
+          .then(r => r.json())
+          .then((entries: GridEntry[]) => {
+            setExtraCharacters(prev => [...prev, ...entries]);
+            setLoadedCategories(prev => new Set([...prev, cat.id]));
+          });
+      }
+    };
+    if ('requestIdleCallback' in window) {
+      requestIdleCallback(loadAll);
+    } else {
+      loadAll();
+    }
+  }, []);
+
+  const characters = useMemo(
+    () => [...heroCharacters, ...extraCharacters],
+    [heroCharacters, extraCharacters],
+  );
 
   const [activeCategory, setActiveCategory] = useState<string | null>(null);
   const [search, setSearch] = useState('');
 
+  // Initialise from ?q= so navigating from another page's search bar works
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search).get('q');
+    if (q) setSearch(q);
+  }, []);
+
   // Deduplicate for "All" view — keep first occurrence (alt-codes first)
-  const deduped = useMemo<CharacterEntry[]>(() => {
+  const deduped = useMemo<GridEntry[]>(() => {
     const seen = new Set<string>();
     return characters.filter((c) => {
       const key = codePointsKey(c.codePoints);
@@ -147,7 +179,7 @@ export default function Page() {
 
   const q = search.trim().toLowerCase();
 
-  const filtered = useMemo<CharacterEntry[]>(() => {
+  const filtered = useMemo<GridEntry[]>(() => {
     const base = activeCategory === null
       ? deduped
       : characters.filter((c) => c.categoryId === activeCategory);
@@ -194,13 +226,7 @@ export default function Page() {
             <div className="brand-sub">Unicode &amp; Alt Code Reference</div>
           </div>
           <div className="header-search">
-            <input
-              type="search"
-              className="search-input"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search by name, alias, character, U+code, alt number…"
-            />
+            <SearchInput value={search} onChange={setSearch} />
           </div>
           <div className="header-count">
             {filtered.length.toLocaleString()} glyphs
@@ -223,6 +249,7 @@ export default function Page() {
           {sortedCategories.map((cat) => {
             const count = q ? (categoryMatchCounts.get(cat.id) ?? 0) : null;
             const isEmpty = count !== null && count === 0;
+            const loading = !loadedCategories.has(cat.id);
             return (
               <button
                 key={cat.id}
@@ -230,6 +257,7 @@ export default function Page() {
                   'cat-pill',
                   activeCategory === cat.id ? 'cat-pill--active' : '',
                   isEmpty ? 'cat-pill--no-results' : '',
+                  loading ? 'cat-pill--loading' : '',
                 ].filter(Boolean).join(' ')}
                 onClick={() => { setActiveCategory(cat.id); }}
               >

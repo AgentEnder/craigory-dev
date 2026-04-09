@@ -28,7 +28,8 @@
       "Bash(CORE_DIR=\"node_modules/.pnpm/@opentui+core@0.1.95_stage-js@1.0.1_typescript@5.9.2_web-tree-sitter@0.25.10/node_modules/@opentui/core\" cat \"$CORE_DIR/renderer.d.ts\")",
       "Bash(CORE_DIR=\"node_modules/.pnpm/@opentui+core@0.1.95_stage-js@1.0.1_typescript@5.9.2_web-tree-sitter@0.25.10/node_modules/@opentui/core\" grep -n \"KeyEvent\\\\|export type.*Key\" \"$CORE_DIR/lib/KeyHandler.d.ts\")",
       "Bash(bun:*)",
-      "Bash(CORE_DIR=\"node_modules/.pnpm/@opentui+core@0.1.95_stage-js@1.0.1_typescript@5.9.2_web-tree-sitter@0.25.10/node_modules/@opentui/core\" cat \"$CORE_DIR/lib/parse.keypress.d.ts\")"
+      "Bash(CORE_DIR=\"node_modules/.pnpm/@opentui+core@0.1.95_stage-js@1.0.1_typescript@5.9.2_web-tree-sitter@0.25.10/node_modules/@opentui/core\" cat \"$CORE_DIR/lib/parse.keypress.d.ts\")",
+      "Bash(ps:*)"
     ],
     "deny": [],
     "ask": []

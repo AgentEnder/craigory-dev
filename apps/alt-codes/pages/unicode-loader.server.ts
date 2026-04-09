@@ -3,8 +3,13 @@ import controlAliases from '@unicode/unicode-17.0.0/Names/Control/index.js';
 import correctionAliases from '@unicode/unicode-17.0.0/Names/Correction/index.js';
 import abbreviationAliases from '@unicode/unicode-17.0.0/Names/Abbreviation/index.js';
 import alternateAliases from '@unicode/unicode-17.0.0/Names/Alternate/index.js';
-import dataOrderedEmoji from 'unicode-emoji-json/data-ordered-emoji.json';
-import dataByEmoji from 'unicode-emoji-json/data-by-emoji.json';
+import { createRequire } from 'module';
+
+// Use createRequire for JSON imports — avoids ESM import attribute requirement
+// when this module is loaded transitively from vite.config.ts
+const require = createRequire(import.meta.url);
+const dataOrderedEmoji = require('unicode-emoji-json/data-ordered-emoji.json') as string[];
+const dataByEmoji = require('unicode-emoji-json/data-by-emoji.json') as Record<string, EmojiJsonEntry>;
 
 import { CP437_SPECIAL, codePointsKey, type CharacterEntry, type UnicodeData } from '../src/unicode-data';
 

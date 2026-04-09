@@ -4,6 +4,7 @@ import type { SymbolData } from './+data.server';
 import type { CharacterEntry } from '../../../src/unicode-data';
 import { toSymbolSlug, codePointsKey } from '../../../src/unicode-data';
 import { withBase } from '../../../src/utils';
+import { SearchInput } from '../../../src/SearchInput';
 import '../../../src/style.css';
 
 function CopyButton({ value, label }: { value: string; label: string }) {
@@ -163,6 +164,9 @@ export default function Page() {
             <div className="brand-title">Glyph Index</div>
             <div className="brand-sub">Unicode &amp; Alt Code Reference</div>
           </a>
+          <div className="header-search">
+            <SearchInput />
+          </div>
         </div>
       </header>
 
