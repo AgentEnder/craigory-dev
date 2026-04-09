@@ -5,6 +5,7 @@ import * as p from '@clack/prompts';
 import { unlinkSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 import { homedir } from 'node:os';
+import { join } from 'node:path';
 
 import {
   discoverSessions,
@@ -43,14 +44,14 @@ function parseAge(age: string): number {
 }
 
 function callClaude(conversationFile: string): Promise<string> {
+  const claudeDir = join(homedir(), '.claude');
   return new Promise((resolve) => {
     execFile(
       'claude',
       [
         '--model', 'haiku',
         '--allowedTools', 'Read',
-        '--bare',
-        '--cwd', homedir(),
+        '--add-dir', claudeDir,
         '-p',
         `Use the Read tool to read ${conversationFile} then summarize what this Claude Code session is about in one brief sentence (under 15 words). Output ONLY the sentence.`,
       ],
