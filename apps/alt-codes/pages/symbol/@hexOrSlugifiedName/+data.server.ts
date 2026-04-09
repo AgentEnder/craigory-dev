@@ -57,7 +57,7 @@ export async function data(pageContext: PageContextServer): Promise<SymbolData> 
   const keywords = nameKeywords(entry.name);
   const relatedByName: CharacterEntry[] = [];
   if (keywords.length > 0) {
-    const seen = new Set<string>([entryKey]);
+    const seen = new Set<string>([key]);
     const scored: Array<{ entry: CharacterEntry; score: number }> = [];
     for (const c of characters) {
       const cKey = codePointsKey(c.codePoints);
