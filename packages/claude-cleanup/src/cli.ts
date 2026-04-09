@@ -2,7 +2,7 @@
 
 import { cli } from 'cli-forge';
 import * as p from '@clack/prompts';
-import { unlinkSync } from 'node:fs';
+import { statSync, unlinkSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 
 import {
@@ -11,6 +11,12 @@ import {
   getConversationFilePath,
   type ClassifiedSession,
 } from './sessions.js';
+import {
+  loadCache,
+  saveCache,
+  getCachedSummary,
+  setCachedSummary,
+} from './cache.js';
 import {
   assertPlatform,
   isProcessRunning,
@@ -34,41 +40,68 @@ function parseAge(age: string): number {
   return value * multipliers[unit];
 }
 
-function summarizeSession(session: ClassifiedSession): Promise<string> {
-  const conversationFile = getConversationFilePath(session.cwd, session.sessionId);
+function callClaude(conversationFile: string): Promise<string> {
   return new Promise((resolve) => {
-    execFile('tail', ['-50', conversationFile], (err, stdout) => {
-      if (err || !stdout.trim()) {
-        resolve('');
-        return;
+    execFile(
+      'claude',
+      [
+        '--model', 'haiku',
+        '-p',
+        `Read the file ${conversationFile} and summarize what this Claude Code session is about in one brief sentence (under 15 words). Just output the sentence, nothing else.`,
+      ],
+      { timeout: 30000 },
+      (err, stdout) => {
+        resolve(err ? '' : stdout.trim());
       }
-      const claude = execFile(
-        'claude',
-        ['--model', 'haiku', '-p', 'Summarize what this Claude Code session is about in one brief sentence (under 15 words). Just output the sentence, nothing else.'],
-        { timeout: 15000 },
-        (err, stdout) => {
-          resolve(err ? '' : stdout.trim());
-        }
-      );
-      claude.stdin?.write(stdout);
-      claude.stdin?.end();
-    });
+    );
   });
 }
 
 async function summarizeSessions(
   sessions: ClassifiedSession[]
 ): Promise<Map<string, string>> {
+  const cache = loadCache();
   const summaries = new Map<string, string>();
-  const results = await Promise.all(
-    sessions.map(async (s) => {
-      const summary = await summarizeSession(s);
-      return [s.sessionId, summary] as const;
-    })
-  );
-  for (const [id, summary] of results) {
-    if (summary) summaries.set(id, summary);
+  const toFetch: ClassifiedSession[] = [];
+
+  for (const s of sessions) {
+    const conversationFile = getConversationFilePath(s.cwd, s.sessionId);
+    let mtimeMs: number;
+    try {
+      mtimeMs = statSync(conversationFile).mtimeMs;
+    } catch {
+      continue;
+    }
+    const cached = getCachedSummary(cache, conversationFile, mtimeMs);
+    if (cached) {
+      summaries.set(s.sessionId, cached);
+    } else {
+      toFetch.push(s);
+    }
   }
+
+  if (toFetch.length > 0) {
+    const results = await Promise.all(
+      toFetch.map(async (s) => {
+        const conversationFile = getConversationFilePath(s.cwd, s.sessionId);
+        const summary = await callClaude(conversationFile);
+        if (summary) {
+          try {
+            const mtimeMs = statSync(conversationFile).mtimeMs;
+            setCachedSummary(cache, conversationFile, mtimeMs, summary);
+          } catch {
+            // ignore
+          }
+        }
+        return [s.sessionId, summary] as const;
+      })
+    );
+    for (const [id, summary] of results) {
+      if (summary) summaries.set(id, summary);
+    }
+    saveCache(cache);
+  }
+
   return summaries;
 }
 
