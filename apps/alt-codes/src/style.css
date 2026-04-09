@@ -1,0 +1,548 @@
+@import 'tailwindcss' source('..');
+
+@theme {
+  --color-ink: #100f08;
+  --color-surface: #1b1914;
+  --color-surface-hover: #241f14;
+  --color-border: #2c2820;
+  --color-text: #cfc9b5;
+  --color-muted: #5a5248;
+  --color-amber: #c08028;
+  --color-amber-dim: #7a5018;
+
+  --font-display: 'Playfair Display', Georgia, serif;
+  --font-mono: 'Space Mono', 'Courier New', monospace;
+  --font-glyph: 'Noto Sans', 'Segoe UI Symbol', 'Apple Symbols', 'Arial Unicode MS',
+    system-ui, sans-serif;
+}
+
+/* ── Reset / base ─────────────────────────────── */
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+body {
+  background-color: var(--color-ink);
+  color: var(--color-text);
+  font-family: var(--font-mono);
+  margin: 0;
+  /* Full-height layout: header + category bar + grid fill the viewport */
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── App shell ────────────────────────────────── */
+
+.app-root {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  overflow: hidden;
+}
+
+/* ── Header ───────────────────────────────────── */
+
+.app-header {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-ink) 94%, transparent);
+  backdrop-filter: blur(8px);
+  padding: 14px 24px;
+  z-index: 20;
+}
+
+.header-inner {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.header-brand {
+  flex-shrink: 0;
+  line-height: 1;
+}
+
+.brand-title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--color-amber);
+  line-height: 1;
+}
+
+.brand-sub {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-muted);
+  margin-top: 3px;
+}
+
+.header-search {
+  flex: 1;
+  max-width: 460px;
+}
+
+.header-count {
+  flex-shrink: 0;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-muted);
+  tabular-nums: normal;
+}
+
+/* ── Category bar ─────────────────────────────── */
+
+.category-bar {
+  flex-shrink: 0;
+  border-bottom: 1px solid var(--color-border);
+  background: color-mix(in srgb, var(--color-ink) 90%, transparent);
+  backdrop-filter: blur(4px);
+  z-index: 10;
+  padding: 8px 24px;
+}
+
+.category-inner {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* ── Main scrollable area ─────────────────────── */
+
+.app-main {
+  flex: 1;
+  overflow: hidden;
+  padding: 16px 24px;
+  max-width: 1400px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ── Virtual scroll container ─────────────────── */
+
+.virtual-scroll {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+/* ── Character card ───────────────────────────── */
+
+.char-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  /* Fixed height so TanStack Virtual row estimation is accurate */
+  height: 85px;
+  padding: 8px 6px 6px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  cursor: pointer;
+  gap: 3px;
+  min-width: 0;
+  transition:
+    border-color 0.1s,
+    background 0.1s;
+  outline: 2px solid transparent;
+  outline-offset: 1px;
+  text-decoration: none; /* for <a> variant */
+}
+
+.char-card:hover {
+  border-color: var(--color-amber);
+  background: var(--color-surface-hover);
+}
+
+.char-card--copied {
+  outline-color: var(--color-amber);
+}
+
+/* ── Glyph & labels ───────────────────────────── */
+
+.char-glyph {
+  font-size: 28px;
+  line-height: 1;
+  font-family: var(--font-glyph);
+  color: #e8e2d4;
+  user-select: none;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.char-hex {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  color: #928c82;
+  letter-spacing: 0.03em;
+  line-height: 1;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+.char-name {
+  font-family: var(--font-mono);
+  font-size: 7.5px;
+  color: #6e6860;
+  line-height: 1.1;
+  pointer-events: none;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  letter-spacing: 0.01em;
+  flex-shrink: 0;
+}
+
+.char-alt {
+  font-family: var(--font-mono);
+  font-size: 7.5px;
+  color: var(--color-amber-dim);
+  line-height: 1;
+  pointer-events: none;
+  flex-shrink: 0;
+}
+
+/* ── Search input ─────────────────────────────── */
+
+.search-input {
+  width: 100%;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-text);
+  outline: none;
+  transition: border-color 0.12s;
+}
+
+.search-input::placeholder {
+  color: var(--color-muted);
+}
+
+.search-input:focus {
+  border-color: var(--color-amber);
+}
+
+/* ── Category pill ────────────────────────────── */
+
+.cat-pill {
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+  white-space: nowrap;
+  border: 1px solid var(--color-border);
+  background: var(--color-surface);
+  color: var(--color-muted);
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    color 0.1s,
+    border-color 0.1s,
+    background 0.1s;
+}
+
+.cat-pill:hover {
+  color: var(--color-text);
+  border-color: color-mix(in srgb, var(--color-amber) 50%, transparent);
+}
+
+.cat-pill--active {
+  background: var(--color-amber);
+  border-color: var(--color-amber);
+  color: var(--color-ink);
+  font-weight: 700;
+}
+
+.cat-pill--no-results {
+  opacity: 0.35;
+}
+
+.cat-pill-count {
+  display: inline-block;
+  margin-left: 5px;
+  background: color-mix(in srgb, var(--color-amber) 20%, transparent);
+  color: var(--color-amber);
+  border-radius: 999px;
+  padding: 0 5px;
+  font-size: 10px;
+  line-height: 1.4;
+  font-weight: 700;
+}
+
+.cat-pill--active .cat-pill-count {
+  background: color-mix(in srgb, var(--color-ink) 25%, transparent);
+  color: var(--color-ink);
+}
+
+/* ── Empty state ──────────────────────────────── */
+
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  height: 100%;
+  font-family: var(--font-mono);
+  text-align: center;
+}
+
+.empty-title {
+  font-size: 13px;
+  color: var(--color-text);
+  margin: 0;
+}
+
+.empty-title strong {
+  color: var(--color-amber);
+  font-weight: 700;
+}
+
+.empty-hint {
+  font-size: 12px;
+  color: var(--color-muted);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.empty-show-all {
+  background: transparent;
+  border: 1px solid var(--color-amber);
+  color: var(--color-amber);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  cursor: pointer;
+  transition: background 0.1s, color 0.1s;
+}
+
+.empty-show-all:hover {
+  background: var(--color-amber);
+  color: var(--color-ink);
+}
+
+/* ── Copy toast ───────────────────────────────── */
+
+.copy-toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%) translateY(6px);
+  background: var(--color-surface);
+  border: 1px solid var(--color-amber);
+  color: var(--color-amber);
+  font-family: var(--font-mono);
+  font-size: 12px;
+  padding: 7px 16px 7px 12px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  opacity: 0;
+  pointer-events: none;
+  transition:
+    opacity 0.18s,
+    transform 0.18s;
+  z-index: 50;
+}
+
+.copy-toast--visible {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+.copy-toast-glyph {
+  font-size: 20px;
+  font-family: var(--font-glyph);
+  line-height: 1;
+}
+
+/* ── Scrollbar hiding ─────────────────────────── */
+
+.no-scrollbar {
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Thin custom scrollbar for the virtual grid */
+.virtual-scroll {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-border) transparent;
+}
+
+.virtual-scroll::-webkit-scrollbar {
+  width: 6px;
+}
+
+.virtual-scroll::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.virtual-scroll::-webkit-scrollbar-thumb {
+  background: var(--color-border);
+  border-radius: 3px;
+}
+
+/* ── Symbol detail page ───────────────────────── */
+
+.symbol-page .app-main {
+  overflow-y: auto;
+}
+
+.symbol-main {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 32px 24px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 40px;
+}
+
+.symbol-hero {
+  display: flex;
+  align-items: center;
+  gap: 32px;
+}
+
+.symbol-hero-glyph {
+  font-family: var(--font-glyph);
+  font-size: 96px;
+  line-height: 1;
+  color: #e8e2d4;
+  flex-shrink: 0;
+  user-select: none;
+}
+
+.symbol-hero-info {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.symbol-name {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--color-amber);
+  margin: 0;
+  line-height: 1.2;
+}
+
+.symbol-aliases {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  color: var(--color-muted);
+  line-height: 1.4;
+}
+
+.symbol-section {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.symbol-section-title {
+  font-family: var(--font-mono);
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--color-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  margin: 0;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--color-border);
+}
+
+.section-link {
+  color: var(--color-amber);
+  text-decoration: none;
+}
+
+.section-link:hover {
+  text-decoration: underline;
+}
+
+/* ── Encoding table ───────────────────────────── */
+
+.encoding-table {
+  border-collapse: collapse;
+  width: 100%;
+  font-family: var(--font-mono);
+}
+
+.encoding-table tr {
+  border-bottom: 1px solid var(--color-border);
+}
+
+.enc-label {
+  font-size: 11px;
+  color: var(--color-muted);
+  padding: 8px 16px 8px 0;
+  white-space: nowrap;
+  width: 120px;
+}
+
+.enc-value {
+  padding: 8px 16px 8px 0;
+  font-size: 13px;
+  color: var(--color-text);
+}
+
+.enc-value code {
+  font-family: var(--font-mono);
+}
+
+/* ── Copy button ──────────────────────────────── */
+
+.copy-btn {
+  background: transparent;
+  border: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: 10px;
+  padding: 3px 10px;
+  border-radius: 3px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: border-color 0.1s, color 0.1s, background 0.1s;
+}
+
+.copy-btn:hover {
+  border-color: var(--color-amber);
+  color: var(--color-amber);
+}
+
+.copy-btn--done {
+  border-color: var(--color-amber);
+  background: color-mix(in srgb, var(--color-amber) 12%, transparent);
+  color: var(--color-amber);
+}
+
+/* ── Mini char grid (neighbors / related) ─────── */
+
+.mini-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  gap: 5px;
+}
