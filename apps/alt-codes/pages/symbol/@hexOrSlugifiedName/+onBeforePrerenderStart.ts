@@ -1,14 +1,15 @@
 import type { OnBeforePrerenderStartSync } from 'vike/types';
 import { loadUnicodeData } from '../../unicode-loader.server';
-import { toSymbolSlug } from '../../../src/unicode-data';
+import { toSymbolSlug, codePointsKey } from '../../../src/unicode-data';
 
 export const onBeforePrerenderStart: OnBeforePrerenderStartSync = (): ReturnType<OnBeforePrerenderStartSync> => {
   const { characters } = loadUnicodeData();
-  const seen = new Set<number>();
+  const seen = new Set<string>();
   const urls: string[] = [];
   for (const entry of characters) {
-    if (!seen.has(entry.codePoint)) {
-      seen.add(entry.codePoint);
+    const key = codePointsKey(entry.codePoints);
+    if (!seen.has(key)) {
+      seen.add(key);
       urls.push(`/symbol/${toSymbolSlug(entry)}`);
     }
   }
