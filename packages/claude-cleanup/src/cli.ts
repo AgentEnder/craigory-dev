@@ -80,12 +80,12 @@ const claudeCleanupCLI = cli('claude-cleanup', {
               ? `[dead]         ${shortenPath(s.cwd)}`
               : `[stale ${formatDuration(s.staleDurationMs)}] ${shortenPath(s.cwd)}`;
           return {
-            value: s.pid,
+            value: s.sessionId,
             label,
             hint: `PID: ${s.pid}`,
           };
         }),
-        initialValues: killable.map((s) => s.pid),
+        initialValues: killable.map((s) => s.sessionId),
       });
 
       if (p.isCancel(selected)) {
@@ -93,8 +93,8 @@ const claudeCleanupCLI = cli('claude-cleanup', {
         process.exit(0);
       }
 
-      const selectedPids = new Set(selected as number[]);
-      toKill = killable.filter((s) => selectedPids.has(s.pid));
+      const selectedIds = new Set(selected as string[]);
+      toKill = killable.filter((s) => selectedIds.has(s.sessionId));
     }
 
     let killed = 0;

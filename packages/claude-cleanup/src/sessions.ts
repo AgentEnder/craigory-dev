@@ -37,6 +37,7 @@ export function discoverSessions(
     try {
       const raw = readFileSync(filePath, 'utf-8');
       const data = JSON.parse(raw);
+      if (typeof data.pid !== 'number' || !data.sessionId) continue;
       const stat = statSync(filePath);
       sessions.push({
         pid: data.pid,
