@@ -653,9 +653,9 @@ body {
 }
 
 .skin-tone-swatch:hover {
-  border-color: var(--color-accent, #7c6af7);
+  border-color: var(--color-amber);
 }
 
 .skin-tone-swatch--active {
-  border-color: var(--color-accent, #7c6af7);
+  border-color: var(--color-amber);
 }

@@ -192,7 +192,7 @@ export default function Page() {
               )}
               <CopyButton value={displayChar} label={`Copy "${displayChar}"`} />
               {entry.emoji !== null && entry.emoji.skinToneSlots > 0 && (
-                <SkinTonePicker entry={entry} onVariantChange={setDisplayChar} />
+                <SkinTonePicker key={entry.char} entry={entry} onVariantChange={setDisplayChar} />
               )}
             </div>
           </section>
