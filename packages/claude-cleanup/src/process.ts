@@ -1,4 +1,3 @@
-import { execFileSync } from 'node:child_process';
 import { homedir } from 'node:os';
 
 export function assertPlatform(): void {
@@ -13,15 +12,7 @@ export function assertPlatform(): void {
 export function isProcessRunning(pid: number): boolean {
   try {
     process.kill(pid, 0);
-  } catch {
-    return false;
-  }
-  // Verify it's actually a Claude process (PID reuse protection)
-  try {
-    const comm = execFileSync('ps', ['-p', String(pid), '-o', 'comm='], {
-      encoding: 'utf-8',
-    }).trim();
-    return comm.includes('claude');
+    return true;
   } catch {
     return false;
   }
