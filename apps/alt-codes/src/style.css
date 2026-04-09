@@ -406,15 +406,33 @@ body {
 
 /* ── Symbol detail page ───────────────────────── */
 
+/* Full-width scroll container — scrollbar sits at the viewport edge, not inside a narrow column */
 .symbol-main {
   flex: 1;
   overflow-y: auto;
-  max-width: 860px;
+}
+
+.symbol-content {
+  max-width: 1400px;
   margin: 0 auto;
   padding: 32px 24px 64px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 0 60px;
+  align-items: start;
+}
+
+.symbol-left,
+.symbol-right {
   display: flex;
   flex-direction: column;
   gap: 40px;
+}
+
+@media (max-width: 860px) {
+  .symbol-content {
+    grid-template-columns: 1fr;
+  }
 }
 
 .symbol-hero {
