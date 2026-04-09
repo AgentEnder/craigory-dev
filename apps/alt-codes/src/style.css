@@ -406,11 +406,9 @@ body {
 
 /* ── Symbol detail page ───────────────────────── */
 
-.symbol-page .app-main {
-  overflow-y: auto;
-}
-
 .symbol-main {
+  flex: 1;
+  overflow-y: auto;
   max-width: 860px;
   margin: 0 auto;
   padding: 32px 24px 64px;

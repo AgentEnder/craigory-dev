@@ -1,6 +1,6 @@
 // apps/alt-codes/pages/category/@id/+Page.tsx
 import { useData } from 'vike-react/useData';
-import { useRef, useEffect, useState, useCallback, type RefObject } from 'react';
+import { useRef, useEffect, useState, type RefObject } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { CategoryData } from './+data.server';
 import type { CharacterEntry } from '../../../src/unicode-data';
@@ -35,11 +35,6 @@ function CategoryGrid({ characters }: { characters: CharacterEntry[] }) {
     overscan: 4,
   });
 
-  const handleClick = useCallback((c: CharacterEntry) => {
-    const hexStr = c.codePoint.toString(16).toUpperCase().padStart(4, '0');
-    window.location.href = `/symbol/${hexStr}`;
-  }, []);
-
   return (
     <div ref={containerRef} className="virtual-scroll">
       <div style={{ height: `${rowVirtualizer.getTotalSize()}px`, position: 'relative' }}>
@@ -58,19 +53,22 @@ function CategoryGrid({ characters }: { characters: CharacterEntry[] }) {
                 gap: '5px',
               }}
             >
-              {row.map((c) => (
-                <button
-                  key={c.codePoint}
-                  className="char-card"
-                  onClick={() => handleClick(c)}
-                  title={[c.name, ...c.aliases, c.hex, 'click for details'].filter(Boolean).join(' · ')}
-                >
-                  <span className="char-glyph">{c.char}</span>
-                  <span className="char-hex">{c.hex}</span>
-                  {c.name && <span className="char-name">{c.name}</span>}
-                  {c.altCode !== null && <span className="char-alt">Alt+{c.altCode}</span>}
-                </button>
-              ))}
+              {row.map((c) => {
+                const hexStr = c.codePoint.toString(16).toUpperCase().padStart(4, '0');
+                return (
+                  <a
+                    key={c.codePoint}
+                    href={`/symbol/${hexStr}`}
+                    className="char-card"
+                    title={[c.name, ...c.aliases, c.hex, 'click for details'].filter(Boolean).join(' · ')}
+                  >
+                    <span className="char-glyph">{c.char}</span>
+                    <span className="char-hex">{c.hex}</span>
+                    {c.name && <span className="char-name">{c.name}</span>}
+                    {c.altCode !== null && <span className="char-alt">Alt+{c.altCode}</span>}
+                  </a>
+                );
+              })}
             </div>
           );
         })}
