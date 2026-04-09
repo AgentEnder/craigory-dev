@@ -40,7 +40,7 @@ function parseAge(age: string): number {
   return value * multipliers[unit];
 }
 
-function callClaude(conversationFile: string): Promise<string> {
+function callClaude(conversationFile: string, cwd: string): Promise<string> {
   return new Promise((resolve) => {
     execFile(
       'claude',
@@ -48,6 +48,7 @@ function callClaude(conversationFile: string): Promise<string> {
         '--model', 'haiku',
         '--allowedTools', 'Read',
         '--bare',
+        '--cwd', cwd,
         '-p',
         `Use the Read tool to read ${conversationFile} then summarize what this Claude Code session is about in one brief sentence (under 15 words). Output ONLY the sentence.`,
       ],
@@ -86,7 +87,7 @@ async function summarizeSessions(
     const results = await Promise.all(
       toFetch.map(async (s) => {
         const conversationFile = getConversationFilePath(s.cwd, s.sessionId);
-        const summary = await callClaude(conversationFile);
+        const summary = await callClaude(conversationFile, s.cwd);
         if (summary) {
           try {
             const mtimeMs = statSync(conversationFile).mtimeMs;

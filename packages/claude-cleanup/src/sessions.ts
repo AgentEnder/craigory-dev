@@ -66,6 +66,7 @@ export function discoverSessions(
       const raw = readFileSync(filePath, 'utf-8');
       const data = JSON.parse(raw);
       if (typeof data.pid !== 'number' || !data.sessionId) continue;
+      if (data.kind !== 'interactive') continue;
       const lastActivityMs = getLastActivityMs(data.cwd, data.sessionId, claudeDir);
       sessions.push({
         pid: data.pid,
