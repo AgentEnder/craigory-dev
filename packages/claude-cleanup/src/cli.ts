@@ -46,8 +46,9 @@ function callClaude(conversationFile: string): Promise<string> {
       'claude',
       [
         '--model', 'haiku',
+        '--allowedTools', 'Read',
         '-p',
-        `Read the file ${conversationFile} and summarize what this Claude Code session is about in one brief sentence (under 15 words). Just output the sentence, nothing else.`,
+        `Use the Read tool to read ${conversationFile} then summarize what this Claude Code session is about in one brief sentence (under 15 words). Output ONLY the sentence.`,
       ],
       { timeout: 30000 },
       (err, stdout) => {
