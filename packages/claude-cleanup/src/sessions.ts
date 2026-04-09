@@ -35,14 +35,18 @@ function getLastActivityMs(
     claudeDir, 'projects', encodeCwd(cwd), `${sessionId}.jsonl`
   );
   try {
-    const lastLine = execFileSync('tail', ['-1', conversationFile], {
+    const lines = execFileSync('tail', ['-20', conversationFile], {
       encoding: 'utf-8',
       stdio: ['pipe', 'pipe', 'ignore'],
-    }).trim();
-    if (lastLine) {
-      const entry = JSON.parse(lastLine);
-      if (entry.timestamp) {
-        return new Date(entry.timestamp).getTime();
+    }).trim().split('\n').reverse();
+    for (const line of lines) {
+      try {
+        const entry = JSON.parse(line);
+        if (entry.timestamp) {
+          return new Date(entry.timestamp).getTime();
+        }
+      } catch {
+        // skip malformed lines
       }
     }
   } catch {
