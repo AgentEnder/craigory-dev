@@ -3,7 +3,7 @@ import { useRef, useEffect, useState, type RefObject } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { CategoryData } from './+data.server';
 import type { CharacterEntry } from '../../../src/unicode-data';
-import { toSymbolSlug } from '../../../src/unicode-data';
+import { toSymbolSlug, codePointsKey } from '../../../src/unicode-data';
 import { withBase } from '../../../src/utils';
 import '../../../src/style.css';
 
@@ -56,7 +56,7 @@ function CategoryGrid({ characters }: { characters: CharacterEntry[] }) {
             >
               {row.map((c) => (
                   <a
-                    key={c.codePoint}
+                    key={codePointsKey(c.codePoints)}
                     href={withBase(`/symbol/${toSymbolSlug(c)}`)}
                     className="char-card"
                     title={[c.name, ...c.aliases, c.hex, 'click for details'].filter(Boolean).join(' · ')}
