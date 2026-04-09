@@ -45,7 +45,10 @@ function rangeEntries(start: number, end: number, categoryId: string): Character
   return out;
 }
 
+let _cachedData: UnicodeData | null = null;
+
 export function loadUnicodeData(): UnicodeData {
+  if (_cachedData) return _cachedData;
   const altCodeEntries: CharacterEntry[] = [];
   for (let altCode = 1; altCode <= 254; altCode++) {
     const cp = altToUnicode.get(altCode);
@@ -79,7 +82,8 @@ export function loadUnicodeData(): UnicodeData {
     byCategory.set(entry.categoryId, cat);
   }
 
-  return { characters, byCodePoint, byCategory };
+  _cachedData = { characters, byCodePoint, byCategory };
+  return _cachedData;
 }
 
 // Named HTML entities (subset of commonly needed ones)
