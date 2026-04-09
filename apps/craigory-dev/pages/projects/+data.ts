@@ -1,6 +1,5 @@
-import { loadAllProjects } from '../../src/data/projects';
+import type { PageContext } from 'vike/types';
 
-export const data = async () => {
-  const projects = await loadAllProjects();
-  return { projects };
+export const data = (pageContext: PageContext) => {
+  return { projects: pageContext.globalContext.projects };
 };
