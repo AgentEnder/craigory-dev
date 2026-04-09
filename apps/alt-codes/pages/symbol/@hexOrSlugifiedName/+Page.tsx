@@ -2,7 +2,7 @@ import { useData } from 'vike-react/useData';
 import { useState } from 'react';
 import type { SymbolData } from './+data.server';
 import type { CharacterEntry } from '../../../src/unicode-data';
-import { toSymbolSlug } from '../../../src/unicode-data';
+import { toSymbolSlug, codePointsKey } from '../../../src/unicode-data';
 import { withBase } from '../../../src/utils';
 import '../../../src/style.css';
 
@@ -134,7 +134,7 @@ export default function Page() {
             <section className="symbol-section">
               <h2 className="symbol-section-title">Related characters</h2>
               <div className="mini-grid">
-                {relatedByName.map((c) => <MiniCard key={c.codePoint} entry={c} />)}
+                {relatedByName.map((c) => <MiniCard key={codePointsKey(c.codePoints)} entry={c} />)}
               </div>
             </section>
           )}
@@ -149,7 +149,7 @@ export default function Page() {
                 </a>
               </h2>
               <div className="mini-grid">
-                {blockNeighbors.map((c) => <MiniCard key={c.codePoint} entry={c} />)}
+                {blockNeighbors.map((c) => <MiniCard key={codePointsKey(c.codePoints)} entry={c} />)}
               </div>
             </section>
           )}
