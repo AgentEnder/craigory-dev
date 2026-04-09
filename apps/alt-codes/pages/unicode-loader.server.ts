@@ -4,7 +4,7 @@ import correctionAliases from '@unicode/unicode-17.0.0/Names/Correction/index.js
 import abbreviationAliases from '@unicode/unicode-17.0.0/Names/Abbreviation/index.js';
 import alternateAliases from '@unicode/unicode-17.0.0/Names/Alternate/index.js';
 
-import { CP437_SPECIAL, type CharacterEntry, type UnicodeData } from '../src/unicode-data';
+import { CP437_SPECIAL, codePointsKey, type CharacterEntry, type UnicodeData } from '../src/unicode-data';
 
 // CP437 bidirectional maps
 const altToUnicode = new Map<number, number>();
@@ -28,7 +28,7 @@ function getAliases(cp: number): string[] {
 
 function makeEntry(codePoint: number, categoryId: string): CharacterEntry {
   return {
-    codePoint,
+    codePoints: [codePoint],
     char: String.fromCodePoint(codePoint),
     hex: `U+${codePoint.toString(16).toUpperCase().padStart(4, '0')}`,
     decimal: codePoint,
@@ -36,6 +36,7 @@ function makeEntry(codePoint: number, categoryId: string): CharacterEntry {
     altCode: unicodeToAlt.get(codePoint) ?? null,
     name: unicodeNames.get(codePoint) ?? '',
     aliases: getAliases(codePoint),
+    emoji: null,
   };
 }
 
@@ -72,17 +73,18 @@ export function loadUnicodeData(): UnicodeData {
     ...rangeEntries(0x2700, 0x27bf, 'dingbats'),
   ];
 
-  const byCodePoint = new Map<number, CharacterEntry>();
+  const byCodePoints = new Map<string, CharacterEntry>();
   const byCategory = new Map<string, CharacterEntry[]>();
 
   for (const entry of characters) {
-    if (!byCodePoint.has(entry.codePoint)) byCodePoint.set(entry.codePoint, entry);
+    const key = codePointsKey(entry.codePoints);
+    if (!byCodePoints.has(key)) byCodePoints.set(key, entry);
     const cat = byCategory.get(entry.categoryId) ?? [];
     cat.push(entry);
     byCategory.set(entry.categoryId, cat);
   }
 
-  _cachedData = { characters, byCodePoint, byCategory };
+  _cachedData = { characters, byCodePoints, byCategory };
   return _cachedData;
 }
 
@@ -106,25 +108,33 @@ const HTML_ENTITIES: Record<number, string> = {
   0x2666: '&diams;',
 };
 
-export function getEncodingInfo(codePoint: number): import('../src/unicode-data').EncodingInfo {
-  // UTF-8 encoding
+export function getEncodingInfo(codePoints: number[]): import('../src/unicode-data').EncodingInfo {
+  const char = codePoints.map(cp => String.fromCodePoint(cp)).join('');
+
+  // UTF-8 encoding of the full sequence
   const encoder = new TextEncoder();
-  const bytes = Array.from(encoder.encode(String.fromCodePoint(codePoint)));
+  const bytes = Array.from(encoder.encode(char));
   const utf8Hex = bytes.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
 
-  // HTML entity
-  const htmlEntity = HTML_ENTITIES[codePoint] ?? null;
-  const htmlNumeric = codePoint <= 0xffff
-    ? `&#${codePoint};`
-    : `&#x${codePoint.toString(16).toUpperCase()};`;
+  // HTML entity (single codepoint only)
+  const htmlEntity = codePoints.length === 1 ? (HTML_ENTITIES[codePoints[0]] ?? null) : null;
 
-  // CSS value (always hex, padded to at least 4 digits)
-  const cssValue = `\\${codePoint.toString(16).toUpperCase()}`;
+  // HTML numeric: each codepoint as &#N; or &#xN;
+  const htmlNumeric = codePoints
+    .map(cp => cp <= 0xffff ? `&#${cp};` : `&#x${cp.toString(16).toUpperCase()};`)
+    .join('');
 
-  // JS escape
-  const jsEscape = codePoint <= 0xffff
-    ? `\\u${codePoint.toString(16).toUpperCase().padStart(4, '0')}`
-    : `\\u{${codePoint.toString(16).toUpperCase()}}`;
+  // CSS: backslash-hex per codepoint
+  const cssValue = codePoints
+    .map(cp => `\\${cp.toString(16).toUpperCase()}`)
+    .join('');
+
+  // JS escape per codepoint
+  const jsEscape = codePoints
+    .map(cp => cp <= 0xffff
+      ? `\\u${cp.toString(16).toUpperCase().padStart(4, '0')}`
+      : `\\u{${cp.toString(16).toUpperCase()}}`)
+    .join('');
 
   return { utf8Bytes: bytes, utf8Hex, htmlEntity, htmlNumeric, cssValue, jsEscape };
 }
