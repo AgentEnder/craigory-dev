@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { discoverSessions, classifySessions, type SessionInfo } from './sessions.js';
+import { classifySessions, type SessionInfo } from './sessions.js';
 
 // We'll test classifySessions with mock data since discoverSessions reads the filesystem
 describe('classifySessions', () => {
