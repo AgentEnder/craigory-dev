@@ -1,30 +1,52 @@
+export interface EmojiMeta {
+  group: string;           // "Smileys & Emotion"
+  subgroup: string;        // "face-smiling"
+  emojiVersion: string;    // "1.0"
+  unicodeVersion: string;  // "6.1"
+  skinToneSlots: number;   // 0 = none, 1 = single, 2 = dual
+}
+
 export interface CharacterEntry {
-  codePoint: number;
+  codePoints: number[];       // [0x2190] for regular chars; multi for emoji sequences
   char: string;
-  hex: string; // "U+XXXX"
-  decimal: number;
+  hex: string;                // "U+XXXX" — first codepoint, used for card display and slug prefix
+  decimal: number;            // first codepoint decimal
   categoryId: string;
-  altCode: number | null; // Windows Alt code (1–255) if applicable
-  name: string; // canonical Unicode name
-  aliases: string[]; // control names, corrections, abbreviations, alternates
+  altCode: number | null;
+  name: string;
+  aliases: string[];
+  emoji: EmojiMeta | null;    // null for non-emoji
+}
+
+/** Returns the map key for a codepoints array.
+ *  e.g. [0x1F468, 0x200D, 0x1F4BB] → "1f468_200d_1f4bb" */
+export function codePointsKey(codePoints: number[]): string {
+  return codePoints.map(cp => cp.toString(16).toLowerCase()).join('_');
+}
+
+/** Produces a URL-safe slug.
+ *  Single codepoint:  "2190-leftwards-arrow"
+ *  Multi codepoint:   "1f468_200d_1f4bb-man-technologist"
+ *  Codepoints joined with _ to avoid ambiguity with 4-char hex name words (e.g. "face"). */
+export function toSymbolSlug(entry: CharacterEntry): string {
+  const hexPrefix = codePointsKey(entry.codePoints);
+  if (!entry.name) return hexPrefix;
+  const slug = entry.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  return `${hexPrefix}-${slug}`;
+}
+
+/** Extracts codepoints from a slug.
+ *  "2190-leftwards-arrow"              → [0x2190]
+ *  "1f468_200d_1f4bb-man-technologist" → [0x1F468, 0x200D, 0x1F4BB]
+ *  Strategy: take everything before the first "-", split on "_". */
+export function parseSymbolSlug(param: string): number[] {
+  const hexPrefix = param.split('-')[0];
+  return hexPrefix.split('_').map(h => parseInt(h, 16));
 }
 
 export interface Category {
   id: string;
   name: string;
-}
-
-/** Produces a URL-safe slug like "2190-leftwards-arrow" or just "2190" for unnamed chars. */
-export function toSymbolSlug(entry: CharacterEntry): string {
-  const hex = entry.codePoint.toString(16).toUpperCase().padStart(4, '0');
-  if (!entry.name) return hex;
-  const slug = entry.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-  return `${hex}-${slug}`;
-}
-
-/** Extracts the code point from a hexOrSlugifiedName param like "2190-leftwards-arrow". */
-export function parseSymbolSlug(param: string): number {
-  return parseInt(param.split('-')[0], 16);
 }
 
 export const CATEGORIES: Category[] = [
@@ -42,6 +64,15 @@ export const CATEGORIES: Category[] = [
   { id: 'geometric', name: 'Geometric Shapes' },
   { id: 'symbols', name: 'Misc Symbols' },
   { id: 'dingbats', name: 'Dingbats' },
+  { id: 'smileys-emotion', name: 'Smileys & Emotion' },
+  { id: 'people-body', name: 'People & Body' },
+  { id: 'animals-nature', name: 'Animals & Nature' },
+  { id: 'food-drink', name: 'Food & Drink' },
+  { id: 'travel-places', name: 'Travel & Places' },
+  { id: 'activities', name: 'Activities' },
+  { id: 'objects', name: 'Objects' },
+  { id: 'symbols-emoji', name: 'Symbols (Emoji)' },
+  { id: 'flags', name: 'Flags' },
 ];
 
 // CP437: [alt code, unicode code point]  (alt 32–126 map directly to ASCII)
@@ -218,7 +249,7 @@ export interface EncodingInfo {
 
 export interface UnicodeData {
   characters: CharacterEntry[];
-  byCodePoint: Map<number, CharacterEntry>;
+  byCodePoints: Map<string, CharacterEntry>;
   byCategory: Map<string, CharacterEntry[]>;
 }
 
