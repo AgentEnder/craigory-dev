@@ -160,6 +160,9 @@ const MobileDrawer = React.forwardRef<HTMLElement, { isOpen: boolean }>(
           <Link className="mobile-navitem" href="/projects">
             Projects
           </Link>
+          <Link className="mobile-navitem" href="/tools">
+            Tools
+          </Link>
           <Link className="mobile-navitem" href="/presentations">
             Speaking + Presentations
           </Link>

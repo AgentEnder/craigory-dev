@@ -1,0 +1,6 @@
+{
+  "name": "GitHub GraphQL Playground",
+  "description": "Interactive GraphQL IDE for exploring GitHub's API. Authenticate with a personal access token, write queries with full schema autocomplete, and monitor your rate limit in real time.",
+  "technologies": ["TypeScript", "HTML", "CSS"],
+  "category": "tool"
+}

@@ -1,0 +1,81 @@
+.tools-intro {
+  color: #555;
+  margin-bottom: 2rem;
+  max-width: 45rem;
+}
+
+.tools-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1.5rem;
+  max-width: 45rem;
+
+  @media screen and (max-width: 600px) {
+    grid-template-columns: 1fr;
+  }
+}
+
+.tool-card {
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: box-shadow 0.2s ease;
+
+  &:hover {
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}
+
+.tool-card-name {
+  margin: 0;
+  font-size: 1.25rem;
+}
+
+.tool-card-description {
+  margin: 0;
+  color: #444;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  flex: 1;
+}
+
+.tool-card-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  margin-top: 0.5rem;
+}
+
+.tool-card-launch {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  background: #333;
+  color: #fff;
+  padding: 0.5rem 1rem;
+  border-radius: 5px;
+  text-decoration: none;
+  font-size: 0.9rem;
+  transition: background 0.2s ease;
+
+  &:hover {
+    background: #555;
+  }
+
+  svg {
+    font-size: 0.75rem;
+  }
+}
+
+.tool-card-source {
+  color: #666;
+  font-size: 0.85rem;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}

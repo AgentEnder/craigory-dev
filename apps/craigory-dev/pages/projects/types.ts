@@ -38,6 +38,7 @@ export type LocalProjectMetadata = {
   technologies?: string[];
   featured?: boolean;
   order?: number;
+  category?: string;
 };
 
 export type RepoData = ProjectData;
