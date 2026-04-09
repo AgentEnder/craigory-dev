@@ -3,6 +3,8 @@ import controlAliases from '@unicode/unicode-17.0.0/Names/Control/index.js';
 import correctionAliases from '@unicode/unicode-17.0.0/Names/Correction/index.js';
 import abbreviationAliases from '@unicode/unicode-17.0.0/Names/Abbreviation/index.js';
 import alternateAliases from '@unicode/unicode-17.0.0/Names/Alternate/index.js';
+import dataOrderedEmoji from 'unicode-emoji-json/data-ordered-emoji.json';
+import dataByEmoji from 'unicode-emoji-json/data-by-emoji.json';
 
 import { CP437_SPECIAL, codePointsKey, type CharacterEntry, type UnicodeData } from '../src/unicode-data';
 
@@ -24,6 +26,98 @@ function getAliases(cp: number): string[] {
   const alt = alternateAliases[cp];
   if (alt) out.push(...alt);
   return out;
+}
+
+const ZWJ = 0x200d;
+
+function isHumanFigure(cp: number): boolean {
+  return (cp >= 0x1f466 && cp <= 0x1f9d1) || cp === 0x1f91d;
+}
+
+function splitOnZwj(codePoints: number[]): number[][] {
+  const result: number[][] = [];
+  let current: number[] = [];
+  for (const cp of codePoints) {
+    if (cp === ZWJ) {
+      result.push(current);
+      current = [];
+    } else current.push(cp);
+  }
+  result.push(current);
+  return result;
+}
+
+function detectSkinToneSlots(codePoints: number[], skinToneSupport: boolean): number {
+  if (!skinToneSupport) return 0;
+  const components = splitOnZwj(codePoints);
+  if (
+    components.length === 2 &&
+    components[0].length > 0 &&
+    isHumanFigure(components[0][0]) &&
+    components[1].length > 0 &&
+    isHumanFigure(components[1][0])
+  ) {
+    return 2;
+  }
+  return 1;
+}
+
+const EMOJI_GROUP_TO_CATEGORY: Record<string, string> = {
+  'Smileys & Emotion': 'smileys-emotion',
+  'People & Body': 'people-body',
+  'Animals & Nature': 'animals-nature',
+  'Food & Drink': 'food-drink',
+  'Travel & Places': 'travel-places',
+  Activities: 'activities',
+  Objects: 'objects',
+  Symbols: 'symbols-emoji',
+  Flags: 'flags',
+};
+
+interface EmojiJsonEntry {
+  name: string;
+  slug: string;
+  group: string;
+  emoji_version: string;
+  unicode_version: string;
+  skin_tone_support: boolean;
+}
+
+function buildEmojiCharacters(): CharacterEntry[] {
+  const byEmoji = dataByEmoji as Record<string, EmojiJsonEntry>;
+  const ordered = dataOrderedEmoji as string[];
+  const entries: CharacterEntry[] = [];
+
+  for (const emojiChar of ordered) {
+    const meta = byEmoji[emojiChar];
+    if (!meta) continue;
+
+    const categoryId = EMOJI_GROUP_TO_CATEGORY[meta.group];
+    if (!categoryId) continue;
+
+    const codePoints = [...emojiChar].map((c) => c.codePointAt(0)!);
+    const firstCp = codePoints[0];
+
+    entries.push({
+      codePoints,
+      char: emojiChar,
+      hex: `U+${firstCp.toString(16).toUpperCase().padStart(4, '0')}`,
+      decimal: firstCp,
+      categoryId,
+      altCode: null,
+      name: meta.name.toUpperCase(),
+      aliases: [],
+      emoji: {
+        group: meta.group,
+        subgroup: meta.slug.replace(/_/g, '-'),
+        emojiVersion: meta.emoji_version,
+        unicodeVersion: meta.unicode_version,
+        skinToneSlots: detectSkinToneSlots(codePoints, meta.skin_tone_support),
+      },
+    });
+  }
+
+  return entries;
 }
 
 function makeEntry(codePoint: number, categoryId: string): CharacterEntry {
@@ -71,6 +165,7 @@ export function loadUnicodeData(): UnicodeData {
     ...rangeEntries(0x25a0, 0x25ff, 'geometric'),
     ...rangeEntries(0x2600, 0x26ff, 'symbols'),
     ...rangeEntries(0x2700, 0x27bf, 'dingbats'),
+    ...buildEmojiCharacters(),
   ];
 
   const byCodePoints = new Map<string, CharacterEntry>();
