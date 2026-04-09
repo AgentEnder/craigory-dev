@@ -21,7 +21,8 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "resolveJsonModule": true,
-    "types": ["vite/client", "vike/types"]
+    "types": ["vite/client", "vike/types"],
+    "jsx": "react-jsx"
   },
-  "include": ["src"]
+  "include": ["src", "pages"]
 }
