@@ -109,8 +109,8 @@ async function loadDataWithCache({
     })
   );
 
-  const mod = await import('./+data');
-  return mod.data({} as never);
+  const mod = await import('../../src/data/projects');
+  return { projects: await mod.loadAllProjects() };
 }
 
 describe('projects +data', () => {

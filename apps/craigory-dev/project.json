@@ -54,7 +54,8 @@
       "executor": "@nx/vite:preview-server",
       "defaultConfiguration": "development",
       "options": {
-        "buildTarget": "craigory-dev:build"
+        "buildTarget": "craigory-dev:build",
+        "staticFilePath": "dist/apps/craigory-dev/client"
       },
       "configurations": {
         "development": {

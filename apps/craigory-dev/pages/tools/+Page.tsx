@@ -10,7 +10,8 @@ export function Page() {
     <>
       <h1>Web Dev Tools</h1>
       <p className="tools-intro">
-        Interactive tools for web development — built with TypeScript and React.
+        A selection of web based tools that may come in handy during development
+        or otherwise.
       </p>
       <div className="tools-grid">
         {tools.map((tool) => (
@@ -24,27 +25,12 @@ export function Page() {
 function ToolCard({ tool }: { tool: RepoData }) {
   const name =
     'metadata' in tool && tool.metadata.name ? tool.metadata.name : tool.repo;
-  const technologies =
-    'metadata' in tool && tool.metadata.technologies
-      ? tool.metadata.technologies
-      : tool.languages
-        ? Object.keys(tool.languages)
-        : [];
 
   return (
     <article className="tool-card">
       <h2 className="tool-card-name">{name}</h2>
       {tool.description && (
         <p className="tool-card-description">{tool.description}</p>
-      )}
-      {technologies.length > 0 && (
-        <div className="tool-card-tags">
-          {technologies.map((tech) => (
-            <span key={tech} className="tool-card-tag">
-              {tech}
-            </span>
-          ))}
-        </div>
       )}
       <div className="tool-card-actions">
         {tool.deployment && (
