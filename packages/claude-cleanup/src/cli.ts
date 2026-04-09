@@ -59,7 +59,7 @@ const claudeCleanupCLI = cli('claude-cleanup', {
     });
 
     // Sort oldest → newest by mtime
-    classified.sort((a, b) => a.mtimeMs - b.mtimeMs);
+    classified.sort((a, b) => a.lastActivityMs - b.lastActivityMs);
 
     const killable = classified.filter((s) => s.status !== 'active');
 

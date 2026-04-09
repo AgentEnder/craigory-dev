@@ -13,7 +13,7 @@ describe('classifySessions', () => {
         kind: 'interactive',
         entrypoint: 'cli',
         filePath: '/tmp/sessions/99999.json',
-        mtimeMs: Date.now(),
+        lastActivityMs: Date.now(),
       },
     ];
 
@@ -35,7 +35,7 @@ describe('classifySessions', () => {
         kind: 'interactive',
         entrypoint: 'cli',
         filePath: '/tmp/sessions/12345.json',
-        mtimeMs: threeHoursAgo,
+        lastActivityMs: threeHoursAgo,
       },
     ];
 
@@ -56,7 +56,7 @@ describe('classifySessions', () => {
         kind: 'interactive',
         entrypoint: 'cli',
         filePath: '/tmp/sessions/12345.json',
-        mtimeMs: Date.now(),
+        lastActivityMs: Date.now(),
       },
     ];
 

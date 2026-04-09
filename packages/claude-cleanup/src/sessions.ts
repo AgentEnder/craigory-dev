@@ -10,7 +10,7 @@ export interface SessionInfo {
   kind: string;
   entrypoint: string;
   filePath: string;
-  mtimeMs: number;
+  lastActivityMs: number;
 }
 
 export type SessionStatus = 'active' | 'stale' | 'dead';
@@ -20,9 +20,29 @@ export interface ClassifiedSession extends SessionInfo {
   staleDurationMs: number;
 }
 
+export function encodeCwd(cwd: string): string {
+  return cwd.replace(/\./g, '').replace(/\//g, '-');
+}
+
+function getLastActivityMs(
+  cwd: string,
+  sessionId: string,
+  claudeDir: string
+): number {
+  const projectDir = join(claudeDir, 'projects', encodeCwd(cwd));
+  const conversationFile = join(projectDir, `${sessionId}.jsonl`);
+  try {
+    return statSync(conversationFile).mtimeMs;
+  } catch {
+    // Fall back to session file creation time
+    return Date.now();
+  }
+}
+
 export function discoverSessions(
   sessionsDir = join(homedir(), '.claude', 'sessions')
 ): SessionInfo[] {
+  const claudeDir = join(sessionsDir, '..');
   let files: string[];
   try {
     files = readdirSync(sessionsDir).filter((f) => f.endsWith('.json'));
@@ -38,7 +58,7 @@ export function discoverSessions(
       const raw = readFileSync(filePath, 'utf-8');
       const data = JSON.parse(raw);
       if (typeof data.pid !== 'number' || !data.sessionId) continue;
-      const stat = statSync(filePath);
+      const lastActivityMs = getLastActivityMs(data.cwd, data.sessionId, claudeDir);
       sessions.push({
         pid: data.pid,
         sessionId: data.sessionId,
@@ -47,7 +67,7 @@ export function discoverSessions(
         kind: data.kind,
         entrypoint: data.entrypoint,
         filePath,
-        mtimeMs: stat.mtimeMs,
+        lastActivityMs,
       });
     } catch {
       // Skip malformed session files
@@ -64,7 +84,7 @@ export function classifySessions(
   const now = Date.now();
   return sessions.map((session) => {
     const alive = opts.isProcessRunning(session.pid);
-    const age = now - session.mtimeMs;
+    const age = now - session.lastActivityMs;
 
     let status: SessionStatus;
     if (!alive) {
