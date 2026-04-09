@@ -7,7 +7,7 @@ import type { RepoData } from '../projects/types';
  * Optional `deployment` overrides the URL shown to the user.
  */
 const EXTERNAL_TOOLS: { repo: string; deployment?: string }[] = [
-  // Example: { repo: 'some-external-tool', deployment: 'https://tool.example.com' },
+  { repo: 'npm-burst' },
 ];
 
 const externalToolRepos = new Set(EXTERNAL_TOOLS.map((t) => t.repo));
