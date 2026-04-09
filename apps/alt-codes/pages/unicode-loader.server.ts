@@ -31,7 +31,9 @@ function getAliases(cp: number): string[] {
 const ZWJ = 0x200d;
 
 function isHumanFigure(cp: number): boolean {
-  return (cp >= 0x1f466 && cp <= 0x1f9d1) || cp === 0x1f91d;
+  // 0x1F466–0x1F9CF covers person emoji; excludes hair components 0x1F9B0–0x1F9B3
+  // which are in the range 0x1F9D0+ (emoji with object ZWJ, not people)
+  return (cp >= 0x1f466 && cp <= 0x1f9cf) || cp === 0x1f91d;
 }
 
 function splitOnZwj(codePoints: number[]): number[][] {
@@ -50,15 +52,18 @@ function splitOnZwj(codePoints: number[]): number[][] {
 function detectSkinToneSlots(codePoints: number[], skinToneSupport: boolean): number {
   if (!skinToneSupport) return 0;
   const components = splitOnZwj(codePoints);
-  if (
+  // Two-person direct: exactly 2 components, both human figures
+  const twoPersonDirect =
     components.length === 2 &&
-    components[0].length > 0 &&
-    isHumanFigure(components[0][0]) &&
-    components[1].length > 0 &&
-    isHumanFigure(components[1][0])
-  ) {
-    return 2;
-  }
+    components[0].length > 0 && isHumanFigure(components[0][0]) &&
+    components[1].length > 0 && isHumanFigure(components[1][0]);
+  // Two-person via joiner: 3 components, outer two are human figures
+  // (e.g., 🧑‍🤝‍🧑 = person + handshake + person)
+  const twoPersonViaJoiner =
+    components.length === 3 &&
+    components[0].length > 0 && isHumanFigure(components[0][0]) &&
+    components[2].length > 0 && isHumanFigure(components[2][0]);
+  if (twoPersonDirect || twoPersonViaJoiner) return 2;
   return 1;
 }
 
