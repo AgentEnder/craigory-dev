@@ -1,4 +1,4 @@
-import { readdirSync, readFileSync } from 'node:fs';
+import { readdirSync, readFileSync, statSync } from 'node:fs';
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
@@ -29,7 +29,6 @@ function getLastActivityMs(
   cwd: string,
   sessionId: string,
   claudeDir: string,
-  startedAt: number
 ): number {
   const conversationFile = join(
     claudeDir, 'projects', encodeCwd(cwd), `${sessionId}.jsonl`
@@ -49,10 +48,13 @@ function getLastActivityMs(
         // skip malformed lines
       }
     }
+    // No timestamp in last 20 lines — fall back to file mtime
+    return statSync(conversationFile).mtimeMs;
   } catch {
     console.warn(`Warning: could not read conversation log: ${conversationFile}`);
   }
-  return startedAt;
+  // No conversation file at all — use current time so it shows as active
+  return Date.now();
 }
 
 export function getConversationFilePath(
@@ -83,7 +85,7 @@ export function discoverSessions(
       const data = JSON.parse(raw);
       if (typeof data.pid !== 'number' || !data.sessionId) continue;
       if (data.kind !== 'interactive') continue;
-      const lastActivityMs = getLastActivityMs(data.cwd, data.sessionId, claudeDir, data.startedAt);
+      const lastActivityMs = getLastActivityMs(data.cwd, data.sessionId, claudeDir);
       sessions.push({
         pid: data.pid,
         sessionId: data.sessionId,
