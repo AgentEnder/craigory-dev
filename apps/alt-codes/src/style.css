@@ -6,9 +6,9 @@
   --color-surface-hover: #241f14;
   --color-border: #2c2820;
   --color-text: #cfc9b5;
-  --color-muted: #5a5248;
+  --color-muted: #7a7060;
   --color-amber: #c08028;
-  --color-amber-dim: #7a5018;
+  --color-amber-dim: #8a6020;
 
   --font-display: 'Playfair Display', Georgia, serif;
   --font-mono: 'Space Mono', 'Courier New', monospace;
@@ -183,7 +183,7 @@ body {
 .char-hex {
   font-family: var(--font-mono);
   font-size: 9px;
-  color: #928c82;
+  color: #aaa49a;
   letter-spacing: 0.03em;
   line-height: 1;
   pointer-events: none;
@@ -193,7 +193,7 @@ body {
 .char-name {
   font-family: var(--font-mono);
   font-size: 7.5px;
-  color: #6e6860;
+  color: #8c8478;
   line-height: 1.1;
   pointer-events: none;
   max-width: 100%;
@@ -406,71 +406,134 @@ body {
 
 /* ── Symbol detail page ───────────────────────── */
 
-/* Full-width scroll container — scrollbar sits at the viewport edge, not inside a narrow column */
+/* Full-width scroll container — scrollbar at viewport edge, not on a narrow column */
 .symbol-main {
   flex: 1;
   overflow-y: auto;
 }
 
+/* Outer two-column grid: left (identity + encodings) | right (discovery) */
 .symbol-content {
-  max-width: 1400px;
+  max-width: 1440px;
   margin: 0 auto;
-  padding: 32px 24px 64px;
+  padding: 28px 28px 64px;
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 0 60px;
+  gap: 0 56px;
   align-items: start;
+}
+
+@media (max-width: 900px) {
+  .symbol-content {
+    grid-template-columns: 1fr;
+    gap: 40px 0;
+  }
 }
 
 .symbol-left,
 .symbol-right {
   display: flex;
   flex-direction: column;
-  gap: 40px;
+  gap: 36px;
 }
 
-@media (max-width: 860px) {
-  .symbol-content {
+/* ── Breadcrumb ───────────────────────────────── */
+
+.symbol-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-mono);
+  font-size: 11px;
+}
+
+.breadcrumb-link {
+  color: var(--color-amber);
+  text-decoration: none;
+}
+
+.breadcrumb-link:hover {
+  text-decoration: underline;
+}
+
+.breadcrumb-sep {
+  color: var(--color-muted);
+}
+
+.breadcrumb-current {
+  color: var(--color-text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Inner 2-col: identity | encodings ───────── */
+
+.symbol-left-inner {
+  display: grid;
+  grid-template-columns: minmax(160px, auto) 1fr;
+  gap: 0 40px;
+  align-items: start;
+}
+
+@media (max-width: 560px) {
+  .symbol-left-inner {
     grid-template-columns: 1fr;
+    gap: 32px 0;
   }
 }
 
-.symbol-hero {
+/* ── Identity column ──────────────────────────── */
+
+.symbol-identity {
   display: flex;
-  align-items: center;
-  gap: 32px;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 12px;
 }
 
 .symbol-hero-glyph {
   font-family: var(--font-glyph);
-  font-size: 96px;
+  font-size: 88px;
   line-height: 1;
   color: #e8e2d4;
-  flex-shrink: 0;
   user-select: none;
-}
-
-.symbol-hero-info {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
 }
 
 .symbol-name {
   font-family: var(--font-display);
-  font-size: 22px;
+  font-size: 18px;
   font-weight: 600;
   color: var(--color-amber);
   margin: 0;
-  line-height: 1.2;
+  line-height: 1.25;
 }
 
-.symbol-aliases {
-  font-family: var(--font-mono);
-  font-size: 11px;
-  color: var(--color-muted);
-  line-height: 1.4;
+.symbol-alias-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
 }
+
+.symbol-alias-tag {
+  font-family: var(--font-mono);
+  font-size: 10px;
+  color: var(--color-text);
+  background: color-mix(in srgb, var(--color-amber) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-amber) 25%, transparent);
+  border-radius: 3px;
+  padding: 2px 7px;
+  line-height: 1.5;
+}
+
+.symbol-copy-row {
+  margin-top: 4px;
+}
+
+/* ── Sections ─────────────────────────────────── */
 
 .symbol-section {
   display: flex;
@@ -480,11 +543,11 @@ body {
 
 .symbol-section-title {
   font-family: var(--font-mono);
-  font-size: 11px;
+  font-size: 10px;
   font-weight: 700;
   color: var(--color-muted);
   text-transform: uppercase;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   margin: 0;
   padding-bottom: 8px;
   border-bottom: 1px solid var(--color-border);
@@ -514,9 +577,9 @@ body {
 .enc-label {
   font-size: 11px;
   color: var(--color-muted);
-  padding: 8px 16px 8px 0;
+  padding: 8px 20px 8px 0;
   white-space: nowrap;
-  width: 120px;
+  width: 110px;
 }
 
 .enc-value {
