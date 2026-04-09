@@ -81,3 +81,46 @@ export function loadUnicodeData(): UnicodeData {
 
   return { characters, byCodePoint, byCategory };
 }
+
+// Named HTML entities (subset of commonly needed ones)
+const HTML_ENTITIES: Record<number, string> = {
+  0x00a0: '&nbsp;', 0x00a9: '&copy;', 0x00ae: '&reg;', 0x2122: '&trade;',
+  0x2190: '&larr;', 0x2191: '&uarr;', 0x2192: '&rarr;', 0x2193: '&darr;',
+  0x2194: '&harr;', 0x21d0: '&lArr;', 0x21d2: '&rArr;', 0x21d4: '&hArr;',
+  0x2200: '&forall;', 0x2202: '&part;', 0x2203: '&exist;', 0x2205: '&empty;',
+  0x2207: '&nabla;', 0x2208: '&isin;', 0x2209: '&notin;', 0x220b: '&ni;',
+  0x220f: '&prod;', 0x2211: '&sum;', 0x2212: '&minus;', 0x2217: '&lowast;',
+  0x221a: '&radic;', 0x221d: '&prop;', 0x221e: '&infin;', 0x2220: '&ang;',
+  0x2227: '&and;', 0x2228: '&or;', 0x2229: '&cap;', 0x222a: '&cup;',
+  0x222b: '&int;', 0x2234: '&there4;', 0x223c: '&sim;', 0x2245: '&cong;',
+  0x2248: '&asymp;', 0x2260: '&ne;', 0x2261: '&equiv;', 0x2264: '&le;',
+  0x2265: '&ge;', 0x2282: '&sub;', 0x2283: '&sup;', 0x2284: '&nsub;',
+  0x2286: '&sube;', 0x2287: '&supe;', 0x2295: '&oplus;', 0x2297: '&otimes;',
+  0x22a5: '&perp;', 0x22c5: '&sdot;', 0x2308: '&lceil;', 0x2309: '&rceil;',
+  0x230a: '&lfloor;', 0x230b: '&rfloor;', 0x2329: '&lang;', 0x232a: '&rang;',
+  0x25ca: '&loz;', 0x2660: '&spades;', 0x2663: '&clubs;', 0x2665: '&hearts;',
+  0x2666: '&diams;',
+};
+
+export function getEncodingInfo(codePoint: number): import('../src/unicode-data').EncodingInfo {
+  // UTF-8 encoding
+  const encoder = new TextEncoder();
+  const bytes = Array.from(encoder.encode(String.fromCodePoint(codePoint)));
+  const utf8Hex = bytes.map(b => b.toString(16).toUpperCase().padStart(2, '0')).join(' ');
+
+  // HTML entity
+  const htmlEntity = HTML_ENTITIES[codePoint] ?? null;
+  const htmlNumeric = codePoint <= 0xffff
+    ? `&#${codePoint};`
+    : `&#x${codePoint.toString(16).toUpperCase()};`;
+
+  // CSS value (always hex, padded to at least 4 digits)
+  const cssValue = `\\${codePoint.toString(16).toUpperCase()}`;
+
+  // JS escape
+  const jsEscape = codePoint <= 0xffff
+    ? `\\u${codePoint.toString(16).toUpperCase().padStart(4, '0')}`
+    : `\\u{${codePoint.toString(16).toUpperCase()}}`;
+
+  return { utf8Bytes: bytes, utf8Hex, htmlEntity, htmlNumeric, cssValue, jsEscape };
+}
