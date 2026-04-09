@@ -1,4 +1,5 @@
-import { readdirSync, readFileSync, statSync } from 'node:fs';
+import { readdirSync, readFileSync } from 'node:fs';
+import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -29,14 +30,23 @@ function getLastActivityMs(
   sessionId: string,
   claudeDir: string
 ): number {
-  const projectDir = join(claudeDir, 'projects', encodeCwd(cwd));
-  const conversationFile = join(projectDir, `${sessionId}.jsonl`);
+  const conversationFile = join(
+    claudeDir, 'projects', encodeCwd(cwd), `${sessionId}.jsonl`
+  );
   try {
-    return statSync(conversationFile).mtimeMs;
+    const lastLine = execFileSync('tail', ['-1', conversationFile], {
+      encoding: 'utf-8',
+    }).trim();
+    if (lastLine) {
+      const entry = JSON.parse(lastLine);
+      if (entry.timestamp) {
+        return new Date(entry.timestamp).getTime();
+      }
+    }
   } catch {
-    // Fall back to session file creation time
-    return Date.now();
+    // Fall back to startedAt
   }
+  return 0;
 }
 
 export function getConversationFilePath(

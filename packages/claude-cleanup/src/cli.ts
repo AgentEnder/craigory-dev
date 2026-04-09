@@ -2,7 +2,7 @@
 
 import { cli } from 'cli-forge';
 import * as p from '@clack/prompts';
-import { statSync, unlinkSync } from 'node:fs';
+import { unlinkSync } from 'node:fs';
 import { execFile } from 'node:child_process';
 
 import {
@@ -70,13 +70,7 @@ async function summarizeSessions(
 
   for (const s of sessions) {
     const conversationFile = getConversationFilePath(s.cwd, s.sessionId);
-    let mtimeMs: number;
-    try {
-      mtimeMs = statSync(conversationFile).mtimeMs;
-    } catch {
-      continue;
-    }
-    const cached = getCachedSummary(cache, conversationFile, mtimeMs);
+    const cached = getCachedSummary(cache, conversationFile, s.lastActivityMs);
     if (cached) {
       summaries.set(s.sessionId, cached);
     } else {
@@ -90,12 +84,7 @@ async function summarizeSessions(
         const conversationFile = getConversationFilePath(s.cwd, s.sessionId);
         const summary = await callClaude(conversationFile, s.cwd);
         if (summary) {
-          try {
-            const mtimeMs = statSync(conversationFile).mtimeMs;
-            setCachedSummary(cache, conversationFile, mtimeMs, summary);
-          } catch {
-            // ignore
-          }
+          setCachedSummary(cache, conversationFile, s.lastActivityMs, summary);
         }
         return [s.sessionId, summary] as const;
       })
