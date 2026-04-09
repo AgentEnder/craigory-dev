@@ -84,7 +84,7 @@ const claudeCleanupCLI = cli('claude-cleanup', {
           } else if (s.status === 'stale') {
             label = `[stale ${formatDuration(s.staleDurationMs)}] ${shortenPath(s.cwd)}`;
           } else {
-            label = `[active]       ${shortenPath(s.cwd)}`;
+            label = `[active ${formatDuration(s.staleDurationMs)} ago] ${shortenPath(s.cwd)}`;
           }
           return {
             value: s.sessionId,
