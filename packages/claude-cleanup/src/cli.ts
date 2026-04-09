@@ -12,6 +12,7 @@ import {
   type ClassifiedSession,
 } from './sessions.js';
 import {
+  clearCache,
   loadCache,
   saveCache,
   getCachedSummary,
@@ -121,9 +122,19 @@ const claudeCleanupCLI = cli('claude-cleanup', {
         type: 'string',
         description: 'Staleness threshold (e.g. 2h, 30m, 1d)',
         default: '2h',
+      })
+      .option('clearCache', {
+        type: 'boolean',
+        description: 'Clear the summary cache and re-summarize all sessions',
+        default: false,
       }),
   handler: async (opts) => {
     assertPlatform();
+
+    if (opts.clearCache) {
+      clearCache();
+      p.log.info('Summary cache cleared.');
+    }
 
     const maxAgeMs = parseAge(opts.age);
     const sessions = discoverSessions();

@@ -1,4 +1,4 @@
-import { readFileSync, writeFileSync, mkdirSync } from 'node:fs';
+import { readFileSync, unlinkSync, writeFileSync, mkdirSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { homedir } from 'node:os';
 
@@ -25,6 +25,15 @@ export function saveCache(cache: SummaryCache): void {
     writeFileSync(CACHE_PATH, JSON.stringify(cache, null, 2));
   } catch {
     // Non-critical — cache is best-effort
+  }
+}
+
+export function clearCache(): boolean {
+  try {
+    unlinkSync(CACHE_PATH);
+    return true;
+  } catch {
+    return false;
   }
 }
 
