@@ -412,29 +412,14 @@ body {
   overflow-y: auto;
 }
 
-/* Outer two-column grid: left (identity + encodings) | right (discovery) */
+/* Single column: breadcrumb → 2-col top (identity | encodings) → discovery sections */
 .symbol-content {
   max-width: 1440px;
   margin: 0 auto;
   padding: 28px 28px 64px;
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  gap: 0 56px;
-  align-items: start;
-}
-
-@media (max-width: 900px) {
-  .symbol-content {
-    grid-template-columns: 1fr;
-    gap: 40px 0;
-  }
-}
-
-.symbol-left,
-.symbol-right {
   display: flex;
   flex-direction: column;
-  gap: 36px;
+  gap: 40px;
 }
 
 /* ── Breadcrumb ───────────────────────────────── */
@@ -467,17 +452,17 @@ body {
   white-space: nowrap;
 }
 
-/* ── Inner 2-col: identity | encodings ───────── */
+/* ── Top 2-col: identity | encodings ─────────── */
 
-.symbol-left-inner {
+.symbol-top {
   display: grid;
   grid-template-columns: minmax(160px, auto) 1fr;
-  gap: 0 40px;
+  gap: 0 48px;
   align-items: start;
 }
 
-@media (max-width: 560px) {
-  .symbol-left-inner {
+@media (max-width: 640px) {
+  .symbol-top {
     grid-template-columns: 1fr;
     gap: 32px 0;
   }

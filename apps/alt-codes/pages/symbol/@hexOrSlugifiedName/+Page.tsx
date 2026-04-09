@@ -53,122 +53,111 @@ export default function Page() {
       <main className="symbol-main">
         <div className="symbol-content">
 
-          {/* ── Left column ───────────────────── */}
-          <div className="symbol-left">
+          {/* Breadcrumb */}
+          <nav className="symbol-breadcrumb" aria-label="Breadcrumb">
+            <a href={withBase('/')} className="breadcrumb-link">All Glyphs</a>
+            <span className="breadcrumb-sep" aria-hidden="true">›</span>
+            <a href={withBase(`/category/${entry.categoryId}`)} className="breadcrumb-link">{categoryName}</a>
+            <span className="breadcrumb-sep" aria-hidden="true">›</span>
+            <span className="breadcrumb-current">{entry.name || entry.hex}</span>
+          </nav>
 
-            {/* Breadcrumb */}
-            <nav className="symbol-breadcrumb" aria-label="Breadcrumb">
-              <a href={withBase('/')} className="breadcrumb-link">All Glyphs</a>
-              <span className="breadcrumb-sep" aria-hidden="true">›</span>
-              <a href={withBase(`/category/${entry.categoryId}`)} className="breadcrumb-link">{categoryName}</a>
-              <span className="breadcrumb-sep" aria-hidden="true">›</span>
-              <span className="breadcrumb-current">{entry.name || entry.hex}</span>
-            </nav>
+          {/* ── 2-col top: identity | encodings ── */}
+          <div className="symbol-top">
 
-            {/* Identity + encodings side-by-side on wider screens */}
-            <div className="symbol-left-inner">
-
-              {/* Identity */}
-              <div className="symbol-identity">
-                <div className="symbol-hero-glyph">{entry.char}</div>
-                <h1 className="symbol-name">{entry.name || entry.hex}</h1>
-                {entry.aliases.length > 0 && (
-                  <ul className="symbol-alias-list" aria-label="Also known as">
-                    {entry.aliases.map(a => (
-                      <li key={a} className="symbol-alias-tag">{a}</li>
-                    ))}
-                  </ul>
-                )}
-                <div className="symbol-copy-row">
-                  <CopyButton value={entry.char} label={`Copy  "${entry.char}"`} />
-                </div>
+            <div className="symbol-identity">
+              <div className="symbol-hero-glyph">{entry.char}</div>
+              <h1 className="symbol-name">{entry.name || entry.hex}</h1>
+              {entry.aliases.length > 0 && (
+                <ul className="symbol-alias-list" aria-label="Also known as">
+                  {entry.aliases.map(a => (
+                    <li key={a} className="symbol-alias-tag">{a}</li>
+                  ))}
+                </ul>
+              )}
+              <div className="symbol-copy-row">
+                <CopyButton value={entry.char} label={`Copy "${entry.char}"`} />
               </div>
+            </div>
 
-              {/* Encodings */}
-              <section className="symbol-section">
-                <h2 className="symbol-section-title">Encodings</h2>
-                <table className="encoding-table">
-                  <tbody>
+            <section className="symbol-section">
+              <h2 className="symbol-section-title">Encodings</h2>
+              <table className="encoding-table">
+                <tbody>
+                  <tr>
+                    <td className="enc-label">Unicode</td>
+                    <td className="enc-value"><code>{entry.hex}</code></td>
+                    <td><CopyButton value={entry.hex} label="Copy" /></td>
+                  </tr>
+                  <tr>
+                    <td className="enc-label">Decimal</td>
+                    <td className="enc-value"><code>{entry.decimal}</code></td>
+                    <td><CopyButton value={String(entry.decimal)} label="Copy" /></td>
+                  </tr>
+                  <tr>
+                    <td className="enc-label">UTF-8 bytes</td>
+                    <td className="enc-value"><code>{encoding.utf8Hex}</code></td>
+                    <td><CopyButton value={encoding.utf8Hex} label="Copy" /></td>
+                  </tr>
+                  {encoding.htmlEntity && (
                     <tr>
-                      <td className="enc-label">Unicode</td>
-                      <td className="enc-value"><code>{entry.hex}</code></td>
-                      <td><CopyButton value={entry.hex} label="Copy" /></td>
+                      <td className="enc-label">HTML entity</td>
+                      <td className="enc-value"><code>{encoding.htmlEntity}</code></td>
+                      <td><CopyButton value={encoding.htmlEntity} label="Copy" /></td>
                     </tr>
+                  )}
+                  <tr>
+                    <td className="enc-label">HTML numeric</td>
+                    <td className="enc-value"><code>{encoding.htmlNumeric}</code></td>
+                    <td><CopyButton value={encoding.htmlNumeric} label="Copy" /></td>
+                  </tr>
+                  <tr>
+                    <td className="enc-label">CSS value</td>
+                    <td className="enc-value"><code>{encoding.cssValue}</code></td>
+                    <td><CopyButton value={encoding.cssValue} label="Copy" /></td>
+                  </tr>
+                  <tr>
+                    <td className="enc-label">JS escape</td>
+                    <td className="enc-value"><code>{encoding.jsEscape}</code></td>
+                    <td><CopyButton value={encoding.jsEscape} label="Copy" /></td>
+                  </tr>
+                  {entry.altCode !== null && (
                     <tr>
-                      <td className="enc-label">Decimal</td>
-                      <td className="enc-value"><code>{entry.decimal}</code></td>
-                      <td><CopyButton value={String(entry.decimal)} label="Copy" /></td>
+                      <td className="enc-label">Alt code</td>
+                      <td className="enc-value"><code>Alt+{entry.altCode}</code></td>
+                      <td><CopyButton value={`Alt+${entry.altCode}`} label="Copy" /></td>
                     </tr>
-                    <tr>
-                      <td className="enc-label">UTF-8 bytes</td>
-                      <td className="enc-value"><code>{encoding.utf8Hex}</code></td>
-                      <td><CopyButton value={encoding.utf8Hex} label="Copy" /></td>
-                    </tr>
-                    {encoding.htmlEntity && (
-                      <tr>
-                        <td className="enc-label">HTML entity</td>
-                        <td className="enc-value"><code>{encoding.htmlEntity}</code></td>
-                        <td><CopyButton value={encoding.htmlEntity} label="Copy" /></td>
-                      </tr>
-                    )}
-                    <tr>
-                      <td className="enc-label">HTML numeric</td>
-                      <td className="enc-value"><code>{encoding.htmlNumeric}</code></td>
-                      <td><CopyButton value={encoding.htmlNumeric} label="Copy" /></td>
-                    </tr>
-                    <tr>
-                      <td className="enc-label">CSS value</td>
-                      <td className="enc-value"><code>{encoding.cssValue}</code></td>
-                      <td><CopyButton value={encoding.cssValue} label="Copy" /></td>
-                    </tr>
-                    <tr>
-                      <td className="enc-label">JS escape</td>
-                      <td className="enc-value"><code>{encoding.jsEscape}</code></td>
-                      <td><CopyButton value={encoding.jsEscape} label="Copy" /></td>
-                    </tr>
-                    {entry.altCode !== null && (
-                      <tr>
-                        <td className="enc-label">Alt code</td>
-                        <td className="enc-value"><code>Alt+{entry.altCode}</code></td>
-                        <td><CopyButton value={`Alt+${entry.altCode}`} label="Copy" /></td>
-                      </tr>
-                    )}
-                  </tbody>
-                </table>
-              </section>
+                  )}
+                </tbody>
+              </table>
+            </section>
 
-            </div>{/* end symbol-left-inner */}
-          </div>{/* end symbol-left */}
+          </div>{/* end symbol-top */}
 
-          {/* ── Right column: discovery ──────── */}
-          <div className="symbol-right">
+          {/* ── Discovery sections (full width below) ── */}
 
-            {/* Related first (higher-value discovery) */}
-            {relatedByName.length > 0 && (
-              <section className="symbol-section">
-                <h2 className="symbol-section-title">Related characters</h2>
-                <div className="mini-grid">
-                  {relatedByName.map((c) => <MiniCard key={c.codePoint} entry={c} />)}
-                </div>
-              </section>
-            )}
+          {relatedByName.length > 0 && (
+            <section className="symbol-section">
+              <h2 className="symbol-section-title">Related characters</h2>
+              <div className="mini-grid">
+                {relatedByName.map((c) => <MiniCard key={c.codePoint} entry={c} />)}
+              </div>
+            </section>
+          )}
 
-            {/* Nearby second (contextual browsing) */}
-            {blockNeighbors.length > 0 && (
-              <section className="symbol-section">
-                <h2 className="symbol-section-title">
-                  Nearby in{' '}
-                  <a href={withBase(`/category/${entry.categoryId}`)} className="section-link">
-                    {categoryName}
-                  </a>
-                </h2>
-                <div className="mini-grid">
-                  {blockNeighbors.map((c) => <MiniCard key={c.codePoint} entry={c} />)}
-                </div>
-              </section>
-            )}
-
-          </div>{/* end symbol-right */}
+          {blockNeighbors.length > 0 && (
+            <section className="symbol-section">
+              <h2 className="symbol-section-title">
+                Nearby in{' '}
+                <a href={withBase(`/category/${entry.categoryId}`)} className="section-link">
+                  {categoryName}
+                </a>
+              </h2>
+              <div className="mini-grid">
+                {blockNeighbors.map((c) => <MiniCard key={c.codePoint} entry={c} />)}
+              </div>
+            </section>
+          )}
 
         </div>{/* end symbol-content */}
       </main>
