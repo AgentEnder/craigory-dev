@@ -48,11 +48,10 @@ export async function data(pageContext: PageContextServer): Promise<SymbolData> 
 
   // Block neighbors: up to 8 chars before and after in same category
   const catChars = byCategory.get(entry.categoryId) ?? [];
-  const entryKey = codePointsKey(entry.codePoints);
-  const idx = catChars.findIndex(c => codePointsKey(c.codePoints) === entryKey);
+  const idx = catChars.findIndex(c => codePointsKey(c.codePoints) === key);
   const start = Math.max(0, idx - 8);
   const end = Math.min(catChars.length, idx + 9);
-  const blockNeighbors = catChars.slice(start, end).filter(c => codePointsKey(c.codePoints) !== entryKey);
+  const blockNeighbors = catChars.slice(start, end).filter(c => codePointsKey(c.codePoints) !== key);
 
   // Related by name: scored by meaningful word overlap + code-point proximity
   const keywords = nameKeywords(entry.name);
