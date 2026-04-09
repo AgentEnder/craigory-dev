@@ -4,6 +4,7 @@ import { cli } from 'cli-forge';
 import * as p from '@clack/prompts';
 import { unlinkSync } from 'node:fs';
 import { execFile } from 'node:child_process';
+import { homedir } from 'node:os';
 
 import {
   discoverSessions,
@@ -41,7 +42,7 @@ function parseAge(age: string): number {
   return value * multipliers[unit];
 }
 
-function callClaude(conversationFile: string, cwd: string): Promise<string> {
+function callClaude(conversationFile: string): Promise<string> {
   return new Promise((resolve) => {
     execFile(
       'claude',
@@ -49,7 +50,7 @@ function callClaude(conversationFile: string, cwd: string): Promise<string> {
         '--model', 'haiku',
         '--allowedTools', 'Read',
         '--bare',
-        '--cwd', cwd,
+        '--cwd', homedir(),
         '-p',
         `Use the Read tool to read ${conversationFile} then summarize what this Claude Code session is about in one brief sentence (under 15 words). Output ONLY the sentence.`,
       ],
@@ -82,7 +83,7 @@ async function summarizeSessions(
     const results = await Promise.all(
       toFetch.map(async (s) => {
         const conversationFile = getConversationFilePath(s.cwd, s.sessionId);
-        const summary = await callClaude(conversationFile, s.cwd);
+        const summary = await callClaude(conversationFile);
         if (summary) {
           setCachedSummary(cache, conversationFile, s.lastActivityMs, summary);
         }
