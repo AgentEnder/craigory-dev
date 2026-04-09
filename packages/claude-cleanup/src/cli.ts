@@ -58,6 +58,9 @@ const claudeCleanupCLI = cli('claude-cleanup', {
       maxAgeMs,
     });
 
+    // Sort oldest → newest by mtime
+    classified.sort((a, b) => a.mtimeMs - b.mtimeMs);
+
     const killable = classified.filter((s) => s.status !== 'active');
 
     if (killable.length === 0) {
@@ -73,12 +76,16 @@ const claudeCleanupCLI = cli('claude-cleanup', {
 
     if (!opts.all) {
       const selected = await p.multiselect({
-        message: `Found ${killable.length} stale session(s):`,
-        options: killable.map((s) => {
-          const label =
-            s.status === 'dead'
-              ? `[dead]         ${shortenPath(s.cwd)}`
-              : `[stale ${formatDuration(s.staleDurationMs)}] ${shortenPath(s.cwd)}`;
+        message: `${classified.length} session(s) (${killable.length} stale):`,
+        options: classified.map((s) => {
+          let label: string;
+          if (s.status === 'dead') {
+            label = `[dead]         ${shortenPath(s.cwd)}`;
+          } else if (s.status === 'stale') {
+            label = `[stale ${formatDuration(s.staleDurationMs)}] ${shortenPath(s.cwd)}`;
+          } else {
+            label = `[active]       ${shortenPath(s.cwd)}`;
+          }
           return {
             value: s.sessionId,
             label,
@@ -94,7 +101,7 @@ const claudeCleanupCLI = cli('claude-cleanup', {
       }
 
       const selectedIds = new Set(selected as string[]);
-      toKill = killable.filter((s) => selectedIds.has(s.sessionId));
+      toKill = classified.filter((s) => selectedIds.has(s.sessionId));
     }
 
     let killed = 0;
