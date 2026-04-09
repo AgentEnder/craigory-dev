@@ -93,7 +93,12 @@ export default function Page() {
       </header>
 
       <div className="category-bar">
-        <div className="category-inner no-scrollbar" style={{ padding: '4px 0' }}>
+        <div className="category-inner no-scrollbar" style={{ padding: '4px 0', flexDirection: 'column', gap: '4px' }}>
+          <nav className="symbol-breadcrumb" aria-label="Breadcrumb">
+            <a href={withBase('/')} className="breadcrumb-link">All Glyphs</a>
+            <span className="breadcrumb-sep" aria-hidden="true">›</span>
+            <span className="breadcrumb-current">{categoryName}</span>
+          </nav>
           <h1 style={{ margin: 0, fontSize: '14px', fontFamily: 'var(--font-mono)', color: 'var(--color-text)', fontWeight: 700 }}>
             {categoryName}
           </h1>
