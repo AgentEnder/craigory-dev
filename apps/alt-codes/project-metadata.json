@@ -1,0 +1,5 @@
+{
+  "name": "Glyph Index",
+  "description": "A clean, fast reference for Unicode characters and Windows Alt codes (CP437). Browse by category, search by code point or decimal, and click to copy any glyph.",
+  "technologies": ["TypeScript", "React", "Tailwind CSS"]
+}

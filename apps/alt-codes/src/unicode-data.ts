@@ -14,6 +14,19 @@ export interface Category {
   name: string;
 }
 
+/** Produces a URL-safe slug like "2190-leftwards-arrow" or just "2190" for unnamed chars. */
+export function toSymbolSlug(entry: CharacterEntry): string {
+  const hex = entry.codePoint.toString(16).toUpperCase().padStart(4, '0');
+  if (!entry.name) return hex;
+  const slug = entry.name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
+  return `${hex}-${slug}`;
+}
+
+/** Extracts the code point from a hexOrSlugifiedName param like "2190-leftwards-arrow". */
+export function parseSymbolSlug(param: string): number {
+  return parseInt(param.split('-')[0], 16);
+}
+
 export const CATEGORIES: Category[] = [
   { id: 'alt-codes', name: 'Alt Codes 1–255' },
   { id: 'ascii', name: 'ASCII Symbols' },

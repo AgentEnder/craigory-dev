@@ -1,0 +1,34 @@
+{
+  "name": "alt-codes",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vike dev",
+    "build": "vike build",
+    "preview": "vike preview",
+    "typecheck": "tsc --noEmit"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "dependsOn": [
+          "typecheck"
+        ]
+      }
+    }
+  },
+  "dependencies": {
+    "@tailwindcss/vite": "^4.1.12",
+    "@tanstack/react-virtual": "^3.13.23",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@unicode/unicode-17.0.0": "^1.6.16",
+    "@vitejs/plugin-react": "^5.0.0",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "tailwindcss": "^4.1.12",
+    "vike": "0.4.239-commit-9dcde6d",
+    "vike-react": "^0.6.5"
+  }
+}

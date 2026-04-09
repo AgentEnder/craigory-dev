@@ -1,9 +1,10 @@
-// apps/alt-codes/pages/category/@id/+Page.tsx
 import { useData } from 'vike-react/useData';
 import { useRef, useEffect, useState, type RefObject } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import type { CategoryData } from './+data.server';
 import type { CharacterEntry } from '../../../src/unicode-data';
+import { toSymbolSlug } from '../../../src/unicode-data';
+import { withBase } from '../../../src/utils';
 import '../../../src/style.css';
 
 const CARD_SLOT = 110;
@@ -53,12 +54,10 @@ function CategoryGrid({ characters }: { characters: CharacterEntry[] }) {
                 gap: '5px',
               }}
             >
-              {row.map((c) => {
-                const hexStr = c.codePoint.toString(16).toUpperCase().padStart(4, '0');
-                return (
+              {row.map((c) => (
                   <a
                     key={c.codePoint}
-                    href={`/symbol/${hexStr}`}
+                    href={withBase(`/symbol/${toSymbolSlug(c)}`)}
                     className="char-card"
                     title={[c.name, ...c.aliases, c.hex, 'click for details'].filter(Boolean).join(' · ')}
                   >
@@ -67,8 +66,7 @@ function CategoryGrid({ characters }: { characters: CharacterEntry[] }) {
                     {c.name && <span className="char-name">{c.name}</span>}
                     {c.altCode !== null && <span className="char-alt">Alt+{c.altCode}</span>}
                   </a>
-                );
-              })}
+              ))}
             </div>
           );
         })}
@@ -84,7 +82,7 @@ export default function Page() {
     <div className="app-root">
       <header className="app-header">
         <div className="header-inner">
-          <a href="/" className="header-brand" style={{ textDecoration: 'none' }}>
+          <a href={withBase('/')} className="header-brand" style={{ textDecoration: 'none' }}>
             <div className="brand-title">Glyph Index</div>
             <div className="brand-sub">Unicode &amp; Alt Code Reference</div>
           </a>

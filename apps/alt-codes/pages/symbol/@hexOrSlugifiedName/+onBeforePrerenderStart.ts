@@ -1,6 +1,6 @@
-// apps/alt-codes/pages/symbol/@hex/+onBeforePrerenderStart.ts
 import type { OnBeforePrerenderStartSync } from 'vike/types';
 import { loadUnicodeData } from '../../unicode-loader.server';
+import { toSymbolSlug } from '../../../src/unicode-data';
 
 export const onBeforePrerenderStart: OnBeforePrerenderStartSync = (): ReturnType<OnBeforePrerenderStartSync> => {
   const { characters } = loadUnicodeData();
@@ -9,8 +9,7 @@ export const onBeforePrerenderStart: OnBeforePrerenderStartSync = (): ReturnType
   for (const entry of characters) {
     if (!seen.has(entry.codePoint)) {
       seen.add(entry.codePoint);
-      const hexStr = entry.codePoint.toString(16).toUpperCase().padStart(4, '0');
-      urls.push(`/symbol/${hexStr}`);
+      urls.push(`/symbol/${toSymbolSlug(entry)}`);
     }
   }
   return urls;

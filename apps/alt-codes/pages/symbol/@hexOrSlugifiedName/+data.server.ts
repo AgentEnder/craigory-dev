@@ -1,6 +1,6 @@
-// apps/alt-codes/pages/symbol/@hex/+data.server.ts
 import type { PageContextServer } from 'vike/types';
 import type { CharacterEntry, EncodingInfo } from '../../../src/unicode-data';
+import { parseSymbolSlug } from '../../../src/unicode-data';
 import { getEncodingInfo } from '../../unicode-loader.server';
 
 export type SymbolData = {
@@ -11,8 +11,8 @@ export type SymbolData = {
 };
 
 export async function data(pageContext: PageContextServer): Promise<SymbolData> {
-  const hexStr = pageContext.routeParams.hex.toUpperCase().padStart(4, '0');
-  const codePoint = parseInt(hexStr, 16);
+  const codePoint = parseSymbolSlug(pageContext.routeParams.hexOrSlugifiedName);
+  const hexStr = codePoint.toString(16).toUpperCase().padStart(4, '0');
   const { byCodePoint, characters } = pageContext.globalContext.unicodeData;
 
   const entry = byCodePoint.get(codePoint);

@@ -7,8 +7,9 @@ import {
 } from 'react';
 import { useData } from 'vike-react/useData';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { CATEGORIES, type CharacterEntry } from '../src/unicode-data';
+import { CATEGORIES, toSymbolSlug, type CharacterEntry } from '../src/unicode-data';
 import type { Data } from './+data.server';
+import { withBase } from '../src/utils';
 import '../src/style.css';
 
 function matchesSearch(c: CharacterEntry, q: string): boolean {
@@ -100,7 +101,6 @@ function VirtualGrid({ characters }: GridProps) {
 // ── Card ──────────────────────────────────────────────────────────────────
 
 function CharCard({ entry: c }: { entry: CharacterEntry }) {
-  const hexStr = c.codePoint.toString(16).toUpperCase().padStart(4, '0');
   const tooltip = [
     c.name,
     ...c.aliases,
@@ -115,7 +115,7 @@ function CharCard({ entry: c }: { entry: CharacterEntry }) {
   return (
     <a
       className="char-card"
-      href={`/symbol/${hexStr}`}
+      href={withBase(`/symbol/${toSymbolSlug(c)}`)}
       title={tooltip}
     >
       <span className="char-glyph">{c.char}</span>

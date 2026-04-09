@@ -1,8 +1,9 @@
-// apps/alt-codes/pages/symbol/@hex/+Page.tsx
 import { useData } from 'vike-react/useData';
 import { useState } from 'react';
 import type { SymbolData } from './+data.server';
 import type { CharacterEntry } from '../../../src/unicode-data';
+import { toSymbolSlug } from '../../../src/unicode-data';
+import { withBase } from '../../../src/utils';
 import '../../../src/style.css';
 
 function CopyButton({ value, label }: { value: string; label: string }) {
@@ -23,9 +24,10 @@ function CopyButton({ value, label }: { value: string; label: string }) {
 
 function MiniCard({ entry }: { entry: CharacterEntry }) {
   return (
-    <a href={`/symbol/${entry.codePoint.toString(16).toUpperCase().padStart(4, '0')}`}
-       className="char-card"
-       title={entry.name || entry.hex}
+    <a
+      href={withBase(`/symbol/${toSymbolSlug(entry)}`)}
+      className="char-card"
+      title={entry.name || entry.hex}
     >
       <span className="char-glyph">{entry.char}</span>
       <span className="char-hex">{entry.hex}</span>
@@ -41,7 +43,7 @@ export default function Page() {
     <div className="app-root symbol-page">
       <header className="app-header">
         <div className="header-inner">
-          <a href="/" className="header-brand" style={{ textDecoration: 'none' }}>
+          <a href={withBase('/')} className="header-brand" style={{ textDecoration: 'none' }}>
             <div className="brand-title">Glyph Index</div>
             <div className="brand-sub">Unicode &amp; Alt Code Reference</div>
           </a>
@@ -120,7 +122,7 @@ export default function Page() {
         {blockNeighbors.length > 0 && (
           <section className="symbol-section">
             <h2 className="symbol-section-title">
-              Nearby in <a href={`/category/${entry.categoryId}`} className="section-link">{entry.categoryId}</a>
+              Nearby in <a href={withBase(`/category/${entry.categoryId}`)} className="section-link">{entry.categoryId}</a>
             </h2>
             <div className="mini-grid">
               {blockNeighbors.map((c) => <MiniCard key={c.codePoint} entry={c} />)}
