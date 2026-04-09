@@ -46,7 +46,7 @@ function getLastActivityMs(
       }
     }
   } catch {
-    // Fall back to startedAt
+    console.warn(`Warning: could not read conversation log: ${conversationFile}`);
   }
   return startedAt;
 }
