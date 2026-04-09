@@ -7,7 +7,7 @@ import {
 } from 'react';
 import { useData } from 'vike-react/useData';
 import { useVirtualizer } from '@tanstack/react-virtual';
-import { CATEGORIES, toSymbolSlug, type CharacterEntry } from '../src/unicode-data';
+import { CATEGORIES, toSymbolSlug, codePointsKey, type CharacterEntry } from '../src/unicode-data';
 import type { Data } from './+data.server';
 import { withBase } from '../src/utils';
 import '../src/style.css';
@@ -86,7 +86,7 @@ function VirtualGrid({ characters }: GridProps) {
             >
               {row.map((c) => (
                 <CharCard
-                  key={`${c.categoryId}-${c.codePoint}`}
+                  key={`${c.categoryId}-${codePointsKey(c.codePoints)}`}
                   entry={c}
                 />
               ))}
@@ -136,10 +136,11 @@ export default function Page() {
 
   // Deduplicate for "All" view — keep first occurrence (alt-codes first)
   const deduped = useMemo<CharacterEntry[]>(() => {
-    const seen = new Set<number>();
+    const seen = new Set<string>();
     return characters.filter((c) => {
-      if (seen.has(c.codePoint)) return false;
-      seen.add(c.codePoint);
+      const key = codePointsKey(c.codePoints);
+      if (seen.has(key)) return false;
+      seen.add(key);
       return true;
     });
   }, [characters]);
