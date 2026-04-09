@@ -2,7 +2,7 @@
 
 import { cli } from 'cli-forge';
 import * as p from '@clack/prompts';
-import { unlinkSync } from 'node:fs';
+
 import { spawn } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
@@ -213,7 +213,6 @@ const claudeCleanupCLI = cli('claude-cleanup', {
     }
 
     let killed = 0;
-    let cleaned = 0;
 
     for (const session of toKill) {
       if (session.status !== 'dead') {
@@ -221,18 +220,9 @@ const claudeCleanupCLI = cli('claude-cleanup', {
           killed++;
         }
       }
-
-      try {
-        unlinkSync(session.filePath);
-        cleaned++;
-      } catch {
-        // Session file may already be gone
-      }
     }
 
-    p.outro(
-      `Done. Killed ${killed} process(es), removed ${cleaned} session file(s).`
-    );
+    p.outro(`Done. Killed ${killed} process(es).`);
   },
 });
 
