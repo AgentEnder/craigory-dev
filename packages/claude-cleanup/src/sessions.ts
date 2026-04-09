@@ -39,6 +39,14 @@ function getLastActivityMs(
   }
 }
 
+export function getConversationFilePath(
+  cwd: string,
+  sessionId: string,
+  claudeDir = join(homedir(), '.claude')
+): string {
+  return join(claudeDir, 'projects', encodeCwd(cwd), `${sessionId}.jsonl`);
+}
+
 export function discoverSessions(
   sessionsDir = join(homedir(), '.claude', 'sessions')
 ): SessionInfo[] {

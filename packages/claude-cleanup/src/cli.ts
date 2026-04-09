@@ -3,8 +3,14 @@
 import { cli } from 'cli-forge';
 import * as p from '@clack/prompts';
 import { unlinkSync } from 'node:fs';
+import { execFile } from 'node:child_process';
 
-import { discoverSessions, classifySessions } from './sessions.js';
+import {
+  discoverSessions,
+  classifySessions,
+  getConversationFilePath,
+  type ClassifiedSession,
+} from './sessions.js';
 import {
   assertPlatform,
   isProcessRunning,
@@ -26,6 +32,44 @@ function parseAge(age: string): number {
     d: 24 * 60 * 60 * 1000,
   };
   return value * multipliers[unit];
+}
+
+function summarizeSession(session: ClassifiedSession): Promise<string> {
+  const conversationFile = getConversationFilePath(session.cwd, session.sessionId);
+  return new Promise((resolve) => {
+    execFile('tail', ['-50', conversationFile], (err, stdout) => {
+      if (err || !stdout.trim()) {
+        resolve('');
+        return;
+      }
+      const claude = execFile(
+        'claude',
+        ['--model', 'haiku', '-p', 'Summarize what this Claude Code session is about in one brief sentence (under 15 words). Just output the sentence, nothing else.'],
+        { timeout: 15000 },
+        (err, stdout) => {
+          resolve(err ? '' : stdout.trim());
+        }
+      );
+      claude.stdin?.write(stdout);
+      claude.stdin?.end();
+    });
+  });
+}
+
+async function summarizeSessions(
+  sessions: ClassifiedSession[]
+): Promise<Map<string, string>> {
+  const summaries = new Map<string, string>();
+  const results = await Promise.all(
+    sessions.map(async (s) => {
+      const summary = await summarizeSession(s);
+      return [s.sessionId, summary] as const;
+    })
+  );
+  for (const [id, summary] of results) {
+    if (summary) summaries.set(id, summary);
+  }
+  return summaries;
 }
 
 const claudeCleanupCLI = cli('claude-cleanup', {
@@ -72,23 +116,32 @@ const claudeCleanupCLI = cli('claude-cleanup', {
 
     p.intro('claude-cleanup');
 
+    const spinner = p.spinner();
+    spinner.start('Summarizing sessions...');
+    const summaries = await summarizeSessions(classified);
+    spinner.stop(`Summarized ${summaries.size} session(s).`);
+
     let toKill = killable;
 
     if (!opts.all) {
       const selected = await p.multiselect({
         message: `${classified.length} session(s) (${killable.length} stale):`,
         options: classified.map((s) => {
-          let label: string;
+          let status: string;
           if (s.status === 'dead') {
-            label = `[dead]         ${shortenPath(s.cwd)}`;
+            status = '[dead]';
           } else if (s.status === 'stale') {
-            label = `[stale ${formatDuration(s.staleDurationMs)}] ${shortenPath(s.cwd)}`;
+            status = `[stale ${formatDuration(s.staleDurationMs)}]`;
           } else {
-            label = `[active ${formatDuration(s.staleDurationMs)} ago] ${shortenPath(s.cwd)}`;
+            status = `[active ${formatDuration(s.staleDurationMs)} ago]`;
           }
+          const summary = summaries.get(s.sessionId);
+          const desc = summary
+            ? `${shortenPath(s.cwd)} — ${summary}`
+            : shortenPath(s.cwd);
           return {
             value: s.sessionId,
-            label,
+            label: `${status} ${desc}`,
             hint: `PID: ${s.pid}`,
           };
         }),
