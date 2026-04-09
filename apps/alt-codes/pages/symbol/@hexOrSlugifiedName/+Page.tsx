@@ -62,11 +62,10 @@ export default function Page() {
             <span className="breadcrumb-current">{entry.name || entry.hex}</span>
           </nav>
 
-          {/* ── 2-col top: identity | encodings ── */}
-          <div className="symbol-top">
-
-            <div className="symbol-identity">
-              <div className="symbol-hero-glyph">{entry.char}</div>
+          {/* Hero: glyph beside name + aliases + copy */}
+          <section className="symbol-hero">
+            <div className="symbol-hero-glyph">{entry.char}</div>
+            <div className="symbol-hero-info">
               <h1 className="symbol-name">{entry.name || entry.hex}</h1>
               {entry.aliases.length > 0 && (
                 <ul className="symbol-alias-list" aria-label="Also known as">
@@ -75,67 +74,62 @@ export default function Page() {
                   ))}
                 </ul>
               )}
-              <div className="symbol-copy-row">
-                <CopyButton value={entry.char} label={`Copy "${entry.char}"`} />
-              </div>
+              <CopyButton value={entry.char} label={`Copy "${entry.char}"`} />
             </div>
+          </section>
 
-            <section className="symbol-section">
-              <h2 className="symbol-section-title">Encodings</h2>
-              <table className="encoding-table">
-                <tbody>
-                  <tr>
-                    <td className="enc-label">Unicode</td>
-                    <td className="enc-value"><code>{entry.hex}</code></td>
-                    <td><CopyButton value={entry.hex} label="Copy" /></td>
-                  </tr>
-                  <tr>
-                    <td className="enc-label">Decimal</td>
-                    <td className="enc-value"><code>{entry.decimal}</code></td>
-                    <td><CopyButton value={String(entry.decimal)} label="Copy" /></td>
-                  </tr>
-                  <tr>
-                    <td className="enc-label">UTF-8 bytes</td>
-                    <td className="enc-value"><code>{encoding.utf8Hex}</code></td>
-                    <td><CopyButton value={encoding.utf8Hex} label="Copy" /></td>
-                  </tr>
-                  {encoding.htmlEntity && (
-                    <tr>
-                      <td className="enc-label">HTML entity</td>
-                      <td className="enc-value"><code>{encoding.htmlEntity}</code></td>
-                      <td><CopyButton value={encoding.htmlEntity} label="Copy" /></td>
-                    </tr>
-                  )}
-                  <tr>
-                    <td className="enc-label">HTML numeric</td>
-                    <td className="enc-value"><code>{encoding.htmlNumeric}</code></td>
-                    <td><CopyButton value={encoding.htmlNumeric} label="Copy" /></td>
-                  </tr>
-                  <tr>
-                    <td className="enc-label">CSS value</td>
-                    <td className="enc-value"><code>{encoding.cssValue}</code></td>
-                    <td><CopyButton value={encoding.cssValue} label="Copy" /></td>
-                  </tr>
-                  <tr>
-                    <td className="enc-label">JS escape</td>
-                    <td className="enc-value"><code>{encoding.jsEscape}</code></td>
-                    <td><CopyButton value={encoding.jsEscape} label="Copy" /></td>
-                  </tr>
-                  {entry.altCode !== null && (
-                    <tr>
-                      <td className="enc-label">Alt code</td>
-                      <td className="enc-value"><code>Alt+{entry.altCode}</code></td>
-                      <td><CopyButton value={`Alt+${entry.altCode}`} label="Copy" /></td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </section>
+          {/* Encodings — 2 columns on md+ */}
+          <section className="symbol-section">
+            <h2 className="symbol-section-title">Encodings</h2>
+            <div className="encoding-grid">
+              <div className="enc-row">
+                <span className="enc-label">Unicode</span>
+                <code className="enc-value">{entry.hex}</code>
+                <CopyButton value={entry.hex} label="Copy" />
+              </div>
+              <div className="enc-row">
+                <span className="enc-label">Decimal</span>
+                <code className="enc-value">{entry.decimal}</code>
+                <CopyButton value={String(entry.decimal)} label="Copy" />
+              </div>
+              <div className="enc-row">
+                <span className="enc-label">UTF-8 bytes</span>
+                <code className="enc-value">{encoding.utf8Hex}</code>
+                <CopyButton value={encoding.utf8Hex} label="Copy" />
+              </div>
+              <div className="enc-row">
+                <span className="enc-label">HTML numeric</span>
+                <code className="enc-value">{encoding.htmlNumeric}</code>
+                <CopyButton value={encoding.htmlNumeric} label="Copy" />
+              </div>
+              {encoding.htmlEntity && (
+                <div className="enc-row">
+                  <span className="enc-label">HTML entity</span>
+                  <code className="enc-value">{encoding.htmlEntity}</code>
+                  <CopyButton value={encoding.htmlEntity} label="Copy" />
+                </div>
+              )}
+              <div className="enc-row">
+                <span className="enc-label">CSS value</span>
+                <code className="enc-value">{encoding.cssValue}</code>
+                <CopyButton value={encoding.cssValue} label="Copy" />
+              </div>
+              <div className="enc-row">
+                <span className="enc-label">JS escape</span>
+                <code className="enc-value">{encoding.jsEscape}</code>
+                <CopyButton value={encoding.jsEscape} label="Copy" />
+              </div>
+              {entry.altCode !== null && (
+                <div className="enc-row">
+                  <span className="enc-label">Alt code</span>
+                  <code className="enc-value">Alt+{entry.altCode}</code>
+                  <CopyButton value={`Alt+${entry.altCode}`} label="Copy" />
+                </div>
+              )}
+            </div>
+          </section>
 
-          </div>{/* end symbol-top */}
-
-          {/* ── Discovery sections (full width below) ── */}
-
+          {/* Related characters */}
           {relatedByName.length > 0 && (
             <section className="symbol-section">
               <h2 className="symbol-section-title">Related characters</h2>
@@ -145,6 +139,7 @@ export default function Page() {
             </section>
           )}
 
+          {/* Nearby in category */}
           {blockNeighbors.length > 0 && (
             <section className="symbol-section">
               <h2 className="symbol-section-title">
@@ -159,7 +154,7 @@ export default function Page() {
             </section>
           )}
 
-        </div>{/* end symbol-content */}
+        </div>
       </main>
     </div>
   );
