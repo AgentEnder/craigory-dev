@@ -144,7 +144,7 @@ function SkinTonePicker({
 }
 
 export default function Page() {
-  const { entry, categoryName, encoding, blockNeighbors, relatedByName } = useData<SymbolData>();
+  const { entry, categoryName, encoding, blockNeighbors, relatedByName, relatedByTag } = useData<SymbolData>();
   const [displayChar, setDisplayChar] = useState(entry.char);
 
   // Reset variant when navigating to a new symbol
@@ -191,6 +191,13 @@ export default function Page() {
                 <ul className="symbol-alias-list" aria-label="Also known as">
                   {entry.aliases.map(a => (
                     <li key={a} className="symbol-alias-tag">{a}</li>
+                  ))}
+                </ul>
+              )}
+              {entry.tags.length > 0 && (
+                <ul className="symbol-tag-list" aria-label="Tags">
+                  {entry.tags.map(t => (
+                    <li key={t} className="symbol-tag">{t}</li>
                   ))}
                 </ul>
               )}
@@ -258,6 +265,16 @@ export default function Page() {
               <h2 className="symbol-section-title">Related characters</h2>
               <div className="mini-grid">
                 {relatedByName.map((c) => <MiniCard key={codePointsKey(c.codePoints)} entry={c} />)}
+              </div>
+            </section>
+          )}
+
+          {/* Related by tag */}
+          {relatedByTag.length > 0 && (
+            <section className="symbol-section">
+              <h2 className="symbol-section-title">Related by tag</h2>
+              <div className="mini-grid">
+                {relatedByTag.map((c) => <MiniCard key={codePointsKey(c.codePoints)} entry={c} />)}
               </div>
             </section>
           )}

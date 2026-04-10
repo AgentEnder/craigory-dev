@@ -10,6 +10,9 @@ import { createRequire } from 'module';
 const require = createRequire(import.meta.url);
 const dataOrderedEmoji = require('unicode-emoji-json/data-ordered-emoji.json') as string[];
 const dataByEmoji = require('unicode-emoji-json/data-by-emoji.json') as Record<string, EmojiJsonEntry>;
+const gemojiData = require('gemoji') as {
+  gemoji: Array<{ emoji: string; names: string[]; tags: string[] }>;
+};
 
 import { CP437_SPECIAL, codePointsKey, type CharacterEntry, type UnicodeData } from '../src/unicode-data';
 
@@ -98,6 +101,12 @@ function buildEmojiCharacters(): CharacterEntry[] {
   const ordered = dataOrderedEmoji as string[];
   const entries: CharacterEntry[] = [];
 
+  // Build lookup from emoji character → gemoji entry for aliases + tags
+  const gemojiByEmoji = new Map<string, { names: string[]; tags: string[] }>();
+  for (const g of gemojiData.gemoji) {
+    gemojiByEmoji.set(g.emoji, g);
+  }
+
   for (const emojiChar of ordered) {
     const meta = byEmoji[emojiChar];
     if (!meta) continue;
@@ -108,6 +117,10 @@ function buildEmojiCharacters(): CharacterEntry[] {
     const codePoints = [...emojiChar].map((c) => c.codePointAt(0)!);
     const firstCp = codePoints[0];
 
+    const gEntry = gemojiByEmoji.get(emojiChar);
+    const aliases = gEntry ? gEntry.names.map(n => `:${n}:`) : [];
+    const tags = gEntry?.tags ?? [];
+
     entries.push({
       codePoints,
       char: emojiChar,
@@ -116,7 +129,8 @@ function buildEmojiCharacters(): CharacterEntry[] {
       categoryId,
       altCode: null,
       name: meta.name.toUpperCase(),
-      aliases: [],
+      aliases,
+      tags,
       emoji: {
         group: meta.group,
         subgroup: meta.slug.replace(/_/g, '-'),
@@ -140,6 +154,7 @@ function makeEntry(codePoint: number, categoryId: string): CharacterEntry {
     altCode: unicodeToAlt.get(codePoint) ?? null,
     name: unicodeNames.get(codePoint) ?? '',
     aliases: getAliases(codePoint),
+    tags: [],
     emoji: null,
   };
 }

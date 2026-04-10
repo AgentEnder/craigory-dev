@@ -9,6 +9,7 @@ export type SymbolData = {
   encoding: EncodingInfo;
   blockNeighbors: CharacterEntry[];
   relatedByName: CharacterEntry[];
+  relatedByTag: CharacterEntry[];
 };
 
 // Words too common in Unicode names to be useful signals
@@ -72,5 +73,24 @@ export async function data(pageContext: PageContextServer): Promise<SymbolData> 
     relatedByName.push(...scored.slice(0, 16).map(s => s.entry));
   }
 
-  return { entry, categoryName, encoding, blockNeighbors, relatedByName };
+  // Related by tag: emoji sharing at least one gemoji tag
+  const relatedByTag: CharacterEntry[] = [];
+  if (entry.tags.length > 0) {
+    const entryTags = new Set(entry.tags);
+    const seen = new Set<string>([key, ...relatedByName.map(c => codePointsKey(c.codePoints))]);
+    const scored: Array<{ entry: CharacterEntry; shared: number }> = [];
+    for (const c of characters) {
+      const cKey = codePointsKey(c.codePoints);
+      if (seen.has(cKey) || c.tags.length === 0) continue;
+      const shared = c.tags.filter(t => entryTags.has(t)).length;
+      if (shared > 0) {
+        seen.add(cKey);
+        scored.push({ entry: c, shared });
+      }
+    }
+    scored.sort((a, b) => b.shared - a.shared);
+    relatedByTag.push(...scored.slice(0, 16).map(s => s.entry));
+  }
+
+  return { entry, categoryName, encoding, blockNeighbors, relatedByName, relatedByTag };
 }
