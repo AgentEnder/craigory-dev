@@ -1054,9 +1054,10 @@ async function getLocalProjects(
       // Check if project has been built (try both locations)
       const monorepoDistPath = join(workspaceRoot, 'dist', 'apps', appDir);
       const projectDistPath = join(projectPath, 'dist', 'client');
+      const baseUrl = process.env.PUBLIC_ENV__BASE_URL || '';
       const deployment =
         existsSync(monorepoDistPath) || existsSync(projectDistPath)
-          ? `/${appDir}`
+          ? `${baseUrl}/${appDir}`
           : undefined;
 
       // Get README if exists
