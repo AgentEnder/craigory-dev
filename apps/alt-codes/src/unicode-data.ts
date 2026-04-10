@@ -15,6 +15,7 @@ export interface CharacterEntry {
   altCode: number | null;
   name: string;
   aliases: string[];
+  tags: string[];
   emoji: EmojiMeta | null;    // null for non-emoji
 }
 
@@ -28,6 +29,7 @@ export interface GridEntry {
   categoryId: string;
   altCode: number | null;
   aliases: string[];
+  tags: string[];
 }
 
 export function toGridEntry(entry: CharacterEntry): GridEntry {
@@ -39,6 +41,7 @@ export function toGridEntry(entry: CharacterEntry): GridEntry {
     categoryId: entry.categoryId,
     altCode: entry.altCode,
     aliases: entry.aliases,
+    tags: entry.tags,
   };
 }
 

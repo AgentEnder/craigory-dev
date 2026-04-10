@@ -19,6 +19,7 @@ function matchesSearch(c: GridEntry, q: string): boolean {
     c.hex.toLowerCase().includes(q) ||
     c.name.toLowerCase().includes(q) ||
     c.aliases.some((a) => a.toLowerCase().includes(q)) ||
+    c.tags.some((t) => t.toLowerCase().includes(q)) ||
     (c.altCode !== null && c.altCode.toString().includes(q))
   );
 }
