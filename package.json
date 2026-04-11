@@ -104,7 +104,8 @@
   "pnpm": {
     "patchedDependencies": {
       "vike": "patches/vike.patch",
-      "nx": "patches/nx.patch"
+      "nx": "patches/nx.patch",
+      "nx-github-pages": "patches/nx-github-pages.patch"
     }
   },
   "nx": {}

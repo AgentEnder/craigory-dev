@@ -1,0 +1,35 @@
+diff --git a/src/utils/exec.js b/src/utils/exec.js
+index 66bdc4a2a998b6b9ef5b797cd84f5e5982ea4780..10f68452dc284ae37063664c649c0b6da0ef079b 100644
+--- a/src/utils/exec.js
++++ b/src/utils/exec.js
+@@ -8,18 +8,23 @@ function exec(command, options) {
+         const { stdio } = options, childProcessArgs = tslib_1.__rest(options, ["stdio"]);
+         return new Promise((resolve, reject) => {
+             var _a, _b;
+-            const childProcess = (0, child_process_1.exec)(command, childProcessArgs, (error, stdout) => {
+-                if (error) {
+-                    reject(error);
++            const childProcess = (0, child_process_1.spawn)(command, { shell: true, ...childProcessArgs });
++            let stdout = '';
++            if (childProcess.stdout) {
++                childProcess.stdout.on('data', (data) => { stdout += data; });
++            }
++            if ((stdio !== null && stdio !== void 0 ? stdio : 'inherit') === 'inherit') {
++                (_a = childProcess.stdout) === null || _a === void 0 ? void 0 : _a.pipe(process.stdout);
++                (_b = childProcess.stderr) === null || _b === void 0 ? void 0 : _b.pipe(process.stderr);
++            }
++            childProcess.on('close', (code) => {
++                if (code !== 0) {
++                    reject(new Error(`Command failed with exit code ${code}: ${command}`));
+                 }
+                 else {
+                     resolve(stdout);
+                 }
+             });
+-            if ((stdio !== null && stdio !== void 0 ? stdio : 'inherit') === 'inherit') {
+-                (_a = childProcess.stdout) === null || _a === void 0 ? void 0 : _a.pipe(process.stdout);
+-                (_b = childProcess.stderr) === null || _b === void 0 ? void 0 : _b.pipe(process.stderr);
+-            }
+         });
+     });
+ }
