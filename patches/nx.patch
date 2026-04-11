@@ -1,0 +1,33 @@
+diff --git a/src/executors/run-commands/running-tasks.js b/src/executors/run-commands/running-tasks.js
+index bed46e5655725bffab3a60e65043a1cde7e3c2f1..dc78341474b42475b49a8cc070cf00ddfe7e899a 100644
+--- a/src/executors/run-commands/running-tasks.js
++++ b/src/executors/run-commands/running-tasks.js
+@@ -241,8 +241,8 @@ class RunningNodeProcess {
+         if (streamOutput) {
+             process.stdout.write(this.terminalOutput);
+         }
+-        this.childProcess = (0, child_process_1.exec)(commandConfig.command, {
+-            maxBuffer: run_commands_impl_1.LARGE_BUFFER,
++        this.childProcess = (0, child_process_1.spawn)(commandConfig.command, {
++            shell: true,
+             env,
+             cwd,
+             windowsHide: false,
+diff --git a/src/executors/run-script/run-script.impl.js b/src/executors/run-script/run-script.impl.js
+index 4aaab78e25df8826e62ed3967f693ca9bcb71c96..256748bf19f895cb12b24ced8face575653d845b 100644
+--- a/src/executors/run-script/run-script.impl.js
++++ b/src/executors/run-script/run-script.impl.js
+@@ -34,9 +34,10 @@ async function default_1(options, context) {
+ }
+ function nodeProcess(command, cwd, env) {
+     return new Promise((res, rej) => {
+-        let cp = (0, child_process_1.exec)(command, { cwd, env, maxBuffer: LARGE_BUFFER, windowsHide: false }, (error) => {
+-            if (error) {
+-                rej(error);
++        let cp = (0, child_process_1.spawn)(command, { shell: true, cwd, env, windowsHide: false });
++        cp.on('close', (code) => {
++            if (code !== 0) {
++                rej(new Error(`Process exited with code ${code}`));
+             }
+             else {
+                 res();

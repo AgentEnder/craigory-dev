@@ -61,14 +61,6 @@ jobs:
           cp -r ./dist/apps/craigory-dev/client "./dist/gh-pages-root${PATH_PREFIX}"
           cp ./dist/apps/craigory-dev/client/CNAME ./dist/gh-pages-root
 
-          # Wrap git to add --quiet to commands that produce excessive output,
-          # avoiding stdout maxBuffer overflow in the deploy executor.
-          real_git=$(which git)
-          mkdir -p /tmp/quiet-git
-          printf '#!/bin/bash\ncase "$1" in\n  commit) exec "%s" "$@" > /dev/null 2>&1 ;;\n  *) exec "%s" "$@" ;;\nesac\n' "$real_git" "$real_git" > /tmp/quiet-git/git
-          chmod +x /tmp/quiet-git/git
-          export PATH="/tmp/quiet-git:$PATH"
-
           npx nx deploy craigory-dev -c preview --directory ./dist/gh-pages-root
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
