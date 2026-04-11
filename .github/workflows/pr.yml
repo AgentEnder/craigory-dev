@@ -65,7 +65,7 @@ jobs:
           # avoiding stdout maxBuffer overflow in the deploy executor.
           real_git=$(which git)
           mkdir -p /tmp/quiet-git
-          printf '#!/bin/bash\ncase "$1" in\n  commit|fetch|push|init) exec "%s" "$1" --quiet "${@:2}" ;;\n  *) exec "%s" "$@" ;;\nesac\n' "$real_git" "$real_git" > /tmp/quiet-git/git
+          printf '#!/bin/bash\nexec "%s" "$@" > /dev/null 2>&1\n' "$real_git" > /tmp/quiet-git/git
           chmod +x /tmp/quiet-git/git
           export PATH="/tmp/quiet-git:$PATH"
 
