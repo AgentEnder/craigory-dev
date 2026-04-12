@@ -60,6 +60,7 @@ jobs:
           mkdir -p ./dist/gh-pages-root/pr/$GITHUB_SHA
           cp -r ./dist/apps/craigory-dev/client "./dist/gh-pages-root${PATH_PREFIX}"
           cp ./dist/apps/craigory-dev/client/CNAME ./dist/gh-pages-root
+
           npx nx deploy craigory-dev -c preview --directory ./dist/gh-pages-root
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
