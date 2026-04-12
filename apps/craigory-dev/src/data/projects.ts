@@ -7,7 +7,7 @@ import {
   GithubProjectData,
 } from '../../pages/projects/types';
 import { isBefore, subYears } from 'date-fns';
-import { dirname, join } from 'path';
+import { basename, dirname, join } from 'path';
 import {
   existsSync,
   readFileSync,
@@ -1051,13 +1051,15 @@ async function getLocalProjects(
         readFileSync(metadataPath, 'utf-8')
       );
 
-      // Check if project has been built (try both locations)
+      // Check if project has been built (try both locations).
+      // Store only the relative path here — the baseUrl is applied in
+      // loadAllProjects so that a cached value stays correct when the
+      // PUBLIC_ENV__BASE_URL changes between builds (e.g. preview deploys).
       const monorepoDistPath = join(workspaceRoot, 'dist', 'apps', appDir);
       const projectDistPath = join(projectPath, 'dist', 'client');
-      const baseUrl = process.env.PUBLIC_ENV__BASE_URL || '';
       const deployment =
         existsSync(monorepoDistPath) || existsSync(projectDistPath)
-          ? `${baseUrl}/${appDir}`
+          ? `/${appDir}`
           : undefined;
 
       // Get README if exists
@@ -1221,6 +1223,18 @@ export async function loadAllProjects(): Promise<RepoData[]> {
     ]);
     localProjects = [...appProjects, ...packageProjects];
     writeFileSync(localCachePath, JSON.stringify(localProjects, null, 2));
+  }
+
+  // Apply the current base URL to local project deployments. This is done
+  // here (rather than at cache-write time) so that the cache — which may have
+  // been produced by an earlier build with a different PUBLIC_ENV__BASE_URL —
+  // always reflects the base URL of the current build. Without this, preview
+  // deployments at /pr/<num> would link to /<appDir> and 404.
+  const baseUrl = process.env.PUBLIC_ENV__BASE_URL || '';
+  for (const project of localProjects) {
+    if (project.deployment && project.projectPath) {
+      project.deployment = `${baseUrl}/${basename(project.projectPath)}`;
+    }
   }
 
   const mergedProjects = await normalizePublishedPackageEntries([
