@@ -1,6 +1,6 @@
 @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
 
-.privacy-container {
+.legal-container {
   height: 100vh;
   background: linear-gradient(135deg, #f8f9ff 0%, #cabebe 100%);
   display: flex;
@@ -10,7 +10,7 @@
   font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI',
     sans-serif;
 
-  .privacy-card {
+  .legal-card {
     background: white;
     border-radius: 16px;
     box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
@@ -24,7 +24,7 @@
     animation: fadeIn 0.5s ease-in-out;
   }
 
-  .privacy-header {
+  .legal-header {
     background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
     color: white;
     padding: 3rem 2rem;
@@ -46,7 +46,7 @@
     }
   }
 
-  .privacy-content {
+  .legal-content {
     padding: 2.5rem;
     overflow-y: auto;
     flex-grow: 1;
@@ -143,10 +143,44 @@
     }
   }
 
-  .privacy-footer {
+  .legal-nav {
+    display: flex;
+    gap: 0.5rem;
+    justify-content: center;
+    padding: 1rem 2.5rem 0;
+    background: #f7fafc;
+    border-top: 1px solid #e2e8f0;
+
+    a {
+      color: #667eea;
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.95rem;
+      padding: 0.5rem 1rem;
+      border-radius: 6px;
+      transition: all 0.2s;
+
+      &:hover {
+        color: #764ba2;
+        background: white;
+      }
+
+      &[aria-current='page'] {
+        color: #2d3748;
+        background: white;
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+        cursor: default;
+
+        &:hover {
+          color: #2d3748;
+        }
+      }
+    }
+  }
+
+  .legal-footer {
     background: #f7fafc;
     padding: 1.5rem 2.5rem;
-    border-top: 1px solid #e2e8f0;
     text-align: center;
 
     .back-link {
@@ -182,7 +216,7 @@
   @media (max-width: 768px) {
     padding: 1rem;
 
-    .privacy-header {
+    .legal-header {
       padding: 2rem 1.5rem;
 
       h1 {
@@ -190,7 +224,7 @@
       }
     }
 
-    .privacy-content {
+    .legal-content {
       padding: 1.5rem;
       max-height: 60vh;
 
@@ -203,7 +237,7 @@
       }
     }
 
-    .privacy-footer {
+    .legal-footer {
       padding: 1.25rem 1.5rem;
     }
   }
