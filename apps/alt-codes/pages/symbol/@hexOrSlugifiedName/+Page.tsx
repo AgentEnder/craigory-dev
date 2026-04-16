@@ -182,30 +182,25 @@ export default function Page() {
             <span className="breadcrumb-current">{entry.name || entry.hex}</span>
           </nav>
 
-          {/* Hero: glyph beside name + aliases + copy */}
+          {/* Hero: [glyph + details] … [copy button] */}
           <section className="symbol-hero">
-            <div className="symbol-hero-glyph">{displayChar}</div>
-            <div className="symbol-hero-info">
-              <h1 className="symbol-name">{entry.name || entry.hex}</h1>
-              {entry.aliases.length > 0 && (
-                <ul className="symbol-alias-list" aria-label="Also known as">
-                  {entry.aliases.map(a => (
-                    <li key={a} className="symbol-alias-tag">{a}</li>
-                  ))}
-                </ul>
-              )}
-              {entry.tags.length > 0 && (
-                <ul className="symbol-tag-list" aria-label="Tags">
-                  {entry.tags.map(t => (
-                    <li key={t} className="symbol-tag">{t}</li>
-                  ))}
-                </ul>
-              )}
-              <CopyButton value={displayChar} label={`Copy "${displayChar}"`} />
-              {entry.emoji !== null && entry.emoji.skinToneSlots > 0 && (
-                <SkinTonePicker key={entry.char} entry={entry} onVariantChange={setDisplayChar} />
-              )}
+            <div className="symbol-hero-details">
+              <div className="symbol-hero-glyph">{displayChar}</div>
+              <div className="symbol-hero-info">
+                <h1 className="symbol-name">{entry.name || entry.hex}</h1>
+                {entry.tags.length > 0 && (
+                  <ul className="symbol-tag-list" aria-label="Tags">
+                    {entry.tags.map(t => (
+                      <li key={t} className="symbol-tag">{t}</li>
+                    ))}
+                  </ul>
+                )}
+                {entry.emoji !== null && entry.emoji.skinToneSlots > 0 && (
+                  <SkinTonePicker key={entry.char} entry={entry} onVariantChange={setDisplayChar} />
+                )}
+              </div>
             </div>
+            <CopyButton value={displayChar} label={`Copy "${displayChar}"`} />
           </section>
 
           {/* Encodings — 2 columns on md+ */}
@@ -256,6 +251,13 @@ export default function Page() {
                   <CopyButton value={`Alt+${entry.altCode}`} label="Copy" />
                 </div>
               )}
+              {entry.aliases.map(a => (
+                <div key={a} className="enc-row">
+                  <span className="enc-label">Shortcode</span>
+                  <code className="enc-value">{a}</code>
+                  <CopyButton value={a} label="Copy" />
+                </div>
+              ))}
             </div>
           </section>
 

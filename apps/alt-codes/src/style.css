@@ -462,8 +462,15 @@ body {
 
 .symbol-hero {
   display: flex;
-  align-items: flex-start;
+  justify-content: space-around;
+  align-items: center;
   gap: 28px;
+}
+
+.symbol-hero-details {
+  display: flex;
+  align-items: center;
+  gap: 20px;
 }
 
 .symbol-hero-glyph {
@@ -480,7 +487,13 @@ body {
   flex-direction: column;
   align-items: flex-start;
   gap: 10px;
-  padding-top: 6px;
+}
+
+.symbol-hero > .copy-btn {
+  font-size: 18px;
+  padding: 14px 28px;
+  border-radius: 6px;
+  flex-shrink: 0;
 }
 
 .symbol-name {
@@ -490,26 +503,6 @@ body {
   color: var(--color-amber);
   margin: 0;
   line-height: 1.2;
-}
-
-.symbol-alias-list {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-}
-
-.symbol-alias-tag {
-  font-family: var(--font-mono);
-  font-size: 10px;
-  color: var(--color-text);
-  background: color-mix(in srgb, var(--color-amber) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--color-amber) 25%, transparent);
-  border-radius: 3px;
-  padding: 2px 7px;
-  line-height: 1.5;
 }
 
 .symbol-tag-list {
