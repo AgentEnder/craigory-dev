@@ -83,6 +83,12 @@ export const monitorCommand = cli('monitor', {
               type: 'string',
               description: 'Staleness threshold (e.g. 2h, 30m, 1d)',
               default: '2h',
+            })
+            .option('foreground', {
+              type: 'boolean',
+              alias: ['fg'],
+              description: 'Run in foreground with inherited stdio (don\'t detach)',
+              default: false,
             }),
         handler: (opts) => {
           const pid = readPid();
@@ -99,17 +105,26 @@ export const monitorCommand = cli('monitor', {
           const intervalMs = parseAge(opts.interval);
           const ageMs = parseAge(opts.age);
 
-          const logStream = createWriteStream(MONITOR_LOG_FILE, { flags: 'a' });
           const daemonPath = join(__dirname, 'daemon.js');
+          const daemonArgs = [daemonPath, '--interval', String(intervalMs), '--age', String(ageMs)];
 
-          const child = spawn(
-            process.execPath,
-            [daemonPath, '--interval', String(intervalMs), '--age', String(ageMs)],
-            {
-              detached: true,
-              stdio: ['ignore', logStream, logStream],
-            },
-          );
+          if (opts.foreground) {
+            const child = spawn(process.execPath, daemonArgs, {
+              stdio: 'inherit',
+            });
+
+            child.on('close', (code) => {
+              process.exit(code ?? 0);
+            });
+            return;
+          }
+
+          const logStream = createWriteStream(MONITOR_LOG_FILE, { flags: 'a' });
+
+          const child = spawn(process.execPath, daemonArgs, {
+            detached: true,
+            stdio: ['ignore', logStream, logStream],
+          });
 
           child.unref();
 
