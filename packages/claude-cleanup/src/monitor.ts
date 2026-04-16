@@ -152,7 +152,13 @@ export const monitorCommand = cli('monitor', {
             return;
           }
 
-          process.kill(pid, 'SIGTERM');
+          try {
+            process.kill(pid, 'SIGTERM');
+          } catch {
+            cleanupStalePidFile();
+            console.log('Monitor process already exited (cleaned stale PID file).');
+            return;
+          }
           console.log(`Sent SIGTERM to PID ${pid}. Waiting for shutdown...`);
 
           const removed = await waitForPidFileRemoval();
@@ -194,7 +200,12 @@ export const monitorCommand = cli('monitor', {
           // Stop if running
           const pid = readPid();
           if (pid !== null && isMonitorRunning(pid)) {
-            process.kill(pid, 'SIGTERM');
+            try {
+              process.kill(pid, 'SIGTERM');
+            } catch {
+              cleanupStalePidFile();
+              console.log('Monitor process already exited (cleaned stale PID file).');
+            }
             console.log(`Sent SIGTERM to PID ${pid}. Waiting for shutdown...`);
             const removed = await waitForPidFileRemoval();
             if (removed) {

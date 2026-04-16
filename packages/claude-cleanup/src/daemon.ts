@@ -3,6 +3,7 @@ import { writeFileSync, unlinkSync } from 'node:fs';
 
 import { discoverSessions, classifySessions } from './sessions.js';
 import {
+  assertPlatform,
   isProcessRunning,
   killProcess,
   formatDuration,
@@ -75,6 +76,8 @@ const daemonCLI = cli('claude-cleanup-daemon', {
         required: true,
       }),
   handler: (opts) => {
+    assertPlatform();
+
     // Write PID file
     writeFileSync(MONITOR_PID_FILE, String(process.pid));
 
@@ -88,7 +91,7 @@ const daemonCLI = cli('claude-cleanup-daemon', {
       process.exit(0);
     });
 
-    process.on('beforeExit', () => {
+    process.on('exit', () => {
       cleanupPidFile();
     });
 
