@@ -3,7 +3,8 @@ import {
   readFileSync,
   unlinkSync,
   statSync,
-  createWriteStream,
+  openSync,
+  closeSync,
   existsSync,
 } from 'node:fs';
 import { spawn } from 'node:child_process';
@@ -119,12 +120,14 @@ export const monitorCommand = cli('monitor', {
             return;
           }
 
-          const logStream = createWriteStream(MONITOR_LOG_FILE, { flags: 'a' });
+          const logFd = openSync(MONITOR_LOG_FILE, 'a');
 
           const child = spawn(process.execPath, daemonArgs, {
             detached: true,
-            stdio: ['ignore', logStream, logStream],
+            stdio: ['ignore', logFd, logFd],
           });
+
+          closeSync(logFd);
 
           child.unref();
 
