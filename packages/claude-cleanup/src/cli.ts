@@ -28,6 +28,7 @@ import {
   shortenPath,
 } from './process.js';
 import { parseAge } from './parse-age.js';
+import { monitorCommand } from './monitor.js';
 
 function callClaude(conversationFile: string): Promise<string> {
   const claudeDir = join(homedir(), '.claude');
@@ -212,6 +213,8 @@ const claudeCleanupCLI = cli('claude-cleanup', {
   },
 });
 
-export default claudeCleanupCLI;
+const withMonitor = claudeCleanupCLI.commands(monitorCommand);
 
-claudeCleanupCLI.forge();
+export default withMonitor;
+
+withMonitor.forge();
