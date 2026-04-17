@@ -10,3 +10,5 @@ packages:
 
   # Tools directory if it contains packages
   - 'tools'
+catalog:
+  es-main: ^1.4.0

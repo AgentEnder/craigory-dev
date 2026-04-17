@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "Read(//Users/agentender/.superset/worktrees/craigory-dev/claude-session-cleanup/**)",
+      "Read(//Users/agentender/.superset/worktrees/craigory-dev/claude-session-cleanup/node_modules/.pnpm/cli-forge@1.7.1_@clack+prompts@0.10.1_markdown-factory@0.2.0_tsx@4.21.0/node_modules/cli-forge/dist/**)",
+      "Read(//Users/agentender/.claude/**)"
+    ]
+  }
+}

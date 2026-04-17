@@ -1,34 +1,35 @@
 #!/usr/bin/env node
 
-import { cli } from 'cli-forge';
 import * as p from '@clack/prompts';
+import { cli } from 'cli-forge';
+import isMain from 'es-main';
 
 import { spawn } from 'node:child_process';
 import { homedir } from 'node:os';
 import { join } from 'node:path';
 
 import {
-  discoverSessions,
+  clearCache,
+  getCachedSummary,
+  loadCache,
+  saveCache,
+  setCachedSummary,
+} from './cache.js';
+import { monitorCommand } from './monitor.js';
+import { parseAge } from './parse-age.js';
+import {
+  assertPlatform,
+  formatDuration,
+  isProcessRunning,
+  killProcess,
+  shortenPath,
+} from './process.js';
+import {
   classifySessions,
+  discoverSessions,
   getConversationFilePath,
   type ClassifiedSession,
 } from './sessions.js';
-import {
-  clearCache,
-  loadCache,
-  saveCache,
-  getCachedSummary,
-  setCachedSummary,
-} from './cache.js';
-import {
-  assertPlatform,
-  isProcessRunning,
-  killProcess,
-  formatDuration,
-  shortenPath,
-} from './process.js';
-import { parseAge } from './parse-age.js';
-import { monitorCommand } from './monitor.js';
 
 function callClaude(conversationFile: string): Promise<string> {
   const claudeDir = join(homedir(), '.claude');
@@ -36,23 +37,32 @@ function callClaude(conversationFile: string): Promise<string> {
     const child = spawn(
       'claude',
       [
-        '--model', 'haiku',
-        '--allowedTools', 'Read',
-        '--add-dir', claudeDir,
+        '--model',
+        'haiku',
+        '--allowedTools',
+        'Read',
+        '--add-dir',
+        claudeDir,
         '-p',
         `Use the Read tool to read ${conversationFile} then summarize what this Claude Code session is about in one brief sentence (under 15 words). Output ONLY the sentence.`,
       ],
-      { stdio: ['ignore', 'pipe', 'pipe'], timeout: 30000 },
+      { stdio: ['ignore', 'pipe', 'pipe'], timeout: 30000 }
     );
 
     let stdout = '';
     let stderr = '';
-    child.stdout.on('data', (d: Buffer) => { stdout += d.toString(); });
-    child.stderr.on('data', (d: Buffer) => { stderr += d.toString(); });
+    child.stdout.on('data', (d: Buffer) => {
+      stdout += d.toString();
+    });
+    child.stderr.on('data', (d: Buffer) => {
+      stderr += d.toString();
+    });
 
     child.on('close', (code) => {
       if (code !== 0) {
-        console.error(`[summarize error] ${conversationFile}: exit code ${code}`);
+        console.error(
+          `[summarize error] ${conversationFile}: exit code ${code}`
+        );
         if (stderr.trim()) console.error(`  stderr: ${stderr.trim()}`);
         resolve('');
         return;
@@ -211,10 +221,12 @@ const claudeCleanupCLI = cli('claude-cleanup', {
 
     p.outro(`Done. Killed ${killed} process(es).`);
   },
-});
+})
+  .commands(monitorCommand)
+  .strict();
 
-const withMonitor = claudeCleanupCLI.commands(monitorCommand);
+export default claudeCleanupCLI;
 
-export default withMonitor;
-
-withMonitor.forge();
+if (isMain) {
+  claudeCleanupCLI.forge();
+}
