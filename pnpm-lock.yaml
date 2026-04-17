@@ -9,6 +9,12 @@ catalogs:
     es-main:
       specifier: ^1.4.0
       version: 1.4.0
+    vike:
+      specifier: 0.4.258
+      version: 0.4.258
+    vike-react:
+      specifier: ^0.6.5
+      version: 0.6.5
 
 patchedDependencies:
   nx@22.6.5:
@@ -107,11 +113,11 @@ importers:
         specifier: ^2.3.0
         version: 2.8.1
       vike:
-        specifier: 0.4.258
-        version: 0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))
+        specifier: 'catalog:'
+        version: 0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1))
       vike-react:
-        specifier: ^0.5.4
-        version: 0.5.13(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)))
+        specifier: 'catalog:'
+        version: 0.6.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1)))
       vite-plugin-static-copy:
         specifier: 3.1.1
         version: 3.1.1(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))
@@ -321,11 +327,11 @@ importers:
         specifier: ^0.8.0
         version: 0.8.0
       vike:
-        specifier: 0.4.239-commit-9dcde6d
-        version: 0.4.239-commit-9dcde6d(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))
+        specifier: 'catalog:'
+        version: 0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1))
       vike-react:
-        specifier: ^0.6.5
-        version: 0.6.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.239-commit-9dcde6d(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)))
+        specifier: 'catalog:'
+        version: 0.6.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1)))
 
   apps/craigory-dev: {}
 
@@ -359,11 +365,11 @@ importers:
         specifier: ^4.1.12
         version: 4.1.12
       vike:
-        specifier: 0.4.239-commit-9dcde6d
-        version: 0.4.239-commit-9dcde6d(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))
+        specifier: 'catalog:'
+        version: 0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1))
       vike-react:
-        specifier: ^0.6.5
-        version: 0.6.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.239-commit-9dcde6d(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)))
+        specifier: 'catalog:'
+        version: 0.6.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1)))
 
   apps/json-viewer:
     dependencies:
@@ -407,11 +413,11 @@ importers:
         specifier: ^5.9.2
         version: 5.9.2
       vike:
-        specifier: 0.4.239-commit-9dcde6d
-        version: 0.4.239-commit-9dcde6d(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))
+        specifier: 'catalog:'
+        version: 0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1))
       vike-react:
-        specifier: ^0.6.5
-        version: 0.6.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.239-commit-9dcde6d(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)))
+        specifier: 'catalog:'
+        version: 0.6.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1)))
       zustand:
         specifier: ^5.0.8
         version: 5.0.8(@types/react@19.1.12)(react@19.1.1)
@@ -449,11 +455,11 @@ importers:
         specifier: ^5.9.2
         version: 5.9.2
       vike:
-        specifier: 0.4.239-commit-9dcde6d
-        version: 0.4.239-commit-9dcde6d(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))
+        specifier: 'catalog:'
+        version: 0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1))
       vike-react:
-        specifier: ^0.6.5
-        version: 0.6.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.239-commit-9dcde6d(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)))
+        specifier: 'catalog:'
+        version: 0.6.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1)))
 
   apps/qbcheck-simulator:
     dependencies:
@@ -485,11 +491,11 @@ importers:
         specifier: ^4.1.12
         version: 4.1.12
       vike:
-        specifier: 0.4.239-commit-9dcde6d
-        version: 0.4.239-commit-9dcde6d(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))
+        specifier: 'catalog:'
+        version: 0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1))
       vike-react:
-        specifier: ^0.6.5
-        version: 0.6.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.239-commit-9dcde6d(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)))
+        specifier: 'catalog:'
+        version: 0.6.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1)))
 
   apps/qr-generator:
     dependencies:
@@ -530,11 +536,11 @@ importers:
         specifier: ^4.1.12
         version: 4.1.12
       vike:
-        specifier: 0.4.239-commit-9dcde6d
-        version: 0.4.239-commit-9dcde6d(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))
+        specifier: 'catalog:'
+        version: 0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1))
       vike-react:
-        specifier: ^0.6.5
-        version: 0.6.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.239-commit-9dcde6d(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)))
+        specifier: 'catalog:'
+        version: 0.6.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1)))
 
   apps/tiki-menu:
     dependencies:
@@ -569,11 +575,11 @@ importers:
         specifier: ^4.1.12
         version: 4.1.12
       vike:
-        specifier: 0.4.239-commit-9dcde6d
-        version: 0.4.239-commit-9dcde6d(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))
+        specifier: 'catalog:'
+        version: 0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1))
       vike-react:
-        specifier: ^0.6.5
-        version: 0.6.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.239-commit-9dcde6d(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)))
+        specifier: 'catalog:'
+        version: 0.6.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1)))
       zustand:
         specifier: ^5.0.8
         version: 5.0.8(@types/react@19.1.12)(react@19.1.1)
@@ -1432,23 +1438,11 @@ packages:
   '@brillout/import@0.2.6':
     resolution: {integrity: sha512-1GUTmADc8trUC1YSW2lp9r6PmwluMoEyHajnE1kxVdbKGD0wJOlq/DvTWMUqLtBDCnQR+n//qgMtz6HwA/lotA==}
 
-  '@brillout/json-serializer@0.5.20':
-    resolution: {integrity: sha512-RjRm7siy3VEB248gYudtWB4FZyoIL4kuA/HF3mM4ViAd1LT6Tl9eZsp5n0/hB5uM/C9JKICCNsJ6slNGgjdetA==}
-
   '@brillout/json-serializer@0.5.22':
     resolution: {integrity: sha512-jzcOqcbysKICCeZNlwa755tffF+HfMj8G+ZSuvHe06aCpp4xQiU2D91RHFUeJpF0/RNyfa5uWZ0pRuvFoeoqow==}
 
-  '@brillout/picocolors@1.0.28':
-    resolution: {integrity: sha512-FBsirUdUlmjmeUlEuqfnUoKAZUt+d0VfMVBYUsFQrDFEV9Rm/QDyG69PSQtQbI6SZQNiZuAWuyhE5USflzx6iQ==}
-
   '@brillout/picocolors@1.0.30':
     resolution: {integrity: sha512-xJjdgyN1H0qh2nB2xlzazIipiDixuUd9oD5msh/Qv5bXJG9j8MSD/m4lREt6Z10ej6FF31b8vB4tdT7lDUbiyA==}
-
-  '@brillout/require-shim@0.1.2':
-    resolution: {integrity: sha512-3I4LRHnVZXoSAsEoni5mosq9l6eiJED58d9V954W4CIZ88AUfYBanWGBGbJG3NztaRTpFHEA6wB3Hn93BmmJdg==}
-
-  '@brillout/vite-plugin-server-entry@0.7.14':
-    resolution: {integrity: sha512-VSbiBAykItiXLK/CS9B9XZ1hmRkfgJ3nMJXOZt+mjeumhH4Vct17zQYG/Wcp/HDY1xEtxIxSOanxyM5upwaf8A==}
 
   '@brillout/vite-plugin-server-entry@0.7.18':
     resolution: {integrity: sha512-j3neG+vaIZ2AbP2/vGgaIyJwrFIxlK3xd3Ey2EGBswCvAGeI4QSSfXGbb7R3b3H8223PgTTsWOZuZH0Y8Ope2w==}
@@ -9664,12 +9658,6 @@ packages:
     peerDependencies:
       react: '>=16.8'
 
-  react-streaming@0.3.50:
-    resolution: {integrity: sha512-BRjWzY83dtnjgFUCYM0H2J3iRuYruE++/AidXmjxRclTsz1O/zBdUVgjAO2uKb05y/zybskcKjmK/5xyMc1MSg==}
-    peerDependencies:
-      react: '>=18'
-      react-dom: '>=18'
-
   react-streaming@0.4.3:
     resolution: {integrity: sha512-IGlnbchegC8RCoP0E8hnQiT4fBC7r4KmeKcZFb1PoAA5Yzfr9C+9PZh6i8o+PVSJq5YCptVX4YZDHkNIDCsaIA==}
     peerDependencies:
@@ -11025,32 +11013,12 @@ packages:
   vfile@6.0.3:
     resolution: {integrity: sha512-KzIbH/9tXat2u30jf+smMwFCsno4wHVdNmzFyL+T/L3UGqqk6JKfVqOFOZEpZSHADH1k40ab6NUIXZq422ov3Q==}
 
-  vike-react@0.5.13:
-    resolution: {integrity: sha512-gk5YzLqc349uCSatIZLuLA3/ZtpjWHOjPk1jVyQROqbJ3l6kJbsST7u7ItblKuQr+C5TTcFnJ73Hhl8lSMdXxg==}
-    peerDependencies:
-      react: '>=18.0.0'
-      react-dom: '>=18.0.0'
-      vike: '>=0.4.182'
-
   vike-react@0.6.5:
     resolution: {integrity: sha512-SRw/zOSZqdz7EvSyw8yIdy9iJOOMDP7Vra63NnI5L4xHx1Mmj4ebppfYEDcV2MRcCYzyQFv/xSmvI02pEJcT0A==}
     peerDependencies:
       react: '>=19'
       react-dom: '>=19'
       vike: '>=0.4.182'
-
-  vike@0.4.239-commit-9dcde6d:
-    resolution: {integrity: sha512-OaMW3zL5YIHKC1bTo2E7JqUbDdNEG2gIo6ffG5TB9CiBufytzm2Ka+jL+fQScXQhCzy+yt+viRGk4FEAnahr0A==}
-    engines: {node: '>=20.19.0'}
-    hasBin: true
-    peerDependencies:
-      react-streaming: '>=0.3.42'
-      vite: '>=6.3.0'
-    peerDependenciesMeta:
-      react-streaming:
-        optional: true
-      vite:
-        optional: true
 
   vike@0.4.258:
     resolution: {integrity: sha512-JfnVaVw4XT3uloZoehFbKSh+CIuDAypbvppdXLL7iYWWLy71/Mfz6AmijEfhoHtXkuJ8NRDybO6ABnyxMrIuiw==}
@@ -12463,20 +12431,9 @@ snapshots:
 
   '@brillout/import@0.2.6': {}
 
-  '@brillout/json-serializer@0.5.20': {}
-
   '@brillout/json-serializer@0.5.22': {}
 
-  '@brillout/picocolors@1.0.28': {}
-
   '@brillout/picocolors@1.0.30': {}
-
-  '@brillout/require-shim@0.1.2': {}
-
-  '@brillout/vite-plugin-server-entry@0.7.14':
-    dependencies:
-      '@brillout/import': 0.2.6
-      '@brillout/picocolors': 1.0.28
 
   '@brillout/vite-plugin-server-entry@0.7.18':
     dependencies:
@@ -14375,7 +14332,7 @@ snapshots:
 
   '@npmcli/fs@4.0.0':
     dependencies:
-      semver: 7.7.2
+      semver: 7.7.4
     optional: true
 
   '@nx/cypress@22.6.5(@babel/traverse@7.29.0)(@swc/core@1.15.8(@swc/helpers@0.5.18))(@zkochan/js-yaml@0.0.7)(cypress@15.9.0)(eslint@8.57.0)(nx@22.6.5(patch_hash=3a742c19a91a74037020c9760aa8638b10167f3034e0638c6753ea816774b7d3)(@swc/core@1.15.8(@swc/helpers@0.5.18)))(typescript@5.9.2)':
@@ -16242,14 +16199,14 @@ snapshots:
 
   '@unicode/unicode-17.0.0@1.6.16': {}
 
-  '@universal-deploy/netlify@0.2.2(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))':
+  '@universal-deploy/netlify@0.2.2(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1))':
     dependencies:
       '@universal-deploy/store': 0.2.1(srvx@0.11.15)
       vite: 7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1)
     transitivePeerDependencies:
       - srvx
 
-  '@universal-deploy/node@0.1.6(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))':
+  '@universal-deploy/node@0.1.6(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1))':
     dependencies:
       '@universal-deploy/store': 0.2.1(srvx@0.11.15)
       magic-string: 0.30.21
@@ -16263,10 +16220,10 @@ snapshots:
     optionalDependencies:
       srvx: 0.11.15
 
-  '@universal-deploy/vite@0.1.7(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))':
+  '@universal-deploy/vite@0.1.7(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1))':
     dependencies:
-      '@universal-deploy/netlify': 0.2.2(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))
-      '@universal-deploy/node': 0.1.6(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))
+      '@universal-deploy/netlify': 0.2.2(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1))
+      '@universal-deploy/node': 0.1.6(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1))
       '@universal-deploy/store': 0.2.1(srvx@0.11.15)
       '@universal-middleware/express': 0.4.26(srvx@0.11.15)
       magic-string: 0.30.21
@@ -22725,20 +22682,11 @@ snapshots:
       '@remix-run/router': 1.23.2
       react: 19.1.1
 
-  react-streaming@0.3.50(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
-    dependencies:
-      '@brillout/import': 0.2.6
-      '@brillout/json-serializer': 0.5.20
-      '@brillout/picocolors': 1.0.28
-      isbot-fast: 1.2.0
-      react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
-
   react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1):
     dependencies:
       '@brillout/import': 0.2.6
-      '@brillout/json-serializer': 0.5.20
-      '@brillout/picocolors': 1.0.28
+      '@brillout/json-serializer': 0.5.22
+      '@brillout/picocolors': 1.0.30
       isbot-fast: 1.2.0
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
@@ -24397,43 +24345,14 @@ snapshots:
       '@types/unist': 3.0.3
       vfile-message: 4.0.3
 
-  vike-react@0.5.13(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))):
-    dependencies:
-      react: 19.1.1
-      react-dom: 19.1.1(react@19.1.1)
-      react-streaming: 0.3.50(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      vike: 0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))
-
-  vike-react@0.6.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.239-commit-9dcde6d(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))):
+  vike-react@0.6.5(react-dom@19.1.1(react@19.1.1))(react@19.1.1)(vike@0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1))):
     dependencies:
       react: 19.1.1
       react-dom: 19.1.1(react@19.1.1)
       react-streaming: 0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      vike: 0.4.239-commit-9dcde6d(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))
+      vike: 0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1))
 
-  vike@0.4.239-commit-9dcde6d(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)):
-    dependencies:
-      '@brillout/import': 0.2.6
-      '@brillout/json-serializer': 0.5.20
-      '@brillout/picocolors': 1.0.28
-      '@brillout/require-shim': 0.1.2
-      '@brillout/vite-plugin-server-entry': 0.7.14
-      acorn: 8.15.0
-      cac: 6.7.14
-      es-module-lexer: 1.7.0
-      esbuild: 0.27.3
-      json5: 2.2.3
-      magic-string: 0.30.21
-      picomatch: 4.0.3
-      semver: 7.7.2
-      sirv: 3.0.2
-      source-map-support: 0.5.21
-      tinyglobby: 0.2.15
-    optionalDependencies:
-      react-streaming: 0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
-      vite: 7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1)
-
-  vike@0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)):
+  vike@0.4.258(react-streaming@0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1))(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1)):
     dependencies:
       '@babel/core': 7.29.0
       '@babel/types': 7.29.0
@@ -24442,7 +24361,7 @@ snapshots:
       '@brillout/picocolors': 1.0.30
       '@brillout/vite-plugin-server-entry': 0.7.18
       '@universal-deploy/store': 0.2.1(srvx@0.11.15)
-      '@universal-deploy/vite': 0.1.7(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))
+      '@universal-deploy/vite': 0.1.7(srvx@0.11.15)(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1))
       '@universal-middleware/core': 0.4.17(srvx@0.11.15)
       '@universal-middleware/node': 0.1.0(srvx@0.11.15)
       cac: 6.7.14
@@ -24456,7 +24375,7 @@ snapshots:
       sirv: 3.0.2
       source-map-support: 0.5.21
       tinyglobby: 0.2.16
-      vite-plugin-wrapper: 0.1.0(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0))
+      vite-plugin-wrapper: 0.1.0(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1))
     optionalDependencies:
       react-streaming: 0.4.3(react-dom@19.1.1(react@19.1.1))(react@19.1.1)
       vite: 7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1)
@@ -24506,7 +24425,7 @@ snapshots:
       tinyglobby: 0.2.14
       vite: 7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1)
 
-  vite-plugin-wrapper@0.1.0(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)):
+  vite-plugin-wrapper@0.1.0(vite@7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1)):
     dependencies:
       vite: 7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1)
 
