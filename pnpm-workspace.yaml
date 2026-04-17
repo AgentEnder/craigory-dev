@@ -12,3 +12,5 @@ packages:
   - 'tools'
 catalog:
   es-main: ^1.4.0
+patchedDependencies:
+  nx@22.6.5: patches/nx@22.6.5.patch
