@@ -81,12 +81,14 @@ const daemonCLI = cli('claude-cleanup-daemon', {
     // Write PID file
     writeFileSync(MONITOR_PID_FILE, String(process.pid));
 
-    // Register cleanup early so SIGTERM during init still removes PID file
-    let timer: ReturnType<typeof setInterval> | undefined;
+    // Start the interval first so the SIGTERM handler can close over a const binding.
+    // setInterval doesn't fire synchronously, so registering the handler next still
+    // beats any cycle work that could hang or throw.
+    const timer = setInterval(() => runCleanupCycle(opts.age), opts.interval);
 
     process.on('SIGTERM', () => {
       log('Received SIGTERM, shutting down...');
-      if (timer) clearInterval(timer);
+      clearInterval(timer);
       cleanupPidFile();
       process.exit(0);
     });
@@ -103,9 +105,8 @@ const daemonCLI = cli('claude-cleanup-daemon', {
     log(`  Age:      ${formatDuration(opts.age)}`);
     log('═══════════════════════════════════════════════');
 
-    // Run immediately, then on interval
+    // Run the first cycle synchronously
     runCleanupCycle(opts.age);
-    timer = setInterval(() => runCleanupCycle(opts.age), opts.interval);
   },
 });
 
