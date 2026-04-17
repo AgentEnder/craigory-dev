@@ -10,10 +10,12 @@
     },
     "test": {
       "executor": "@nx/vitest:test",
-      "outputs": ["{workspaceRoot}/coverage/libs/vike-utils"],
+      "outputs": [
+        "{workspaceRoot}/coverage/libs/vike-utils"
+      ],
       "options": {
         "passWithNoTests": true,
-        "reportsDirectory": "../../coverage/libs/vike-utils"
+        "reportsDirectory": "{projectRoot}/../../coverage/libs/vike-utils"
       }
     }
   }
