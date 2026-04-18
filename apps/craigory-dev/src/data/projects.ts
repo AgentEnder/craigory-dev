@@ -271,11 +271,10 @@ async function findAllPackageJsonLocations(): Promise<PackageJsonLocation[]> {
   const userPackages = await findPackageJsonFiles('user:agentender');
   allLocations.push(...userPackages);
 
-  // Search additional repos. Skip contributor repos — their packages
-  // aren't ours to advertise, and for large repos (e.g. nrwl/nx) indexing
-  // every package.json balloons memory during the SSG build.
+  // Search additional repos (including contributor repos — getPublishedPackages
+  // filters the fetched package.json set down to only names that are actually
+  // published to npm, so the resulting list stays small).
   for (const repo of ADDITIONAL_REPOS) {
-    if (repo.role === 'contributor') continue;
     const repoPackages = await findPackageJsonFiles(
       `repo:${repo.owner}/${repo.name}`
     );
@@ -667,11 +666,9 @@ async function processRepo(
   // Skip expensive API calls for repos with a homepage already set
   const shouldCheckDeployment = !repo.homepage;
 
-  // Contributor repos are curated by hand, so we skip:
-  //  - README: only used for auto-filtering owned repos, and big READMEs
-  //    (e.g. nrwl/nx) bloat the SSG data payload.
-  //  - publishedPackages: those aren't ours to list, and indexing every
-  //    package.json in a large monorepo OOMs the build.
+  // Contributor repos are hand-curated, so we skip the README fetch: it's
+  // only used as an auto-filter signal for owned repos, and large READMEs
+  // (e.g. nrwl/nx) bloat the SSG data payload with tens of KB of prose.
   const isContributor = role === 'contributor';
 
   const [readme, deployment, lastCommit, publishedPackages, languages] =
@@ -681,9 +678,7 @@ async function processRepo(
         ? findRepositoryDeployment(repo)
         : Promise.resolve(repo.homepage ?? undefined),
       getLastCommit(repo),
-      isContributor
-        ? Promise.resolve(undefined)
-        : getPublishedPackages(repo, packageJsonLocations),
+      getPublishedPackages(repo, packageJsonLocations),
       getLanguages(repo),
     ]);
 
