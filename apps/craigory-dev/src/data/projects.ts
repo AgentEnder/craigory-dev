@@ -122,6 +122,20 @@ interface PackageJsonLocation {
 interface PackageJsonManifest {
   name?: string;
   private?: boolean;
+  publishConfig?: {
+    access?: string;
+  };
+}
+
+function isPublishablePackageManifest(pkg: PackageJsonManifest): boolean {
+  if (pkg.private) {
+    return false;
+  }
+  const access = pkg.publishConfig?.access;
+  if (access !== undefined && access !== 'public') {
+    return false;
+  }
+  return true;
 }
 
 /**
@@ -144,6 +158,11 @@ async function findPackageJsonFiles(
     });
 
     for (const item of response.data.items) {
+      // GitHub code search matches anything containing `package.json` in the
+      // filename, e.g. `package.json.fixture`. Restrict to exact matches.
+      if (basename(item.path) !== 'package.json') {
+        continue;
+      }
       results.push({
         repoFullName: item.repository.full_name,
         path: item.path,
@@ -783,9 +802,10 @@ async function getPublishedPackages(
       })
     );
 
-    // Keep all non-private package names declared in this repo.
+    // Keep all publishable package names declared in this repo.
     for (const pkg of results) {
-      if (!pkg || !pkg.name || pkg.private) continue;
+      if (!pkg || !pkg.name) continue;
+      if (!isPublishablePackageManifest(pkg)) continue;
       repoPackageNames.add(pkg.name);
     }
   }
@@ -885,8 +905,8 @@ async function getMonorepoPackages(
         readFileSync(join(projectPath, 'package.json'), 'utf-8')
       );
 
-      // Skip private packages
-      if (packageJson.private) {
+      // Skip private or non-public packages
+      if (!isPublishablePackageManifest(packageJson)) {
         continue;
       }
 
