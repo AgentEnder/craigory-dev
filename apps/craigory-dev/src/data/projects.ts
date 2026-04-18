@@ -24,6 +24,50 @@ const client = new Octokit({
   auth: process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN,
 });
 
+// Some orgs (e.g. 'nrwl') block fine-grained PATs by policy — even for reads
+// of public data. Since the data we're fetching is all public, fall back to
+// an unauthenticated client for any owner that rejects our token.
+const publicClient = new Octokit();
+const authBlockedOwners = new Set<string>();
+
+function ownerFromRequestOptions(
+  options: Record<string, unknown> | undefined
+): string | undefined {
+  if (!options) return undefined;
+  if (typeof options.owner === 'string') return options.owner;
+  if (typeof options.username === 'string') return options.username;
+  if (typeof options.org === 'string') return options.org;
+  if (typeof options.url === 'string') {
+    const match = options.url.match(/\/(?:repos|users|orgs)\/([^/]+)/);
+    if (match) return match[1];
+  }
+  return undefined;
+}
+
+client.hook.wrap('request', async (request, options) => {
+  const owner = ownerFromRequestOptions(
+    options as unknown as Record<string, unknown>
+  );
+  if (owner && authBlockedOwners.has(owner)) {
+    return publicClient.request(options);
+  }
+  try {
+    return await request(options);
+  } catch (err) {
+    const message = (err as { message?: string })?.message ?? '';
+    if (message.includes('organization forbids access via a fine-grained')) {
+      if (owner) {
+        authBlockedOwners.add(owner);
+        console.warn(
+          `'${owner}' rejects fine-grained PAT; falling back to unauthenticated API for this and future requests to that owner.`
+        );
+      }
+      return publicClient.request(options);
+    }
+    throw err;
+  }
+});
+
 let githubRequestCount = 0;
 const originalRequest = client.request;
 const patchedRequest: typeof client.request = ((
