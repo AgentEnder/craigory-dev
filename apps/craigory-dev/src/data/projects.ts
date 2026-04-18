@@ -132,10 +132,7 @@ function isPublishablePackageManifest(pkg: PackageJsonManifest): boolean {
     return false;
   }
   const access = pkg.publishConfig?.access;
-  if (access !== undefined && access !== 'public') {
-    return false;
-  }
-  return true;
+  return access == undefined || access === 'public';
 }
 
 /**
