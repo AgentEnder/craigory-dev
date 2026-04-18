@@ -34,7 +34,7 @@ export function QRInput({ value, onChange, onKeyDown, onImagePaste }: QRInputPro
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={onKeyDown}
           onPaste={handlePaste}
-          placeholder="Enter text, URL, or paste a QR code image..."
+          placeholder="Enter text or a URL — or paste a QR code image to decode it"
           className="w-full px-4 py-4 bg-white border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200 text-gray-900 placeholder-gray-400"
           style={{ fontFeatureSettings: 'normal' }}
           rows={3}
