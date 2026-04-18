@@ -24,6 +24,7 @@ export type BaseProjectData = {
 export type GithubProjectData = BaseProjectData & {
   type: 'github';
   data: GithubRepo;
+  role?: 'owner' | 'contributor';
 };
 
 export type LocalProjectData = BaseProjectData & {

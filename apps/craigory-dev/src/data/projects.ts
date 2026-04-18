@@ -24,18 +24,56 @@ const client = new Octokit({
   auth: process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN,
 });
 
+// Some orgs (e.g. 'nrwl') block fine-grained PATs by policy — even for reads
+// of public data. Since the data we're fetching is all public, fall back to
+// an unauthenticated client for any owner that rejects our token.
+const publicClient = new Octokit();
+const authBlockedOwners = new Set<string>();
+
 let githubRequestCount = 0;
-const originalRequest = client.request;
-const patchedRequest: typeof client.request = ((
-  ...args: Parameters<typeof client.request>
-) => {
-  githubRequestCount++;
-  return originalRequest(...args);
-}) as Partial<typeof client.request> as typeof client.request;
+function trackRequestCount(octokit: Octokit) {
+  const original = octokit.request;
+  const patched: typeof octokit.request = ((
+    ...args: Parameters<typeof octokit.request>
+  ) => {
+    githubRequestCount++;
+    return original(...args);
+  }) as Partial<typeof octokit.request> as typeof octokit.request;
+  Object.assign(patched, original);
+  octokit.request = patched;
+}
+trackRequestCount(client);
+trackRequestCount(publicClient);
 
-Object.assign(patchedRequest, originalRequest);
-
-client.request = patchedRequest;
+/**
+ * Runs a GitHub call with the authenticated client, falling back to the
+ * unauthenticated client if the owner's org rejects our fine-grained PAT.
+ * Replaces the previous request-hook approach so each call site explicitly
+ * declares which owner it's talking to.
+ */
+async function withAuthFallback<T>(
+  owner: string | undefined,
+  fn: (octokit: Octokit) => Promise<T>
+): Promise<T> {
+  if (owner && authBlockedOwners.has(owner)) {
+    return fn(publicClient);
+  }
+  try {
+    return await fn(client);
+  } catch (err) {
+    const message = (err as { message?: string })?.message ?? '';
+    if (message.includes('organization forbids access via a fine-grained')) {
+      if (owner) {
+        authBlockedOwners.add(owner);
+        console.warn(
+          `'${owner}' rejects fine-grained PAT; falling back to unauthenticated API for this and future requests to that owner.`
+        );
+      }
+      return fn(publicClient);
+    }
+    throw err;
+  }
+}
 
 // ============================================================================
 // NPM Package Types and Functions
@@ -125,11 +163,41 @@ interface PackageJsonManifest {
 }
 
 /**
+ * GitHub's /search/code endpoint is sharded and eventually consistent — a
+ * shard that's re-indexing can return 404 (or 5xx) for an otherwise valid
+ * query. Retry with exponential backoff so a transient bad shard doesn't
+ * fail the whole build.
+ */
+async function requestWithRetry<T>(
+  fn: () => Promise<T>,
+  attempts = 4
+): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const status = (err as { status?: number })?.status;
+      const retryable = status === 404 || status === 502 || status === 503;
+      if (!retryable || i === attempts - 1) throw err;
+      const waitMs = 1000 * 2 ** i + Math.random() * 500;
+      console.warn(
+        `GitHub request returned ${status}; retrying in ${Math.round(waitMs)}ms (attempt ${i + 2}/${attempts})`
+      );
+      await new Promise((r) => setTimeout(r, waitMs));
+    }
+  }
+  throw lastErr;
+}
+
+/**
  * Uses GitHub code search to find all package.json files across repos.
  * Much more efficient than traversing each repo's file tree.
  */
 async function findPackageJsonFiles(
-  searchQuery: string
+  searchQuery: string,
+  owner?: string
 ): Promise<PackageJsonLocation[]> {
   const results: PackageJsonLocation[] = [];
   let page = 1;
@@ -137,11 +205,15 @@ async function findPackageJsonFiles(
   let hasMore = true;
 
   while (hasMore && page * perPage < 1000) {
-    const response = await client.request('GET /search/code', {
-      q: `filename:package.json ${searchQuery}`,
-      per_page: perPage,
-      page,
-    });
+    const response = await requestWithRetry(() =>
+      withAuthFallback(owner, (oct) =>
+        oct.request('GET /search/code', {
+          q: `filename:package.json ${searchQuery}`,
+          per_page: perPage,
+          page,
+        })
+      )
+    );
 
     for (const item of response.data.items) {
       results.push({
@@ -193,13 +265,19 @@ async function findAllPackageJsonLocations(): Promise<PackageJsonLocation[]> {
   const allLocations: PackageJsonLocation[] = [];
 
   // Search user's repos
-  const userPackages = await findPackageJsonFiles('user:agentender');
+  const userPackages = await findPackageJsonFiles(
+    'user:agentender',
+    'agentender'
+  );
   allLocations.push(...userPackages);
 
-  // Search additional repos
+  // Search additional repos (including contributor repos — getPublishedPackages
+  // filters the fetched package.json set down to only names that are actually
+  // published to npm, so the resulting list stays small).
   for (const repo of ADDITIONAL_REPOS) {
     const repoPackages = await findPackageJsonFiles(
-      `repo:${repo.owner}/${repo.name}`
+      `repo:${repo.owner}/${repo.name}`,
+      repo.owner
     );
     allLocations.push(...repoPackages);
   }
@@ -208,10 +286,21 @@ async function findAllPackageJsonLocations(): Promise<PackageJsonLocation[]> {
   return allLocations;
 }
 
-const ADDITIONAL_REPOS = [
+type AdditionalRepo = {
+  owner: string;
+  name: string;
+  role?: 'owner' | 'contributor';
+};
+
+const ADDITIONAL_REPOS: AdditionalRepo[] = [
   {
     owner: 'nx-dotnet',
     name: 'nx-dotnet',
+  },
+  {
+    owner: 'nrwl',
+    name: 'nx',
+    role: 'contributor',
   },
 ];
 
@@ -523,21 +612,24 @@ async function getAllRepos(
       }
       return acc;
     },
-    [[]] as {
-      owner: string;
-      name: string;
-    }[][]
+    [[]] as AdditionalRepo[][]
   );
   for (const chunk of chunks) {
     const chunkData = await Promise.all(
       chunk.map(async (repo) => {
-        const githubRepo = await client.rest.repos.get({
-          owner: repo.owner,
-          repo: repo.name,
-        });
+        const githubRepo = await withAuthFallback(repo.owner, (oct) =>
+          oct.rest.repos.get({
+            owner: repo.owner,
+            repo: repo.name,
+          })
+        );
         const fullName = `${repo.owner}/${repo.name}`;
         const packageJsons = packageJsonsByRepo.get(fullName) || [];
-        return processRepo(githubRepo.data as GithubRepo, packageJsons);
+        return processRepo(
+          githubRepo.data as GithubRepo,
+          packageJsons,
+          repo.role ?? 'owner'
+        );
       })
     );
     repos.push(...(chunkData.filter(Boolean) as RepoData[]));
@@ -567,7 +659,8 @@ async function getAllRepos(
 
 async function processRepo(
   repo: GithubRepo,
-  packageJsonLocations: PackageJsonLocation[]
+  packageJsonLocations: PackageJsonLocation[],
+  role: 'owner' | 'contributor' = 'owner'
 ): Promise<GithubProjectData | undefined> {
   if (!repoFilter(repo)) {
     return;
@@ -576,9 +669,14 @@ async function processRepo(
   // Skip expensive API calls for repos with a homepage already set
   const shouldCheckDeployment = !repo.homepage;
 
+  // Contributor repos are hand-curated, so we skip the README fetch: it's
+  // only used as an auto-filter signal for owned repos, and large READMEs
+  // (e.g. nrwl/nx) bloat the SSG data payload with tens of KB of prose.
+  const isContributor = role === 'contributor';
+
   const [readme, deployment, lastCommit, publishedPackages, languages] =
     await Promise.all([
-      getReadme(repo),
+      isContributor ? Promise.resolve(undefined) : getReadme(repo),
       shouldCheckDeployment
         ? findRepositoryDeployment(repo)
         : Promise.resolve(repo.homepage ?? undefined),
@@ -600,6 +698,7 @@ async function processRepo(
     type: 'github',
     data: repo,
     repo: repo.name,
+    role,
     deployment,
     description: repo.description,
     url: repo.html_url,
@@ -615,8 +714,10 @@ async function getReadme(repo: GithubRepo) {
   try {
     return repo.default_branch
       ? (
-          await client.request(
-            `GET https://raw.githubusercontent.com/${repo.owner.login}/${repo.name}/${repo.default_branch}/README.md`
+          await withAuthFallback(repo.owner.login, (oct) =>
+            oct.request(
+              `GET https://raw.githubusercontent.com/${repo.owner.login}/${repo.name}/${repo.default_branch}/README.md`
+            )
           )
         ).data
       : null;
@@ -630,11 +731,13 @@ async function getLastCommit(repo: GithubRepo) {
     return null;
   }
   try {
-    const lastCommit = await client.rest.repos.getCommit({
-      owner: repo.owner.login,
-      repo: repo.name,
-      ref: repo.default_branch,
-    });
+    const lastCommit = await withAuthFallback(repo.owner.login, (oct) =>
+      oct.rest.repos.getCommit({
+        owner: repo.owner.login,
+        repo: repo.name,
+        ref: repo.default_branch,
+      })
+    );
     return lastCommit.data?.commit.author?.date;
   } catch {
     return null;
@@ -644,10 +747,12 @@ async function getLastCommit(repo: GithubRepo) {
 const LANGUAGE_PERCENTAGE_THRESHOLD = 0.01;
 async function getLanguages(repo: GithubRepo) {
   try {
-    const languages = await client.rest.repos.listLanguages({
-      owner: repo.owner.login,
-      repo: repo.name,
-    });
+    const languages = await withAuthFallback(repo.owner.login, (oct) =>
+      oct.rest.repos.listLanguages({
+        owner: repo.owner.login,
+        repo: repo.name,
+      })
+    );
     let totalBytes = 0;
     const results: Record<string, number> = {};
     for (const lang in languages.data) {
@@ -697,21 +802,25 @@ async function findRepositoryDeployment(repo: GithubRepo) {
   let url = repo.homepage;
   if (!url) {
     // Only fetch the most recent 5 deployments to reduce API calls
-    const deployments = await client.rest.repos.listDeployments({
-      owner: repo.owner.login,
-      repo: repo.name,
-      per_page: 5,
-    });
+    const deployments = await withAuthFallback(repo.owner.login, (oct) =>
+      oct.rest.repos.listDeployments({
+        owner: repo.owner.login,
+        repo: repo.name,
+        per_page: 5,
+      })
+    );
 
     // Process deployments in parallel instead of sequentially
     const statusPromises = deployments.data.map(async (deployment) => {
       try {
-        const status = await client.rest.repos.listDeploymentStatuses({
-          owner: 'agentender',
-          repo: repo.name,
-          deployment_id: deployment.id,
-          per_page: 1, // Only get the latest status
-        });
+        const status = await withAuthFallback(repo.owner.login, (oct) =>
+          oct.rest.repos.listDeploymentStatuses({
+            owner: 'agentender',
+            repo: repo.name,
+            deployment_id: deployment.id,
+            per_page: 1, // Only get the latest status
+          })
+        );
         const latestStatus = status.data[0];
         if (latestStatus && latestStatus.state === 'success') {
           return latestStatus.environment_url ?? latestStatus.target_url;
@@ -768,7 +877,9 @@ async function getPublishedPackages(
     const results = await Promise.all(
       batch.map(async (loc) => {
         try {
-          const fileContents = await client.request(loc.gitUrl);
+          const fileContents = await withAuthFallback(repo.owner.login, (oct) =>
+            oct.request(loc.gitUrl)
+          );
           const result = fileContents.data as { content?: string };
           if (result.content) {
             const decodedContent = JSON.parse(
