@@ -21,6 +21,7 @@ import {
 } from '../src/image-processing';
 import {
   validateQRCode,
+  decodeQRFromImageBlob,
   type ValidationResult,
 } from '../src/qr-validation';
 
@@ -150,6 +151,19 @@ export default function Page() {
     scheduleGenerate(value, imageSettings, qrSettings);
   };
 
+  const handleImagePaste = async (file: File) => {
+    const decoded = await decodeQRFromImageBlob(file);
+    if (decoded === null) {
+      alert('No QR code detected in the pasted image.');
+      return;
+    }
+    setText(decoded);
+    if (debounceRef.current) {
+      clearTimeout(debounceRef.current);
+    }
+    generateQRCode(decoded, imageSettings, qrSettings);
+  };
+
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
@@ -157,16 +171,6 @@ export default function Page() {
         clearTimeout(debounceRef.current);
       }
       generateQRCode(text, imageSettings, qrSettings);
-    }
-    if (e.key === 'v' && e.ctrlKey) {
-      e.preventDefault();
-      navigator.clipboard.readText().then((clipboardText) => {
-        setText(clipboardText);
-        if (debounceRef.current) {
-          clearTimeout(debounceRef.current);
-        }
-        generateQRCode(clipboardText, imageSettings, qrSettings);
-      });
     }
   };
 
@@ -238,6 +242,7 @@ export default function Page() {
       value={text}
       onChange={handleInputChange}
       onKeyDown={handleKeyDown}
+      onImagePaste={handleImagePaste}
     />
   );
 
