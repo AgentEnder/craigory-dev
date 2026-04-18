@@ -30,29 +30,36 @@ const client = new Octokit({
 const publicClient = new Octokit();
 const authBlockedOwners = new Set<string>();
 
-function ownerFromRequestOptions(
-  options: Record<string, unknown> | undefined
-): string | undefined {
-  if (!options) return undefined;
-  if (typeof options.owner === 'string') return options.owner;
-  if (typeof options.username === 'string') return options.username;
-  if (typeof options.org === 'string') return options.org;
-  if (typeof options.url === 'string') {
-    const match = options.url.match(/\/(?:repos|users|orgs)\/([^/]+)/);
-    if (match) return match[1];
-  }
-  return undefined;
+let githubRequestCount = 0;
+function trackRequestCount(octokit: Octokit) {
+  const original = octokit.request;
+  const patched: typeof octokit.request = ((
+    ...args: Parameters<typeof octokit.request>
+  ) => {
+    githubRequestCount++;
+    return original(...args);
+  }) as Partial<typeof octokit.request> as typeof octokit.request;
+  Object.assign(patched, original);
+  octokit.request = patched;
 }
+trackRequestCount(client);
+trackRequestCount(publicClient);
 
-client.hook.wrap('request', async (request, options) => {
-  const owner = ownerFromRequestOptions(
-    options as unknown as Record<string, unknown>
-  );
+/**
+ * Runs a GitHub call with the authenticated client, falling back to the
+ * unauthenticated client if the owner's org rejects our fine-grained PAT.
+ * Replaces the previous request-hook approach so each call site explicitly
+ * declares which owner it's talking to.
+ */
+async function withAuthFallback<T>(
+  owner: string | undefined,
+  fn: (octokit: Octokit) => Promise<T>
+): Promise<T> {
   if (owner && authBlockedOwners.has(owner)) {
-    return publicClient.request(options);
+    return fn(publicClient);
   }
   try {
-    return await request(options);
+    return await fn(client);
   } catch (err) {
     const message = (err as { message?: string })?.message ?? '';
     if (message.includes('organization forbids access via a fine-grained')) {
@@ -62,24 +69,11 @@ client.hook.wrap('request', async (request, options) => {
           `'${owner}' rejects fine-grained PAT; falling back to unauthenticated API for this and future requests to that owner.`
         );
       }
-      return publicClient.request(options);
+      return fn(publicClient);
     }
     throw err;
   }
-});
-
-let githubRequestCount = 0;
-const originalRequest = client.request;
-const patchedRequest: typeof client.request = ((
-  ...args: Parameters<typeof client.request>
-) => {
-  githubRequestCount++;
-  return originalRequest(...args);
-}) as Partial<typeof client.request> as typeof client.request;
-
-Object.assign(patchedRequest, originalRequest);
-
-client.request = patchedRequest;
+}
 
 // ============================================================================
 // NPM Package Types and Functions
@@ -202,7 +196,8 @@ async function requestWithRetry<T>(
  * Much more efficient than traversing each repo's file tree.
  */
 async function findPackageJsonFiles(
-  searchQuery: string
+  searchQuery: string,
+  owner?: string
 ): Promise<PackageJsonLocation[]> {
   const results: PackageJsonLocation[] = [];
   let page = 1;
@@ -211,11 +206,13 @@ async function findPackageJsonFiles(
 
   while (hasMore && page * perPage < 1000) {
     const response = await requestWithRetry(() =>
-      client.request('GET /search/code', {
-        q: `filename:package.json ${searchQuery}`,
-        per_page: perPage,
-        page,
-      })
+      withAuthFallback(owner, (oct) =>
+        oct.request('GET /search/code', {
+          q: `filename:package.json ${searchQuery}`,
+          per_page: perPage,
+          page,
+        })
+      )
     );
 
     for (const item of response.data.items) {
@@ -268,7 +265,10 @@ async function findAllPackageJsonLocations(): Promise<PackageJsonLocation[]> {
   const allLocations: PackageJsonLocation[] = [];
 
   // Search user's repos
-  const userPackages = await findPackageJsonFiles('user:agentender');
+  const userPackages = await findPackageJsonFiles(
+    'user:agentender',
+    'agentender'
+  );
   allLocations.push(...userPackages);
 
   // Search additional repos (including contributor repos — getPublishedPackages
@@ -276,7 +276,8 @@ async function findAllPackageJsonLocations(): Promise<PackageJsonLocation[]> {
   // published to npm, so the resulting list stays small).
   for (const repo of ADDITIONAL_REPOS) {
     const repoPackages = await findPackageJsonFiles(
-      `repo:${repo.owner}/${repo.name}`
+      `repo:${repo.owner}/${repo.name}`,
+      repo.owner
     );
     allLocations.push(...repoPackages);
   }
@@ -616,10 +617,12 @@ async function getAllRepos(
   for (const chunk of chunks) {
     const chunkData = await Promise.all(
       chunk.map(async (repo) => {
-        const githubRepo = await client.rest.repos.get({
-          owner: repo.owner,
-          repo: repo.name,
-        });
+        const githubRepo = await withAuthFallback(repo.owner, (oct) =>
+          oct.rest.repos.get({
+            owner: repo.owner,
+            repo: repo.name,
+          })
+        );
         const fullName = `${repo.owner}/${repo.name}`;
         const packageJsons = packageJsonsByRepo.get(fullName) || [];
         return processRepo(
@@ -711,8 +714,10 @@ async function getReadme(repo: GithubRepo) {
   try {
     return repo.default_branch
       ? (
-          await client.request(
-            `GET https://raw.githubusercontent.com/${repo.owner.login}/${repo.name}/${repo.default_branch}/README.md`
+          await withAuthFallback(repo.owner.login, (oct) =>
+            oct.request(
+              `GET https://raw.githubusercontent.com/${repo.owner.login}/${repo.name}/${repo.default_branch}/README.md`
+            )
           )
         ).data
       : null;
@@ -726,11 +731,13 @@ async function getLastCommit(repo: GithubRepo) {
     return null;
   }
   try {
-    const lastCommit = await client.rest.repos.getCommit({
-      owner: repo.owner.login,
-      repo: repo.name,
-      ref: repo.default_branch,
-    });
+    const lastCommit = await withAuthFallback(repo.owner.login, (oct) =>
+      oct.rest.repos.getCommit({
+        owner: repo.owner.login,
+        repo: repo.name,
+        ref: repo.default_branch,
+      })
+    );
     return lastCommit.data?.commit.author?.date;
   } catch {
     return null;
@@ -740,10 +747,12 @@ async function getLastCommit(repo: GithubRepo) {
 const LANGUAGE_PERCENTAGE_THRESHOLD = 0.01;
 async function getLanguages(repo: GithubRepo) {
   try {
-    const languages = await client.rest.repos.listLanguages({
-      owner: repo.owner.login,
-      repo: repo.name,
-    });
+    const languages = await withAuthFallback(repo.owner.login, (oct) =>
+      oct.rest.repos.listLanguages({
+        owner: repo.owner.login,
+        repo: repo.name,
+      })
+    );
     let totalBytes = 0;
     const results: Record<string, number> = {};
     for (const lang in languages.data) {
@@ -793,21 +802,25 @@ async function findRepositoryDeployment(repo: GithubRepo) {
   let url = repo.homepage;
   if (!url) {
     // Only fetch the most recent 5 deployments to reduce API calls
-    const deployments = await client.rest.repos.listDeployments({
-      owner: repo.owner.login,
-      repo: repo.name,
-      per_page: 5,
-    });
+    const deployments = await withAuthFallback(repo.owner.login, (oct) =>
+      oct.rest.repos.listDeployments({
+        owner: repo.owner.login,
+        repo: repo.name,
+        per_page: 5,
+      })
+    );
 
     // Process deployments in parallel instead of sequentially
     const statusPromises = deployments.data.map(async (deployment) => {
       try {
-        const status = await client.rest.repos.listDeploymentStatuses({
-          owner: 'agentender',
-          repo: repo.name,
-          deployment_id: deployment.id,
-          per_page: 1, // Only get the latest status
-        });
+        const status = await withAuthFallback(repo.owner.login, (oct) =>
+          oct.rest.repos.listDeploymentStatuses({
+            owner: 'agentender',
+            repo: repo.name,
+            deployment_id: deployment.id,
+            per_page: 1, // Only get the latest status
+          })
+        );
         const latestStatus = status.data[0];
         if (latestStatus && latestStatus.state === 'success') {
           return latestStatus.environment_url ?? latestStatus.target_url;
@@ -864,7 +877,9 @@ async function getPublishedPackages(
     const results = await Promise.all(
       batch.map(async (loc) => {
         try {
-          const fileContents = await client.request(loc.gitUrl);
+          const fileContents = await withAuthFallback(repo.owner.login, (oct) =>
+            oct.request(loc.gitUrl)
+          );
           const result = fileContents.data as { content?: string };
           if (result.content) {
             const decodedContent = JSON.parse(

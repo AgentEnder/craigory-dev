@@ -26,12 +26,6 @@ function createOctokitMock() {
     paginate = {
       iterator: vi.fn(),
     };
-    hook = {
-      wrap: vi.fn(),
-      before: vi.fn(),
-      after: vi.fn(),
-      error: vi.fn(),
-    };
   };
 }
 
