@@ -2,9 +2,6 @@ name: PR Checks + Deployment
 
 on:
   pull_request:
-    branches:
-      - main
-      - preview
 
 jobs:
   deploy:
