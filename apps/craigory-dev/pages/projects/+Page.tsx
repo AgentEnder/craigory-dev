@@ -24,7 +24,7 @@ export function Page() {
 
   const [sortedProjects, setSortedProjects] = useState<RepoData[]>(() => {
     const fn = sortFn(projects);
-    return filteredProjects.sort(fn);
+    return [...filteredProjects].sort(fn);
   });
 
   useEffect(() => {
@@ -36,7 +36,7 @@ export function Page() {
   useEffect(() => {
     if (filteredProjects) {
       const fn = sortFn(filteredProjects);
-      setSortedProjects(filteredProjects.sort(fn));
+      setSortedProjects([...filteredProjects].sort(fn));
     }
   }, [filteredProjects, sortFn]);
 
