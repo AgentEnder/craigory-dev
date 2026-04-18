@@ -56,21 +56,36 @@ export function Page() {
         onSetSort={setSortFn}
         style={{ maxWidth: '45rem' }}
       ></FilterBar>
-      {sortedProjects.map((p, idx) => (
-        <div key={p.repo} className="project-wrapper">
-          <div className="project-header">
-            <a href={`#${p.repo}`} className="content-marker-link">
-              <ContentMarker />
-            </a>
-            <h2 id={p.repo}>{p.repo}</h2>
+      {sortedProjects.map((p, idx) => {
+        const isContributor = p.type === 'github' && p.role === 'contributor';
+        const anchor = isContributor
+          ? p.data.full_name.replace('/', '-')
+          : p.repo;
+        const title = isContributor ? p.data.full_name : p.repo;
+        return (
+          <div key={anchor} className="project-wrapper">
+            <div className="project-header">
+              <a href={`#${anchor}`} className="content-marker-link">
+                <ContentMarker />
+              </a>
+              <h2 id={anchor}>{title}</h2>
+              {isContributor && (
+                <span
+                  className="role-badge"
+                  title="I contribute to this project but don't own it."
+                >
+                  Contributor
+                </span>
+              )}
+            </div>
+            {p.description && (
+              <p className="project-description">{p.description}</p>
+            )}
+            <ProjectCard project={p} />
+            {idx < projects.length - 1 && <hr />}
           </div>
-          {p.description && (
-            <p className="project-description">{p.description}</p>
-          )}
-          <ProjectCard project={p} />
-          {idx < projects.length - 1 && <hr />}
-        </div>
-      ))}
+        );
+      })}
     </>
   );
 }

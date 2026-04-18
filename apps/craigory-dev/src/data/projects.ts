@@ -208,10 +208,21 @@ async function findAllPackageJsonLocations(): Promise<PackageJsonLocation[]> {
   return allLocations;
 }
 
-const ADDITIONAL_REPOS = [
+type AdditionalRepo = {
+  owner: string;
+  name: string;
+  role?: 'owner' | 'contributor';
+};
+
+const ADDITIONAL_REPOS: AdditionalRepo[] = [
   {
     owner: 'nx-dotnet',
     name: 'nx-dotnet',
+  },
+  {
+    owner: 'nrwl',
+    name: 'nx',
+    role: 'contributor',
   },
 ];
 
@@ -523,10 +534,7 @@ async function getAllRepos(
       }
       return acc;
     },
-    [[]] as {
-      owner: string;
-      name: string;
-    }[][]
+    [[]] as AdditionalRepo[][]
   );
   for (const chunk of chunks) {
     const chunkData = await Promise.all(
@@ -537,7 +545,11 @@ async function getAllRepos(
         });
         const fullName = `${repo.owner}/${repo.name}`;
         const packageJsons = packageJsonsByRepo.get(fullName) || [];
-        return processRepo(githubRepo.data as GithubRepo, packageJsons);
+        return processRepo(
+          githubRepo.data as GithubRepo,
+          packageJsons,
+          repo.role ?? 'owner'
+        );
       })
     );
     repos.push(...(chunkData.filter(Boolean) as RepoData[]));
@@ -567,7 +579,8 @@ async function getAllRepos(
 
 async function processRepo(
   repo: GithubRepo,
-  packageJsonLocations: PackageJsonLocation[]
+  packageJsonLocations: PackageJsonLocation[],
+  role: 'owner' | 'contributor' = 'owner'
 ): Promise<GithubProjectData | undefined> {
   if (!repoFilter(repo)) {
     return;
@@ -600,6 +613,7 @@ async function processRepo(
     type: 'github',
     data: repo,
     repo: repo.name,
+    role,
     deployment,
     description: repo.description,
     url: repo.html_url,

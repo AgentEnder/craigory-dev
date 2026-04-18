@@ -7,11 +7,27 @@
 .project-header {
   display: flex;
   align-items: baseline;
+  flex-wrap: wrap;
   gap: 0.5rem;
 
   h2 {
     margin: 0;
   }
+}
+
+.role-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #555;
+  background-color: #f0ead6;
+  border: 1px solid #d8cfa8;
+  border-radius: 999px;
+  padding: 0.15rem 0.55rem;
+  line-height: 1.4;
+  white-space: nowrap;
+  cursor: help;
 }
 
 .content-marker-link {
