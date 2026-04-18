@@ -8,7 +8,7 @@ import { RepoData } from './types';
 import { FilterBar } from './components/filter-bar';
 import { ProjectCard } from './components/ProjectCard';
 import { ContentMarker } from '../../src/shared-components/content-marker';
-import { differenceInDays } from 'date-fns';
+import { sortByRelevance } from './components/sort-functions';
 
 export function Page() {
   const { projects } = useData<{ projects: RepoData[] }>();
@@ -20,7 +20,7 @@ export function Page() {
 
   const [sortFn, setSortFn] = useState<
     (projects: RepoData[]) => (a: RepoData, b: RepoData) => number
-  >(() => calculateRelevance);
+  >(() => sortByRelevance);
 
   const [sortedProjects, setSortedProjects] = useState<RepoData[]>(() => {
     const fn = sortFn(projects);
@@ -73,27 +73,4 @@ export function Page() {
       ))}
     </>
   );
-}
-
-const calculateRelevance = (projects: RepoData[]) => {
-  const relevanceMap = new Map<string, number>();
-  for (const project of projects) {
-    relevanceMap.set(project.repo, calculateRelevanceForProject(project));
-  }
-  return (a: RepoData, b: RepoData) => {
-    return relevanceMap.get(b.repo) ?? 0 - (relevanceMap.get(a.repo) ?? 0);
-  };
-};
-
-function calculateRelevanceForProject(p: RepoData) {
-  // popularity metrics, based on stars + published package downloads
-  const stars = p.stars ?? 0;
-  const downloads = Object.values(p.publishedPackages ?? {}).reduce(
-    (acc, { downloads }) => acc + downloads,
-    0
-  );
-  // Recency metrics
-  const lastCommit = differenceInDays(new Date(), new Date(p.lastCommit ?? ''));
-
-  return stars + downloads / 100 + 100 / lastCommit;
 }
