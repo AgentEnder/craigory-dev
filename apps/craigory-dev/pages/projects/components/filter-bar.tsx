@@ -7,6 +7,7 @@ import { FilterDropdown } from './filter-dropdown';
 import { IoClose } from 'react-icons/io5';
 
 import styles from './filter-bar.module.scss';
+import { SORT_OPTIONS, SortFactory } from './sort-functions';
 
 export type FilterFn = (p: RepoData) => boolean;
 
@@ -192,6 +193,33 @@ export function FilterBar({
   return (
     <table {...tableProps} className={styles['filter-table']}>
       <tbody>
+        <tr>
+          <td></td>
+          <td>
+            <label htmlFor="sort-by">Sort by</label>
+          </td>
+          <td>
+            <select
+              id="sort-by"
+              defaultValue={SORT_OPTIONS[0].value}
+              onChange={(e) => {
+                const selected = SORT_OPTIONS.find(
+                  (o) => o.value === e.target.value
+                );
+                if (selected) {
+                  const fn: SortFactory = selected.fn;
+                  onSetSort(() => fn);
+                }
+              }}
+            >
+              {SORT_OPTIONS.map((o) => (
+                <option key={o.value} value={o.value}>
+                  {o.label}
+                </option>
+              ))}
+            </select>
+          </td>
+        </tr>
         {Array.from(filters.values()).map((filter) => (
           <tr key={filter.id}>
             <td>
