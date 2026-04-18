@@ -1,0 +1,100 @@
+<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="800" height="600" fill="#1a1a2e"/>
+  
+  <!-- Title -->
+  <text x="400" y="40" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="whitesmoke" text-anchor="middle">Nx Computation Caching</text>
+  
+  <!-- First run (without cache) -->
+  <g id="first-run">
+    <text x="200" y="100" font-family="Arial" font-size="18" font-weight="bold" fill="#ff6b6b" text-anchor="middle">First Run</text>
+    
+    <!-- Terminal window -->
+    <rect x="50" y="120" width="300" height="200" fill="#0f1620" stroke="#4fbdba" stroke-width="2" rx="5"/>
+    <rect x="50" y="120" width="300" height="30" fill="#1e2a3a" rx="5 5 0 0"/>
+    <circle cx="70" cy="135" r="5" fill="#ff5f56"/>
+    <circle cx="90" cy="135" r="5" fill="#ffbd2e"/>
+    <circle cx="110" cy="135" r="5" fill="#27c93f"/>
+    
+    <text x="60" y="180" font-family="monospace" font-size="14" fill="#4fbdba">$ nx build frontend</text>
+    
+    <!-- Progress bars -->
+    <rect x="60" y="200" width="280" height="8" fill="#2a3f5f" rx="4"/>
+    <rect x="60" y="200" width="280" height="8" fill="#4fbdba" rx="4">
+      <animate attributeName="width" from="0" to="280" dur="3s" repeatCount="indefinite"/>
+    </rect>
+    
+    <text x="60" y="230" font-family="monospace" font-size="12" fill="#7ec8e3">⚙️ Building...</text>
+    <text x="60" y="250" font-family="monospace" font-size="12" fill="#7ec8e3">📦 Bundling...</text>
+    <text x="60" y="270" font-family="monospace" font-size="12" fill="#7ec8e3">🔧 Optimizing...</text>
+    
+    <text x="200" y="305" font-family="monospace" font-size="14" font-weight="bold" fill="#ff6b6b" text-anchor="middle">⏱️ 45 seconds</text>
+  </g>
+  
+  <!-- Arrow -->
+  <path d="M 380 220 L 420 220" stroke="#4fbdba" stroke-width="3" marker-end="url(#arrowhead)"/>
+  <text x="400" y="210" font-family="Arial" font-size="14" fill="#4fbdba" text-anchor="middle">Cache it!</text>
+  
+  <!-- Second run (with cache) -->
+  <g id="second-run">
+    <text x="600" y="100" font-family="Arial" font-size="18" font-weight="bold" fill="#27c93f" text-anchor="middle">Second Run</text>
+    
+    <!-- Terminal window -->
+    <rect x="450" y="120" width="300" height="200" fill="#0f1620" stroke="#27c93f" stroke-width="2" rx="5"/>
+    <rect x="450" y="120" width="300" height="30" fill="#1e2a3a" rx="5 5 0 0"/>
+    <circle cx="470" cy="135" r="5" fill="#ff5f56"/>
+    <circle cx="490" cy="135" r="5" fill="#ffbd2e"/>
+    <circle cx="510" cy="135" r="5" fill="#27c93f"/>
+    
+    <text x="460" y="180" font-family="monospace" font-size="14" fill="#4fbdba">$ nx build frontend</text>
+    
+    <!-- Cache hit message -->
+    <rect x="460" y="200" width="280" height="60" fill="#1e3a1e" stroke="#27c93f" stroke-width="1" rx="5"/>
+    <text x="600" y="225" font-family="monospace" font-size="14" fill="#27c93f" text-anchor="middle">✨ Cache hit!</text>
+    <text x="600" y="245" font-family="monospace" font-size="12" fill="#7ec8e3" text-anchor="middle">Retrieving from cache...</text>
+    
+    <text x="600" y="305" font-family="monospace" font-size="14" font-weight="bold" fill="#27c93f" text-anchor="middle">⚡ 0.5 seconds</text>
+  </g>
+  
+  <!-- Arrow marker -->
+  <defs>
+    <marker id="arrowhead" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#4fbdba"/>
+    </marker>
+  </defs>
+  
+  <!-- Remote cache section -->
+  <g id="remote-cache">
+    <rect x="150" y="380" width="500" height="180" fill="#0f1620" stroke="#7ec8e3" stroke-width="2" rx="10"/>
+    <text x="400" y="410" font-family="Arial" font-size="20" font-weight="bold" fill="#7ec8e3" text-anchor="middle">Remote Cache Benefits</text>
+    
+    <!-- Team member 1 -->
+    <circle cx="220" cy="460" r="25" fill="#4fbdba"/>
+    <text x="220" y="465" font-family="Arial" font-size="20" text-anchor="middle">👨‍💻</text>
+    <text x="220" y="500" font-family="Arial" font-size="12" fill="#4fbdba" text-anchor="middle">Dev 1 builds</text>
+    
+    <!-- Arrow to cloud -->
+    <path d="M 245 460 L 350 460" stroke="#4fbdba" stroke-width="2" marker-end="url(#arrowhead)"/>
+    
+    <!-- Cloud -->
+    <text x="400" y="470" font-family="Arial" font-size="40" text-anchor="middle">☁️</text>
+    <text x="400" y="500" font-family="Arial" font-size="12" fill="#7ec8e3" text-anchor="middle">Nx Cloud</text>
+    
+    <!-- Arrow from cloud -->
+    <path d="M 450 460 L 555 460" stroke="#27c93f" stroke-width="2" marker-end="url(#arrowhead-green)"/>
+    
+    <!-- Team member 2 -->
+    <circle cx="580" cy="460" r="25" fill="#27c93f"/>
+    <text x="580" y="465" font-family="Arial" font-size="20" text-anchor="middle">👩‍💻</text>
+    <text x="580" y="500" font-family="Arial" font-size="12" fill="#27c93f" text-anchor="middle">Dev 2 gets cache</text>
+    
+    <text x="400" y="540" font-family="Arial" font-size="16" fill="whitesmoke" text-anchor="middle">"If anyone built it, everyone has it!"</text>
+  </g>
+  
+  <!-- Green arrow marker -->
+  <defs>
+    <marker id="arrowhead-green" markerWidth="10" markerHeight="10" refX="8" refY="3" orient="auto">
+      <polygon points="0 0, 10 3, 0 6" fill="#27c93f"/>
+    </marker>
+  </defs>
+</svg>
