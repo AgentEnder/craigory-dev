@@ -125,6 +125,35 @@ interface PackageJsonManifest {
 }
 
 /**
+ * GitHub's /search/code endpoint is sharded and eventually consistent — a
+ * shard that's re-indexing can return 404 (or 5xx) for an otherwise valid
+ * query. Retry with exponential backoff so a transient bad shard doesn't
+ * fail the whole build.
+ */
+async function requestWithRetry<T>(
+  fn: () => Promise<T>,
+  attempts = 4
+): Promise<T> {
+  let lastErr: unknown;
+  for (let i = 0; i < attempts; i++) {
+    try {
+      return await fn();
+    } catch (err) {
+      lastErr = err;
+      const status = (err as { status?: number })?.status;
+      const retryable = status === 404 || status === 502 || status === 503;
+      if (!retryable || i === attempts - 1) throw err;
+      const waitMs = 1000 * 2 ** i + Math.random() * 500;
+      console.warn(
+        `GitHub request returned ${status}; retrying in ${Math.round(waitMs)}ms (attempt ${i + 2}/${attempts})`
+      );
+      await new Promise((r) => setTimeout(r, waitMs));
+    }
+  }
+  throw lastErr;
+}
+
+/**
  * Uses GitHub code search to find all package.json files across repos.
  * Much more efficient than traversing each repo's file tree.
  */
@@ -137,11 +166,13 @@ async function findPackageJsonFiles(
   let hasMore = true;
 
   while (hasMore && page * perPage < 1000) {
-    const response = await client.request('GET /search/code', {
-      q: `filename:package.json ${searchQuery}`,
-      per_page: perPage,
-      page,
-    });
+    const response = await requestWithRetry(() =>
+      client.request('GET /search/code', {
+        q: `filename:package.json ${searchQuery}`,
+        per_page: perPage,
+        page,
+      })
+    );
 
     for (const item of response.data.items) {
       results.push({
