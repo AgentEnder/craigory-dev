@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <link rel="stylesheet" type="text/css" href="/pr/41/claude-cleanup-docs/assets/static/style-5774bf13.BcWtY8Ol.css">
+        <link rel="stylesheet" type="text/css" href="/pr/41/claude-cleanup-docs/assets/static/src_styles-0fd36374.8DTyODQV.css">
+        <meta charset="UTF-8" />
+        
+    <title>claude-cleanup — claude-cleanup docs</title><meta property="og:title" content="claude-cleanup — claude-cleanup docs" />
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    
+    
+    
+    
+  
+      </head>
+      <body>
+        
+        <div id="root"><div class="docs-shell"><aside class="docs-sidebar"><a class="docs-brand" href="/pr/41/claude-cleanup-docs/">claude-cleanup</a><nav><div class="docs-nav-section"><h3 class="docs-nav-heading">Overview</h3><ul><li><a href="/pr/41/claude-cleanup-docs/" class="docs-nav-link docs-nav-link--active">claude-cleanup</a></li></ul></div><div class="docs-nav-section"><h3 class="docs-nav-heading">Guides</h3><ul><li><a href="/pr/41/claude-cleanup-docs/monitor" class="docs-nav-link">Monitor daemon</a></li></ul></div><div class="docs-nav-section"><h3 class="docs-nav-heading">CLI reference</h3><ul><li><a href="/pr/41/claude-cleanup-docs/cli" class="docs-nav-link">claude-cleanup</a></li><li><a href="/pr/41/claude-cleanup-docs/cli/monitor" class="docs-nav-link">monitor</a></li><li><a href="/pr/41/claude-cleanup-docs/cli/monitor/start" class="docs-nav-link">start</a></li><li><a href="/pr/41/claude-cleanup-docs/cli/monitor/stop" class="docs-nav-link">stop</a></li><li><a href="/pr/41/claude-cleanup-docs/cli/monitor/status" class="docs-nav-link">status</a></li><li><a href="/pr/41/claude-cleanup-docs/cli/monitor/reset" class="docs-nav-link">reset</a></li></ul></div></nav><footer class="docs-sidebar-footer"><a href="https://github.com/AgentEnder/craigory-dev/tree/main/packages/claude-cleanup" target="_blank" rel="noreferrer">GitHub ↗</a><a href="https://www.npmjs.com/package/claude-cleanup" target="_blank" rel="noreferrer">npm ↗</a></footer></aside><main class="docs-main"><article class="docs-article"><h1 id="claude-cleanup">claude-cleanup</h1>
+<p>Find and kill stale <a href="https://docs.claude.com/en/docs/claude-code/overview" rel="noopener noreferrer" target="_blank">Claude Code</a> sessions that have been left running in the background. Comes with an interactive picker and an optional long-running monitor daemon for set-and-forget cleanup.</p>
+<blockquote>
+<p>macOS and Linux only — relies on Unix signals (<code>kill -0</code>, <code>SIGTERM</code>). Windows is not supported.</p>
+</blockquote>
+<h2 id="why">Why<a class="heading-link" aria-label="Link to section" href="#why">#</a></h2>
+<p>Running several Claude Code agents across a handful of terminals adds up fast. Each <code>claude</code> process carries a non-trivial RAM footprint, and they don’t always go away when you expect — the parent shell can die and orphan a detached agent, a terminal tab closes without killing its child, or you just forget about one in another workspace. Left alone, a day’s worth of agents can quietly chew through gigabytes of RAM. Pair that with an intermittent memory leak somewhere in the Claude CLI stack and an overnight session was enough to take my laptop down.</p>
+<p><code>claude-cleanup</code> reads <code>~/.claude/sessions/</code>, cross-references each entry’s PID against the OS process table and the conversation log’s last-activity timestamp, and lets you kill the ones that are dead or idle — either interactively or via a background daemon that sweeps on a schedule.</p>
+<h2 id="install">Install<a class="heading-link" aria-label="Link to section" href="#install">#</a></h2>
+<pre><code class="hljs language-bash">npm install -g claude-cleanup
+</code></pre>
+<p>Or run it on-demand with <code>npx</code>:</p>
+<pre><code class="hljs language-bash">npx claude-cleanup
+</code></pre>
+<p>The <code>claude</code> CLI should be available on your <code>PATH</code>. It is used to generate one-line summaries of each stale session via the Haiku model; the tool still works without it, but selections will only show the working directory and age.</p>
+<h2 id="quickstart">Quickstart<a class="heading-link" aria-label="Link to section" href="#quickstart">#</a></h2>
+<pre><code class="hljs language-bash"><span class="hljs-comment"># Interactive picker — pre-selects every stale/dead session</span>
+claude-cleanup
+
+<span class="hljs-comment"># Kill every stale/dead session non-interactively (scripts, cron)</span>
+claude-cleanup --all
+
+<span class="hljs-comment"># Use a stricter threshold</span>
+claude-cleanup --age 30m
+</code></pre>
+<p>A session is classified as:</p>
+<table>
+<thead>
+<tr>
+<th>Status</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>active</code></td>
+<td>PID is alive and last activity is within <code>--age</code></td>
+</tr>
+<tr>
+<td><code>stale</code></td>
+<td>PID is alive but last activity is older than <code>--age</code></td>
+</tr>
+<tr>
+<td><code>dead</code></td>
+<td>PID is no longer running (kill target is skipped, nothing to do)</td>
+</tr>
+</tbody>
+</table>
+<p>“Last activity” is read from the end of the conversation <code>.jsonl</code> log — not the session-file mtime — so long-running compiles or background watchers don’t keep a session looking fresh.</p>
+<h2 id="commands">Commands<a class="heading-link" aria-label="Link to section" href="#commands">#</a></h2>
+<p>At a glance:</p>
+<pre><code class="hljs language-bash">claude-cleanup                            <span class="hljs-comment"># interactive picker</span>
+claude-cleanup --all                      <span class="hljs-comment"># non-interactive, kill everything stale/dead</span>
+claude-cleanup --age 30m --clearCache     <span class="hljs-comment"># stricter threshold, ignore cache</span>
+
+claude-cleanup monitor start              <span class="hljs-comment"># background daemon: every 15m, age 2h</span>
+claude-cleanup monitor start --<span class="hljs-built_in">fg</span>         <span class="hljs-comment"># same but foreground (for debugging)</span>
+claude-cleanup monitor status             <span class="hljs-comment"># is it running?</span>
+claude-cleanup monitor stop               <span class="hljs-comment"># SIGTERM the daemon</span>
+claude-cleanup monitor reset              <span class="hljs-comment"># stop + delete the log file</span>
+</code></pre>
+<p>Full flag-by-flag reference is generated from the CLI itself and lives under <a href="/pr/41/claude-cleanup-docs/cli"><code>docs/cli/</code></a>. The monitor deep-dive (launchd/systemd recipes, troubleshooting, file layout) is in <a href="/pr/41/claude-cleanup-docs/monitor"><code>docs/monitor.md</code></a>.</p>
+<p>Summaries are cached at <code>~/.claude/claude-cleanup-cache.json</code>, keyed on the conversation file + its mtime, so re-runs are fast and don’t re-spend Haiku calls on unchanged sessions.</p>
+<h2 id="programmatic-api">Programmatic API<a class="heading-link" aria-label="Link to section" href="#programmatic-api">#</a></h2>
+<p>The same primitives the CLI uses are exported for scripting:</p>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">import</span> {
+  discoverSessions,
+  classifySessions,
+  isProcessRunning,
+  killProcess,
+  parseAge,
+} <span class="hljs-keyword">from</span> <span class="hljs-string">'claude-cleanup'</span>;
+
+<span class="hljs-keyword">const</span> sessions = <span class="hljs-title function_">discoverSessions</span>();
+<span class="hljs-keyword">const</span> classified = <span class="hljs-title function_">classifySessions</span>(sessions, {
+  isProcessRunning,
+  <span class="hljs-attr">maxAgeMs</span>: <span class="hljs-title function_">parseAge</span>(<span class="hljs-string">'2h'</span>),
+});
+
+<span class="hljs-keyword">for</span> (<span class="hljs-keyword">const</span> s <span class="hljs-keyword">of</span> classified.<span class="hljs-title function_">filter</span>(<span class="hljs-function">(<span class="hljs-params">s</span>) =></span> s.<span class="hljs-property">status</span> === <span class="hljs-string">'stale'</span>)) {
+  <span class="hljs-title function_">killProcess</span>(s.<span class="hljs-property">pid</span>);
+}
+</code></pre>
+<p>Exported symbols:</p>
+<ul>
+<li><code>discoverSessions(sessionsDir?)</code> — read <code>~/.claude/sessions/*.json</code>, returns <code>SessionInfo[]</code></li>
+<li><code>classifySessions(sessions, { isProcessRunning, maxAgeMs })</code> — tag each session <code>active | stale | dead</code></li>
+<li><code>isProcessRunning(pid)</code> — <code>kill -0</code> + <code>ps</code> check; confirms the PID is actually a <code>claude</code> process (PID-reuse guard)</li>
+<li><code>killProcess(pid)</code> — <code>SIGTERM</code> wrapper that swallows errors</li>
+<li><code>parseAge('30m' | '2h' | '1d')</code> — duration-string → ms</li>
+<li><code>formatDuration(ms)</code>, <code>shortenPath(path)</code>, <code>assertPlatform()</code> — formatting/preflight helpers</li>
+</ul>
+<h2 id="how-session-data-is-read">How session data is read<a class="heading-link" aria-label="Link to section" href="#how-session-data-is-read">#</a></h2>
+<p><code>~/.claude/sessions/&#x3C;sessionId>.json</code> gives us the PID, cwd, and session id. The “last activity” timestamp comes from the last JSONL entry in the matching conversation log:</p>
+<pre><code class="hljs language-php-template"><span class="xml">~/.claude/projects/<span class="hljs-tag">&#x3C;<span class="hljs-name">encoded-cwd</span>></span>/<span class="hljs-tag">&#x3C;<span class="hljs-name">sessionId</span>></span>.jsonl
+</span></code></pre>
+<p>where <code>&#x3C;encoded-cwd></code> is the cwd with <code>/</code> and <code>.</code> replaced by <code>-</code> (matching Claude Code’s on-disk convention).</p>
+<h2 id="development">Development<a class="heading-link" aria-label="Link to section" href="#development">#</a></h2>
+<pre><code class="hljs language-bash">pnpm build        <span class="hljs-comment"># tsc → dist/</span>
+pnpm <span class="hljs-built_in">test</span>         <span class="hljs-comment"># vitest</span>
+pnpm typecheck    <span class="hljs-comment"># tsc --noEmit</span>
+pnpm run docs     <span class="hljs-comment"># regenerate docs/cli/ from the built CLI</span>
+pnpm cli -- --<span class="hljs-built_in">help</span>
+</code></pre>
+<h2 id="license">License<a class="heading-link" aria-label="Link to section" href="#license">#</a></h2>
+<p>MIT © <a href="https://craigory.dev" rel="noopener noreferrer" target="_blank">Craigory Coppola</a></p></article></main></div></div>
+        
+        <script id="vike_pageContext" type="application/json">{"pageId":"\\/pages\\/index","routeParams":{},"data":{"html":"\u003ch1 id=\"claude-cleanup\">claude-cleanup\u003c\\/h1>\n\u003cp>Find and kill stale \u003ca href=\"https:\\/\\/docs.claude.com\\/en\\/docs\\/claude-code\\/overview\" rel=\"noopener noreferrer\" target=\"_blank\">Claude Code\u003c\\/a> sessions that have been left running in the background. Comes with an interactive picker and an optional long-running monitor daemon for set-and-forget cleanup.\u003c\\/p>\n\u003cblockquote>\n\u003cp>macOS and Linux only — relies on Unix signals (\u003ccode>kill -0\u003c\\/code>, \u003ccode>SIGTERM\u003c\\/code>). Windows is not supported.\u003c\\/p>\n\u003c\\/blockquote>\n\u003ch2 id=\"why\">Why\u003ca class=\"heading-link\" aria-label=\"Link to section\" href=\"#why\">#\u003c\\/a>\u003c\\/h2>\n\u003cp>Running several Claude Code agents across a handful of terminals adds up fast. Each \u003ccode>claude\u003c\\/code> process carries a non-trivial RAM footprint, and they don’t always go away when you expect — the parent shell can die and orphan a detached agent, a terminal tab closes without killing its child, or you just forget about one in another workspace. Left alone, a day’s worth of agents can quietly chew through gigabytes of RAM. Pair that with an intermittent memory leak somewhere in the Claude CLI stack and an overnight session was enough to take my laptop down.\u003c\\/p>\n\u003cp>\u003ccode>claude-cleanup\u003c\\/code> reads \u003ccode>~\\/.claude\\/sessions\\/\u003c\\/code>, cross-references each entry’s PID against the OS process table and the conversation log’s last-activity timestamp, and lets you kill the ones that are dead or idle — either interactively or via a background daemon that sweeps on a schedule.\u003c\\/p>\n\u003ch2 id=\"install\">Install\u003ca class=\"heading-link\" aria-label=\"Link to section\" href=\"#install\">#\u003c\\/a>\u003c\\/h2>\n\u003cpre>\u003ccode class=\"hljs language-bash\">npm install -g claude-cleanup\n\u003c\\/code>\u003c\\/pre>\n\u003cp>Or run it on-demand with \u003ccode>npx\u003c\\/code>:\u003c\\/p>\n\u003cpre>\u003ccode class=\"hljs language-bash\">npx claude-cleanup\n\u003c\\/code>\u003c\\/pre>\n\u003cp>The \u003ccode>claude\u003c\\/code> CLI should be available on your \u003ccode>PATH\u003c\\/code>. It is used to generate one-line summaries of each stale session via the Haiku model; the tool still works without it, but selections will only show the working directory and age.\u003c\\/p>\n\u003ch2 id=\"quickstart\">Quickstart\u003ca class=\"heading-link\" aria-label=\"Link to section\" href=\"#quickstart\">#\u003c\\/a>\u003c\\/h2>\n\u003cpre>\u003ccode class=\"hljs language-bash\">\u003cspan class=\"hljs-comment\"># Interactive picker — pre-selects every stale\\/dead session\u003c\\/span>\nclaude-cleanup\n\n\u003cspan class=\"hljs-comment\"># Kill every stale\\/dead session non-interactively (scripts, cron)\u003c\\/span>\nclaude-cleanup --all\n\n\u003cspan class=\"hljs-comment\"># Use a stricter threshold\u003c\\/span>\nclaude-cleanup --age 30m\n\u003c\\/code>\u003c\\/pre>\n\u003cp>A session is classified as:\u003c\\/p>\n\u003ctable>\n\u003cthead>\n\u003ctr>\n\u003cth>Status\u003c\\/th>\n\u003cth>Meaning\u003c\\/th>\n\u003c\\/tr>\n\u003c\\/thead>\n\u003ctbody>\n\u003ctr>\n\u003ctd>\u003ccode>active\u003c\\/code>\u003c\\/td>\n\u003ctd>PID is alive and last activity is within \u003ccode>--age\u003c\\/code>\u003c\\/td>\n\u003c\\/tr>\n\u003ctr>\n\u003ctd>\u003ccode>stale\u003c\\/code>\u003c\\/td>\n\u003ctd>PID is alive but last activity is older than \u003ccode>--age\u003c\\/code>\u003c\\/td>\n\u003c\\/tr>\n\u003ctr>\n\u003ctd>\u003ccode>dead\u003c\\/code>\u003c\\/td>\n\u003ctd>PID is no longer running (kill target is skipped, nothing to do)\u003c\\/td>\n\u003c\\/tr>\n\u003c\\/tbody>\n\u003c\\/table>\n\u003cp>“Last activity” is read from the end of the conversation \u003ccode>.jsonl\u003c\\/code> log — not the session-file mtime — so long-running compiles or background watchers don’t keep a session looking fresh.\u003c\\/p>\n\u003ch2 id=\"commands\">Commands\u003ca class=\"heading-link\" aria-label=\"Link to section\" href=\"#commands\">#\u003c\\/a>\u003c\\/h2>\n\u003cp>At a glance:\u003c\\/p>\n\u003cpre>\u003ccode class=\"hljs language-bash\">claude-cleanup                            \u003cspan class=\"hljs-comment\"># interactive picker\u003c\\/span>\nclaude-cleanup --all                      \u003cspan class=\"hljs-comment\"># non-interactive, kill everything stale\\/dead\u003c\\/span>\nclaude-cleanup --age 30m --clearCache     \u003cspan class=\"hljs-comment\"># stricter threshold, ignore cache\u003c\\/span>\n\nclaude-cleanup monitor start              \u003cspan class=\"hljs-comment\"># background daemon: every 15m, age 2h\u003c\\/span>\nclaude-cleanup monitor start --\u003cspan class=\"hljs-built_in\">fg\u003c\\/span>         \u003cspan class=\"hljs-comment\"># same but foreground (for debugging)\u003c\\/span>\nclaude-cleanup monitor status             \u003cspan class=\"hljs-comment\"># is it running?\u003c\\/span>\nclaude-cleanup monitor stop               \u003cspan class=\"hljs-comment\"># SIGTERM the daemon\u003c\\/span>\nclaude-cleanup monitor reset              \u003cspan class=\"hljs-comment\"># stop + delete the log file\u003c\\/span>\n\u003c\\/code>\u003c\\/pre>\n\u003cp>Full flag-by-flag reference is generated from the CLI itself and lives under \u003ca href=\"\\/pr\\/41\\/claude-cleanup-docs\\/cli\">\u003ccode>docs\\/cli\\/\u003c\\/code>\u003c\\/a>. The monitor deep-dive (launchd\\/systemd recipes, troubleshooting, file layout) is in \u003ca href=\"\\/pr\\/41\\/claude-cleanup-docs\\/monitor\">\u003ccode>docs\\/monitor.md\u003c\\/code>\u003c\\/a>.\u003c\\/p>\n\u003cp>Summaries are cached at \u003ccode>~\\/.claude\\/claude-cleanup-cache.json\u003c\\/code>, keyed on the conversation file + its mtime, so re-runs are fast and don’t re-spend Haiku calls on unchanged sessions.\u003c\\/p>\n\u003ch2 id=\"programmatic-api\">Programmatic API\u003ca class=\"heading-link\" aria-label=\"Link to section\" href=\"#programmatic-api\">#\u003c\\/a>\u003c\\/h2>\n\u003cp>The same primitives the CLI uses are exported for scripting:\u003c\\/p>\n\u003cpre>\u003ccode class=\"hljs language-ts\">\u003cspan class=\"hljs-keyword\">import\u003c\\/span> {\n  discoverSessions,\n  classifySessions,\n  isProcessRunning,\n  killProcess,\n  parseAge,\n} \u003cspan class=\"hljs-keyword\">from\u003c\\/span> \u003cspan class=\"hljs-string\">'claude-cleanup'\u003c\\/span>;\n\n\u003cspan class=\"hljs-keyword\">const\u003c\\/span> sessions = \u003cspan class=\"hljs-title function_\">discoverSessions\u003c\\/span>();\n\u003cspan class=\"hljs-keyword\">const\u003c\\/span> classified = \u003cspan class=\"hljs-title function_\">classifySessions\u003c\\/span>(sessions, {\n  isProcessRunning,\n  \u003cspan class=\"hljs-attr\">maxAgeMs\u003c\\/span>: \u003cspan class=\"hljs-title function_\">parseAge\u003c\\/span>(\u003cspan class=\"hljs-string\">'2h'\u003c\\/span>),\n});\n\n\u003cspan class=\"hljs-keyword\">for\u003c\\/span> (\u003cspan class=\"hljs-keyword\">const\u003c\\/span> s \u003cspan class=\"hljs-keyword\">of\u003c\\/span> classified.\u003cspan class=\"hljs-title function_\">filter\u003c\\/span>(\u003cspan class=\"hljs-function\">(\u003cspan class=\"hljs-params\">s\u003c\\/span>) =>\u003c\\/span> s.\u003cspan class=\"hljs-property\">status\u003c\\/span> === \u003cspan class=\"hljs-string\">'stale'\u003c\\/span>)) {\n  \u003cspan class=\"hljs-title function_\">killProcess\u003c\\/span>(s.\u003cspan class=\"hljs-property\">pid\u003c\\/span>);\n}\n\u003c\\/code>\u003c\\/pre>\n\u003cp>Exported symbols:\u003c\\/p>\n\u003cul>\n\u003cli>\u003ccode>discoverSessions(sessionsDir?)\u003c\\/code> — read \u003ccode>~\\/.claude\\/sessions\\/*.json\u003c\\/code>, returns \u003ccode>SessionInfo[]\u003c\\/code>\u003c\\/li>\n\u003cli>\u003ccode>classifySessions(sessions, { isProcessRunning, maxAgeMs })\u003c\\/code> — tag each session \u003ccode>active | stale | dead\u003c\\/code>\u003c\\/li>\n\u003cli>\u003ccode>isProcessRunning(pid)\u003c\\/code> — \u003ccode>kill -0\u003c\\/code> + \u003ccode>ps\u003c\\/code> check; confirms the PID is actually a \u003ccode>claude\u003c\\/code> process (PID-reuse guard)\u003c\\/li>\n\u003cli>\u003ccode>killProcess(pid)\u003c\\/code> — \u003ccode>SIGTERM\u003c\\/code> wrapper that swallows errors\u003c\\/li>\n\u003cli>\u003ccode>parseAge('30m' | '2h' | '1d')\u003c\\/code> — duration-string → ms\u003c\\/li>\n\u003cli>\u003ccode>formatDuration(ms)\u003c\\/code>, \u003ccode>shortenPath(path)\u003c\\/code>, \u003ccode>assertPlatform()\u003c\\/code> — formatting\\/preflight helpers\u003c\\/li>\n\u003c\\/ul>\n\u003ch2 id=\"how-session-data-is-read\">How session data is read\u003ca class=\"heading-link\" aria-label=\"Link to section\" href=\"#how-session-data-is-read\">#\u003c\\/a>\u003c\\/h2>\n\u003cp>\u003ccode>~\\/.claude\\/sessions\\/&#x3C;sessionId>.json\u003c\\/code> gives us the PID, cwd, and session id. The “last activity” timestamp comes from the last JSONL entry in the matching conversation log:\u003c\\/p>\n\u003cpre>\u003ccode class=\"hljs language-php-template\">\u003cspan class=\"xml\">~\\/.claude\\/projects\\/\u003cspan class=\"hljs-tag\">&#x3C;\u003cspan class=\"hljs-name\">encoded-cwd\u003c\\/span>>\u003c\\/span>\\/\u003cspan class=\"hljs-tag\">&#x3C;\u003cspan class=\"hljs-name\">sessionId\u003c\\/span>>\u003c\\/span>.jsonl\n\u003c\\/span>\u003c\\/code>\u003c\\/pre>\n\u003cp>where \u003ccode>&#x3C;encoded-cwd>\u003c\\/code> is the cwd with \u003ccode>\\/\u003c\\/code> and \u003ccode>.\u003c\\/code> replaced by \u003ccode>-\u003c\\/code> (matching Claude Code’s on-disk convention).\u003c\\/p>\n\u003ch2 id=\"development\">Development\u003ca class=\"heading-link\" aria-label=\"Link to section\" href=\"#development\">#\u003c\\/a>\u003c\\/h2>\n\u003cpre>\u003ccode class=\"hljs language-bash\">pnpm build        \u003cspan class=\"hljs-comment\"># tsc → dist\\/\u003c\\/span>\npnpm \u003cspan class=\"hljs-built_in\">test\u003c\\/span>         \u003cspan class=\"hljs-comment\"># vitest\u003c\\/span>\npnpm typecheck    \u003cspan class=\"hljs-comment\"># tsc --noEmit\u003c\\/span>\npnpm run docs     \u003cspan class=\"hljs-comment\"># regenerate docs\\/cli\\/ from the built CLI\u003c\\/span>\npnpm cli -- --\u003cspan class=\"hljs-built_in\">help\u003c\\/span>\n\u003c\\/code>\u003c\\/pre>\n\u003ch2 id=\"license\">License\u003ca class=\"heading-link\" aria-label=\"Link to section\" href=\"#license\">#\u003c\\/a>\u003c\\/h2>\n\u003cp>MIT © \u003ca href=\"https:\\/\\/craigory.dev\" rel=\"noopener noreferrer\" target=\"_blank\">Craigory Coppola\u003c\\/a>\u003c\\/p>","title":"claude-cleanup"}}</script>
+        <script id="vike_globalContext" type="application/json">{}</script>
+        <script src="/pr/41/claude-cleanup-docs/assets/entries/entry-client-routing.DxxndnAF.js" type="module" async></script>
+        <link rel="modulepreload" href="/pr/41/claude-cleanup-docs/assets/entries/pages_index.ecubSdYV.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/41/claude-cleanup-docs/assets/chunks/chunk-CM5QuF01.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/41/claude-cleanup-docs/assets/chunks/chunk-luyvX-eG.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/41/claude-cleanup-docs/assets/chunks/chunk-D3viR9Kl.js" as="script" type="text/javascript">
+      </body>
+    </html>
