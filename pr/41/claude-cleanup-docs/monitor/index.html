@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <link rel="stylesheet" type="text/css" href="/pr/41/claude-cleanup-docs/assets/static/style-5774bf13.BcWtY8Ol.css">
+        <link rel="stylesheet" type="text/css" href="/pr/41/claude-cleanup-docs/assets/static/src_styles-0fd36374.8DTyODQV.css">
+        <meta charset="UTF-8" />
+        
+    <title>Monitor daemon — claude-cleanup docs</title><meta property="og:title" content="Monitor daemon — claude-cleanup docs" />
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    
+    
+    
+    
+  
+      </head>
+      <body>
+        
+        <div id="root"><div class="docs-shell"><aside class="docs-sidebar"><a class="docs-brand" href="/">claude-cleanup</a><nav><div class="docs-nav-section"><h3 class="docs-nav-heading">Overview</h3><ul><li><a href="/" class="docs-nav-link">claude-cleanup</a></li></ul></div><div class="docs-nav-section"><h3 class="docs-nav-heading">Guides</h3><ul><li><a href="/monitor" class="docs-nav-link docs-nav-link--active">Monitor daemon</a></li></ul></div><div class="docs-nav-section"><h3 class="docs-nav-heading">CLI reference</h3><ul><li><a href="/cli" class="docs-nav-link">claude-cleanup</a></li><li><a href="/cli/monitor" class="docs-nav-link">monitor</a></li><li><a href="/cli/monitor/start" class="docs-nav-link">start</a></li><li><a href="/cli/monitor/stop" class="docs-nav-link">stop</a></li><li><a href="/cli/monitor/status" class="docs-nav-link">status</a></li><li><a href="/cli/monitor/reset" class="docs-nav-link">reset</a></li></ul></div></nav><footer class="docs-sidebar-footer"><a href="https://github.com/AgentEnder/craigory-dev/tree/main/packages/claude-cleanup" target="_blank" rel="noreferrer">GitHub ↗</a><a href="https://www.npmjs.com/package/claude-cleanup" target="_blank" rel="noreferrer">npm ↗</a></footer></aside><main class="docs-main"><article class="docs-article"><h1 id="monitor-daemon">Monitor Daemon</h1>
+<p>The <code>claude-cleanup monitor</code> subcommand runs cleanup on a schedule so you never have to remember to do it yourself. It’s a thin, detached Node process that wakes up on an interval, runs the same <code>--all</code> cleanup the CLI does, and appends a timestamped line per cycle to a log file.</p>
+<h2 id="subcommands">Subcommands<a class="heading-link" aria-label="Link to section" href="#subcommands">#</a></h2>
+<table>
+<thead>
+<tr>
+<th>Command</th>
+<th>Does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>claude-cleanup monitor start</code></td>
+<td>Fork a detached daemon. Errors out if one is already running.</td>
+</tr>
+<tr>
+<td><code>claude-cleanup monitor stop</code></td>
+<td>Send <code>SIGTERM</code> and wait up to 5s for the PID file to disappear.</td>
+</tr>
+<tr>
+<td><code>claude-cleanup monitor status</code></td>
+<td>Print the PID + log-file size, or tell you nothing is running.</td>
+</tr>
+<tr>
+<td><code>claude-cleanup monitor reset</code></td>
+<td><code>stop</code>, then delete the log file. Useful when the log grew unexpectedly.</td>
+</tr>
+</tbody>
+</table>
+<h3 id="start-options"><code>start</code> options<a class="heading-link" aria-label="Link to section" href="#start-options">#</a></h3>
+<table>
+<thead>
+<tr>
+<th>Flag</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--interval &#x3C;v></code></td>
+<td><code>15m</code></td>
+<td>How often to run a cleanup cycle</td>
+</tr>
+<tr>
+<td><code>--age &#x3C;v></code></td>
+<td><code>2h</code></td>
+<td>Staleness threshold, same format as the top-level CLI</td>
+</tr>
+<tr>
+<td><code>--foreground</code></td>
+<td><code>false</code></td>
+<td>Don’t detach — inherit stdio. Alias: <code>--fg</code></td>
+</tr>
+</tbody>
+</table>
+<p>Example — aggressive settings while debugging:</p>
+<pre><code class="hljs language-bash">claude-cleanup monitor start --interval 1m --age 10m --<span class="hljs-built_in">fg</span>
+</code></pre>
+<h2 id="file-layout">File layout<a class="heading-link" aria-label="Link to section" href="#file-layout">#</a></h2>
+<p>The daemon keeps two files next to your Claude config:</p>
+<table>
+<thead>
+<tr>
+<th>File</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>~/.claude/claude-cleanup-monitor.pid</code></td>
+<td>PID of the running daemon. Removed on <code>SIGTERM</code> / <code>exit</code>.</td>
+</tr>
+<tr>
+<td><code>~/.claude/claude-cleanup-monitor.log</code></td>
+<td>Append-only log, one line per cycle.</td>
+</tr>
+</tbody>
+</table>
+<p>Both paths are exported from the package for callers that want to tail/monitor them from elsewhere:</p>
+<pre><code class="hljs language-ts"><span class="hljs-keyword">import</span> { <span class="hljs-variable constant_">MONITOR_PID_FILE</span>, <span class="hljs-variable constant_">MONITOR_LOG_FILE</span> } <span class="hljs-keyword">from</span> <span class="hljs-string">'claude-cleanup'</span>;
+</code></pre>
+<p>Log output looks like:</p>
+<pre><code class="hljs language-yaml">[<span class="hljs-number">2026-04-20T14:15:00.123Z</span>] <span class="hljs-string">═══════════════════════════════════════════════</span>
+[<span class="hljs-number">2026-04-20T14:15:00.124Z</span>] <span class="hljs-string">claude-cleanup</span> <span class="hljs-string">monitor</span> <span class="hljs-string">started</span>
+[<span class="hljs-number">2026-04-20T14:15:00.124Z</span>]   <span class="hljs-attr">PID:</span>      <span class="hljs-number">12345</span>
+[<span class="hljs-number">2026-04-20T14:15:00.124Z</span>]   <span class="hljs-attr">Interval:</span> <span class="hljs-string">15m</span>
+[<span class="hljs-number">2026-04-20T14:15:00.124Z</span>]   <span class="hljs-attr">Age:</span>      <span class="hljs-string">2h</span>
+[<span class="hljs-number">2026-04-20T14:15:00.124Z</span>] <span class="hljs-string">═══════════════════════════════════════════════</span>
+[<span class="hljs-number">2026-04-20T14:15:00.310Z</span>] [<span class="hljs-string">killed</span>] <span class="hljs-string">PID</span> <span class="hljs-number">99123</span> <span class="hljs-string">—</span> <span class="hljs-string">stale</span> <span class="hljs-string">3h</span> <span class="hljs-string">14m</span> <span class="hljs-string">—</span> <span class="hljs-string">~/projects/foo</span>
+[<span class="hljs-number">2026-04-20T14:15:00.312Z</span>] <span class="hljs-string">Cycle</span> <span class="hljs-string">complete.</span> <span class="hljs-string">Killed</span> <span class="hljs-number">1</span><span class="hljs-string">,</span> <span class="hljs-string">skipped</span> <span class="hljs-number">0</span> <span class="hljs-string">dead.</span>
+</code></pre>
+<h2 id="lifecycle-details">Lifecycle details<a class="heading-link" aria-label="Link to section" href="#lifecycle-details">#</a></h2>
+<ul>
+<li><strong>Detaching.</strong> <code>monitor start</code> spawns the daemon with <code>detached: true</code> and <code>stdio</code> pointed at the log file, then calls <code>unref()</code> so your shell can exit without killing it.</li>
+<li><strong>PID file discipline.</strong> The daemon writes its PID on startup and clears it on <code>SIGTERM</code> or normal exit. Restart-after-crash works because subsequent <code>start</code> invocations use <code>process.kill(pid, 0)</code> to check whether the PID file is stale, and clean it up if the process is gone.</li>
+<li><strong>Shutdown.</strong> <code>stop</code> sends <code>SIGTERM</code>, the daemon clears its interval and removes the PID file inside the signal handler, and then <code>stop</code> polls the PID file for up to 5 seconds before printing a warning.</li>
+<li><strong>No auto-restart.</strong> This is deliberately dumb — if the host reboots, you need to start it again. If you want supervision, wire it up with launchd / systemd / <code>pm2</code>; the daemon emits exit codes and stays on stderr in <code>--fg</code> mode.</li>
+</ul>
+<h2 id="scheduling-with-launchd--systemd">Scheduling with launchd / systemd<a class="heading-link" aria-label="Link to section" href="#scheduling-with-launchd--systemd">#</a></h2>
+<p>If you’d rather let the OS supervise it instead of running it detached, pair <code>monitor start --fg</code> with a launchd agent (macOS) or user-level systemd service (Linux). An outline:</p>
+<p><strong>macOS — <code>~/Library/LaunchAgents/dev.craigory.claude-cleanup.plist</code>:</strong></p>
+<pre><code class="hljs language-xml"><span class="hljs-tag">&#x3C;<span class="hljs-name">key</span>></span>ProgramArguments<span class="hljs-tag">&#x3C;/<span class="hljs-name">key</span>></span>
+<span class="hljs-tag">&#x3C;<span class="hljs-name">array</span>></span>
+  <span class="hljs-tag">&#x3C;<span class="hljs-name">string</span>></span>/usr/local/bin/claude-cleanup<span class="hljs-tag">&#x3C;/<span class="hljs-name">string</span>></span>
+  <span class="hljs-tag">&#x3C;<span class="hljs-name">string</span>></span>monitor<span class="hljs-tag">&#x3C;/<span class="hljs-name">string</span>></span>
+  <span class="hljs-tag">&#x3C;<span class="hljs-name">string</span>></span>start<span class="hljs-tag">&#x3C;/<span class="hljs-name">string</span>></span>
+  <span class="hljs-tag">&#x3C;<span class="hljs-name">string</span>></span>--fg<span class="hljs-tag">&#x3C;/<span class="hljs-name">string</span>></span>
+  <span class="hljs-tag">&#x3C;<span class="hljs-name">string</span>></span>--interval<span class="hljs-tag">&#x3C;/<span class="hljs-name">string</span>></span>
+  <span class="hljs-tag">&#x3C;<span class="hljs-name">string</span>></span>15m<span class="hljs-tag">&#x3C;/<span class="hljs-name">string</span>></span>
+  <span class="hljs-tag">&#x3C;<span class="hljs-name">string</span>></span>--age<span class="hljs-tag">&#x3C;/<span class="hljs-name">string</span>></span>
+  <span class="hljs-tag">&#x3C;<span class="hljs-name">string</span>></span>2h<span class="hljs-tag">&#x3C;/<span class="hljs-name">string</span>></span>
+<span class="hljs-tag">&#x3C;/<span class="hljs-name">array</span>></span>
+<span class="hljs-tag">&#x3C;<span class="hljs-name">key</span>></span>RunAtLoad<span class="hljs-tag">&#x3C;/<span class="hljs-name">key</span>></span><span class="hljs-tag">&#x3C;<span class="hljs-name">true</span>/></span>
+<span class="hljs-tag">&#x3C;<span class="hljs-name">key</span>></span>KeepAlive<span class="hljs-tag">&#x3C;/<span class="hljs-name">key</span>></span><span class="hljs-tag">&#x3C;<span class="hljs-name">true</span>/></span>
+</code></pre>
+<p>Load it with <code>launchctl load ~/Library/LaunchAgents/dev.craigory.claude-cleanup.plist</code>.</p>
+<p><strong>Linux — <code>~/.config/systemd/user/claude-cleanup.service</code>:</strong></p>
+<pre><code class="hljs language-ini"><span class="hljs-section">[Unit]</span>
+<span class="hljs-attr">Description</span>=claude-cleanup monitor
+
+<span class="hljs-section">[Service]</span>
+<span class="hljs-attr">ExecStart</span>=/usr/bin/env claude-cleanup monitor start --fg --interval <span class="hljs-number">15</span>m --age <span class="hljs-number">2</span>h
+<span class="hljs-attr">Restart</span>=<span class="hljs-literal">on</span>-failure
+
+<span class="hljs-section">[Install]</span>
+<span class="hljs-attr">WantedBy</span>=default.target
+</code></pre>
+<p>Enable with <code>systemctl --user enable --now claude-cleanup</code>.</p>
+<h2 id="troubleshooting">Troubleshooting<a class="heading-link" aria-label="Link to section" href="#troubleshooting">#</a></h2>
+<ul>
+<li><strong>“Monitor is already running”</strong> when you’re sure it isn’t: delete <code>~/.claude/claude-cleanup-monitor.pid</code> or run <code>claude-cleanup monitor reset</code>. The daemon cleans this up itself on normal exit, but a <code>kill -9</code> will leave it behind.</li>
+<li><strong>Log file growing too fast</strong>: lower the interval (<code>--interval 1h</code>), or rotate the file with <code>logrotate</code> pointing at <code>~/.claude/claude-cleanup-monitor.log</code>. <code>monitor reset</code> is the nuclear option.</li>
+<li><strong>Sessions aren’t being killed</strong>: run the foreground CLI with the same age threshold — <code>claude-cleanup --age 2h</code> — and confirm the sessions show up as <code>stale</code> rather than <code>active</code>. Remember that “age” is measured from the last line in the JSONL conversation log, not the session-file mtime.</li>
+</ul></article></main></div></div>
+        
+        <script id="vike_pageContext" type="application/json">{"pageId":"\\/pages\\/doc","routeParams":{"slug":"monitor"},"data":{"html":"\u003ch1 id=\"monitor-daemon\">Monitor Daemon\u003c\\/h1>\n\u003cp>The \u003ccode>claude-cleanup monitor\u003c\\/code> subcommand runs cleanup on a schedule so you never have to remember to do it yourself. It’s a thin, detached Node process that wakes up on an interval, runs the same \u003ccode>--all\u003c\\/code> cleanup the CLI does, and appends a timestamped line per cycle to a log file.\u003c\\/p>\n\u003ch2 id=\"subcommands\">Subcommands\u003ca class=\"heading-link\" aria-label=\"Link to section\" href=\"#subcommands\">#\u003c\\/a>\u003c\\/h2>\n\u003ctable>\n\u003cthead>\n\u003ctr>\n\u003cth>Command\u003c\\/th>\n\u003cth>Does\u003c\\/th>\n\u003c\\/tr>\n\u003c\\/thead>\n\u003ctbody>\n\u003ctr>\n\u003ctd>\u003ccode>claude-cleanup monitor start\u003c\\/code>\u003c\\/td>\n\u003ctd>Fork a detached daemon. Errors out if one is already running.\u003c\\/td>\n\u003c\\/tr>\n\u003ctr>\n\u003ctd>\u003ccode>claude-cleanup monitor stop\u003c\\/code>\u003c\\/td>\n\u003ctd>Send \u003ccode>SIGTERM\u003c\\/code> and wait up to 5s for the PID file to disappear.\u003c\\/td>\n\u003c\\/tr>\n\u003ctr>\n\u003ctd>\u003ccode>claude-cleanup monitor status\u003c\\/code>\u003c\\/td>\n\u003ctd>Print the PID + log-file size, or tell you nothing is running.\u003c\\/td>\n\u003c\\/tr>\n\u003ctr>\n\u003ctd>\u003ccode>claude-cleanup monitor reset\u003c\\/code>\u003c\\/td>\n\u003ctd>\u003ccode>stop\u003c\\/code>, then delete the log file. Useful when the log grew unexpectedly.\u003c\\/td>\n\u003c\\/tr>\n\u003c\\/tbody>\n\u003c\\/table>\n\u003ch3 id=\"start-options\">\u003ccode>start\u003c\\/code> options\u003ca class=\"heading-link\" aria-label=\"Link to section\" href=\"#start-options\">#\u003c\\/a>\u003c\\/h3>\n\u003ctable>\n\u003cthead>\n\u003ctr>\n\u003cth>Flag\u003c\\/th>\n\u003cth>Default\u003c\\/th>\n\u003cth>Description\u003c\\/th>\n\u003c\\/tr>\n\u003c\\/thead>\n\u003ctbody>\n\u003ctr>\n\u003ctd>\u003ccode>--interval &#x3C;v>\u003c\\/code>\u003c\\/td>\n\u003ctd>\u003ccode>15m\u003c\\/code>\u003c\\/td>\n\u003ctd>How often to run a cleanup cycle\u003c\\/td>\n\u003c\\/tr>\n\u003ctr>\n\u003ctd>\u003ccode>--age &#x3C;v>\u003c\\/code>\u003c\\/td>\n\u003ctd>\u003ccode>2h\u003c\\/code>\u003c\\/td>\n\u003ctd>Staleness threshold, same format as the top-level CLI\u003c\\/td>\n\u003c\\/tr>\n\u003ctr>\n\u003ctd>\u003ccode>--foreground\u003c\\/code>\u003c\\/td>\n\u003ctd>\u003ccode>false\u003c\\/code>\u003c\\/td>\n\u003ctd>Don’t detach — inherit stdio. Alias: \u003ccode>--fg\u003c\\/code>\u003c\\/td>\n\u003c\\/tr>\n\u003c\\/tbody>\n\u003c\\/table>\n\u003cp>Example — aggressive settings while debugging:\u003c\\/p>\n\u003cpre>\u003ccode class=\"hljs language-bash\">claude-cleanup monitor start --interval 1m --age 10m --\u003cspan class=\"hljs-built_in\">fg\u003c\\/span>\n\u003c\\/code>\u003c\\/pre>\n\u003ch2 id=\"file-layout\">File layout\u003ca class=\"heading-link\" aria-label=\"Link to section\" href=\"#file-layout\">#\u003c\\/a>\u003c\\/h2>\n\u003cp>The daemon keeps two files next to your Claude config:\u003c\\/p>\n\u003ctable>\n\u003cthead>\n\u003ctr>\n\u003cth>File\u003c\\/th>\n\u003cth>Role\u003c\\/th>\n\u003c\\/tr>\n\u003c\\/thead>\n\u003ctbody>\n\u003ctr>\n\u003ctd>\u003ccode>~\\/.claude\\/claude-cleanup-monitor.pid\u003c\\/code>\u003c\\/td>\n\u003ctd>PID of the running daemon. Removed on \u003ccode>SIGTERM\u003c\\/code> \\/ \u003ccode>exit\u003c\\/code>.\u003c\\/td>\n\u003c\\/tr>\n\u003ctr>\n\u003ctd>\u003ccode>~\\/.claude\\/claude-cleanup-monitor.log\u003c\\/code>\u003c\\/td>\n\u003ctd>Append-only log, one line per cycle.\u003c\\/td>\n\u003c\\/tr>\n\u003c\\/tbody>\n\u003c\\/table>\n\u003cp>Both paths are exported from the package for callers that want to tail\\/monitor them from elsewhere:\u003c\\/p>\n\u003cpre>\u003ccode class=\"hljs language-ts\">\u003cspan class=\"hljs-keyword\">import\u003c\\/span> { \u003cspan class=\"hljs-variable constant_\">MONITOR_PID_FILE\u003c\\/span>, \u003cspan class=\"hljs-variable constant_\">MONITOR_LOG_FILE\u003c\\/span> } \u003cspan class=\"hljs-keyword\">from\u003c\\/span> \u003cspan class=\"hljs-string\">'claude-cleanup'\u003c\\/span>;\n\u003c\\/code>\u003c\\/pre>\n\u003cp>Log output looks like:\u003c\\/p>\n\u003cpre>\u003ccode class=\"hljs language-yaml\">[\u003cspan class=\"hljs-number\">2026-04-20T14:15:00.123Z\u003c\\/span>] \u003cspan class=\"hljs-string\">═══════════════════════════════════════════════\u003c\\/span>\n[\u003cspan class=\"hljs-number\">2026-04-20T14:15:00.124Z\u003c\\/span>] \u003cspan class=\"hljs-string\">claude-cleanup\u003c\\/span> \u003cspan class=\"hljs-string\">monitor\u003c\\/span> \u003cspan class=\"hljs-string\">started\u003c\\/span>\n[\u003cspan class=\"hljs-number\">2026-04-20T14:15:00.124Z\u003c\\/span>]   \u003cspan class=\"hljs-attr\">PID:\u003c\\/span>      \u003cspan class=\"hljs-number\">12345\u003c\\/span>\n[\u003cspan class=\"hljs-number\">2026-04-20T14:15:00.124Z\u003c\\/span>]   \u003cspan class=\"hljs-attr\">Interval:\u003c\\/span> \u003cspan class=\"hljs-string\">15m\u003c\\/span>\n[\u003cspan class=\"hljs-number\">2026-04-20T14:15:00.124Z\u003c\\/span>]   \u003cspan class=\"hljs-attr\">Age:\u003c\\/span>      \u003cspan class=\"hljs-string\">2h\u003c\\/span>\n[\u003cspan class=\"hljs-number\">2026-04-20T14:15:00.124Z\u003c\\/span>] \u003cspan class=\"hljs-string\">═══════════════════════════════════════════════\u003c\\/span>\n[\u003cspan class=\"hljs-number\">2026-04-20T14:15:00.310Z\u003c\\/span>] [\u003cspan class=\"hljs-string\">killed\u003c\\/span>] \u003cspan class=\"hljs-string\">PID\u003c\\/span> \u003cspan class=\"hljs-number\">99123\u003c\\/span> \u003cspan class=\"hljs-string\">—\u003c\\/span> \u003cspan class=\"hljs-string\">stale\u003c\\/span> \u003cspan class=\"hljs-string\">3h\u003c\\/span> \u003cspan class=\"hljs-string\">14m\u003c\\/span> \u003cspan class=\"hljs-string\">—\u003c\\/span> \u003cspan class=\"hljs-string\">~\\/projects\\/foo\u003c\\/span>\n[\u003cspan class=\"hljs-number\">2026-04-20T14:15:00.312Z\u003c\\/span>] \u003cspan class=\"hljs-string\">Cycle\u003c\\/span> \u003cspan class=\"hljs-string\">complete.\u003c\\/span> \u003cspan class=\"hljs-string\">Killed\u003c\\/span> \u003cspan class=\"hljs-number\">1\u003c\\/span>\u003cspan class=\"hljs-string\">,\u003c\\/span> \u003cspan class=\"hljs-string\">skipped\u003c\\/span> \u003cspan class=\"hljs-number\">0\u003c\\/span> \u003cspan class=\"hljs-string\">dead.\u003c\\/span>\n\u003c\\/code>\u003c\\/pre>\n\u003ch2 id=\"lifecycle-details\">Lifecycle details\u003ca class=\"heading-link\" aria-label=\"Link to section\" href=\"#lifecycle-details\">#\u003c\\/a>\u003c\\/h2>\n\u003cul>\n\u003cli>\u003cstrong>Detaching.\u003c\\/strong> \u003ccode>monitor start\u003c\\/code> spawns the daemon with \u003ccode>detached: true\u003c\\/code> and \u003ccode>stdio\u003c\\/code> pointed at the log file, then calls \u003ccode>unref()\u003c\\/code> so your shell can exit without killing it.\u003c\\/li>\n\u003cli>\u003cstrong>PID file discipline.\u003c\\/strong> The daemon writes its PID on startup and clears it on \u003ccode>SIGTERM\u003c\\/code> or normal exit. Restart-after-crash works because subsequent \u003ccode>start\u003c\\/code> invocations use \u003ccode>process.kill(pid, 0)\u003c\\/code> to check whether the PID file is stale, and clean it up if the process is gone.\u003c\\/li>\n\u003cli>\u003cstrong>Shutdown.\u003c\\/strong> \u003ccode>stop\u003c\\/code> sends \u003ccode>SIGTERM\u003c\\/code>, the daemon clears its interval and removes the PID file inside the signal handler, and then \u003ccode>stop\u003c\\/code> polls the PID file for up to 5 seconds before printing a warning.\u003c\\/li>\n\u003cli>\u003cstrong>No auto-restart.\u003c\\/strong> This is deliberately dumb — if the host reboots, you need to start it again. If you want supervision, wire it up with launchd \\/ systemd \\/ \u003ccode>pm2\u003c\\/code>; the daemon emits exit codes and stays on stderr in \u003ccode>--fg\u003c\\/code> mode.\u003c\\/li>\n\u003c\\/ul>\n\u003ch2 id=\"scheduling-with-launchd--systemd\">Scheduling with launchd \\/ systemd\u003ca class=\"heading-link\" aria-label=\"Link to section\" href=\"#scheduling-with-launchd--systemd\">#\u003c\\/a>\u003c\\/h2>\n\u003cp>If you’d rather let the OS supervise it instead of running it detached, pair \u003ccode>monitor start --fg\u003c\\/code> with a launchd agent (macOS) or user-level systemd service (Linux). An outline:\u003c\\/p>\n\u003cp>\u003cstrong>macOS — \u003ccode>~\\/Library\\/LaunchAgents\\/dev.craigory.claude-cleanup.plist\u003c\\/code>:\u003c\\/strong>\u003c\\/p>\n\u003cpre>\u003ccode class=\"hljs language-xml\">\u003cspan class=\"hljs-tag\">&#x3C;\u003cspan class=\"hljs-name\">key\u003c\\/span>>\u003c\\/span>ProgramArguments\u003cspan class=\"hljs-tag\">&#x3C;\\/\u003cspan class=\"hljs-name\">key\u003c\\/span>>\u003c\\/span>\n\u003cspan class=\"hljs-tag\">&#x3C;\u003cspan class=\"hljs-name\">array\u003c\\/span>>\u003c\\/span>\n  \u003cspan class=\"hljs-tag\">&#x3C;\u003cspan class=\"hljs-name\">string\u003c\\/span>>\u003c\\/span>\\/usr\\/local\\/bin\\/claude-cleanup\u003cspan class=\"hljs-tag\">&#x3C;\\/\u003cspan class=\"hljs-name\">string\u003c\\/span>>\u003c\\/span>\n  \u003cspan class=\"hljs-tag\">&#x3C;\u003cspan class=\"hljs-name\">string\u003c\\/span>>\u003c\\/span>monitor\u003cspan class=\"hljs-tag\">&#x3C;\\/\u003cspan class=\"hljs-name\">string\u003c\\/span>>\u003c\\/span>\n  \u003cspan class=\"hljs-tag\">&#x3C;\u003cspan class=\"hljs-name\">string\u003c\\/span>>\u003c\\/span>start\u003cspan class=\"hljs-tag\">&#x3C;\\/\u003cspan class=\"hljs-name\">string\u003c\\/span>>\u003c\\/span>\n  \u003cspan class=\"hljs-tag\">&#x3C;\u003cspan class=\"hljs-name\">string\u003c\\/span>>\u003c\\/span>--fg\u003cspan class=\"hljs-tag\">&#x3C;\\/\u003cspan class=\"hljs-name\">string\u003c\\/span>>\u003c\\/span>\n  \u003cspan class=\"hljs-tag\">&#x3C;\u003cspan class=\"hljs-name\">string\u003c\\/span>>\u003c\\/span>--interval\u003cspan class=\"hljs-tag\">&#x3C;\\/\u003cspan class=\"hljs-name\">string\u003c\\/span>>\u003c\\/span>\n  \u003cspan class=\"hljs-tag\">&#x3C;\u003cspan class=\"hljs-name\">string\u003c\\/span>>\u003c\\/span>15m\u003cspan class=\"hljs-tag\">&#x3C;\\/\u003cspan class=\"hljs-name\">string\u003c\\/span>>\u003c\\/span>\n  \u003cspan class=\"hljs-tag\">&#x3C;\u003cspan class=\"hljs-name\">string\u003c\\/span>>\u003c\\/span>--age\u003cspan class=\"hljs-tag\">&#x3C;\\/\u003cspan class=\"hljs-name\">string\u003c\\/span>>\u003c\\/span>\n  \u003cspan class=\"hljs-tag\">&#x3C;\u003cspan class=\"hljs-name\">string\u003c\\/span>>\u003c\\/span>2h\u003cspan class=\"hljs-tag\">&#x3C;\\/\u003cspan class=\"hljs-name\">string\u003c\\/span>>\u003c\\/span>\n\u003cspan class=\"hljs-tag\">&#x3C;\\/\u003cspan class=\"hljs-name\">array\u003c\\/span>>\u003c\\/span>\n\u003cspan class=\"hljs-tag\">&#x3C;\u003cspan class=\"hljs-name\">key\u003c\\/span>>\u003c\\/span>RunAtLoad\u003cspan class=\"hljs-tag\">&#x3C;\\/\u003cspan class=\"hljs-name\">key\u003c\\/span>>\u003c\\/span>\u003cspan class=\"hljs-tag\">&#x3C;\u003cspan class=\"hljs-name\">true\u003c\\/span>\\/>\u003c\\/span>\n\u003cspan class=\"hljs-tag\">&#x3C;\u003cspan class=\"hljs-name\">key\u003c\\/span>>\u003c\\/span>KeepAlive\u003cspan class=\"hljs-tag\">&#x3C;\\/\u003cspan class=\"hljs-name\">key\u003c\\/span>>\u003c\\/span>\u003cspan class=\"hljs-tag\">&#x3C;\u003cspan class=\"hljs-name\">true\u003c\\/span>\\/>\u003c\\/span>\n\u003c\\/code>\u003c\\/pre>\n\u003cp>Load it with \u003ccode>launchctl load ~\\/Library\\/LaunchAgents\\/dev.craigory.claude-cleanup.plist\u003c\\/code>.\u003c\\/p>\n\u003cp>\u003cstrong>Linux — \u003ccode>~\\/.config\\/systemd\\/user\\/claude-cleanup.service\u003c\\/code>:\u003c\\/strong>\u003c\\/p>\n\u003cpre>\u003ccode class=\"hljs language-ini\">\u003cspan class=\"hljs-section\">[Unit]\u003c\\/span>\n\u003cspan class=\"hljs-attr\">Description\u003c\\/span>=claude-cleanup monitor\n\n\u003cspan class=\"hljs-section\">[Service]\u003c\\/span>\n\u003cspan class=\"hljs-attr\">ExecStart\u003c\\/span>=\\/usr\\/bin\\/env claude-cleanup monitor start --fg --interval \u003cspan class=\"hljs-number\">15\u003c\\/span>m --age \u003cspan class=\"hljs-number\">2\u003c\\/span>h\n\u003cspan class=\"hljs-attr\">Restart\u003c\\/span>=\u003cspan class=\"hljs-literal\">on\u003c\\/span>-failure\n\n\u003cspan class=\"hljs-section\">[Install]\u003c\\/span>\n\u003cspan class=\"hljs-attr\">WantedBy\u003c\\/span>=default.target\n\u003c\\/code>\u003c\\/pre>\n\u003cp>Enable with \u003ccode>systemctl --user enable --now claude-cleanup\u003c\\/code>.\u003c\\/p>\n\u003ch2 id=\"troubleshooting\">Troubleshooting\u003ca class=\"heading-link\" aria-label=\"Link to section\" href=\"#troubleshooting\">#\u003c\\/a>\u003c\\/h2>\n\u003cul>\n\u003cli>\u003cstrong>“Monitor is already running”\u003c\\/strong> when you’re sure it isn’t: delete \u003ccode>~\\/.claude\\/claude-cleanup-monitor.pid\u003c\\/code> or run \u003ccode>claude-cleanup monitor reset\u003c\\/code>. The daemon cleans this up itself on normal exit, but a \u003ccode>kill -9\u003c\\/code> will leave it behind.\u003c\\/li>\n\u003cli>\u003cstrong>Log file growing too fast\u003c\\/strong>: lower the interval (\u003ccode>--interval 1h\u003c\\/code>), or rotate the file with \u003ccode>logrotate\u003c\\/code> pointing at \u003ccode>~\\/.claude\\/claude-cleanup-monitor.log\u003c\\/code>. \u003ccode>monitor reset\u003c\\/code> is the nuclear option.\u003c\\/li>\n\u003cli>\u003cstrong>Sessions aren’t being killed\u003c\\/strong>: run the foreground CLI with the same age threshold — \u003ccode>claude-cleanup --age 2h\u003c\\/code> — and confirm the sessions show up as \u003ccode>stale\u003c\\/code> rather than \u003ccode>active\u003c\\/code>. Remember that “age” is measured from the last line in the JSONL conversation log, not the session-file mtime.\u003c\\/li>\n\u003c\\/ul>","title":"Monitor daemon"}}</script>
+        <script id="vike_globalContext" type="application/json">{}</script>
+        <script src="/pr/41/claude-cleanup-docs/assets/entries/entry-client-routing.Donfzc2o.js" type="module" async></script>
+        <link rel="modulepreload" href="/pr/41/claude-cleanup-docs/assets/entries/pages_doc.Blxj3yD2.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/41/claude-cleanup-docs/assets/chunks/chunk-DbIADola.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/41/claude-cleanup-docs/assets/chunks/chunk-aSPznGxl.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/41/claude-cleanup-docs/assets/chunks/chunk-kEXnj-a4.js" as="script" type="text/javascript">
+      </body>
+    </html>
