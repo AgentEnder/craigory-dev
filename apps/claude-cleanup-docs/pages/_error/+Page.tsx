@@ -1,5 +1,7 @@
 import { usePageContext } from 'vike-react/usePageContext';
 
+import { withBase } from '../../src/docs-index';
+
 export default function Page() {
   const pageContext = usePageContext();
   // Vike sets `is404` directly on pageContext when the prerender miss
@@ -15,7 +17,7 @@ export default function Page() {
         {is404
           ? "That page doesn't exist. Try the sidebar or head back to the "
           : 'An error occurred while rendering this page. Head back to the '}
-        <a href="/">overview</a>.
+        <a href={withBase('/')}>overview</a>.
       </p>
     </article>
   );

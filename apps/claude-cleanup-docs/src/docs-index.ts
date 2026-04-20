@@ -17,6 +17,18 @@ export interface DocIndexEntry {
   section: string;
 }
 
+/**
+ * Prepends the Vite base URL to an app-relative path. The base is configured
+ * in vite.config.ts as `(PUBLIC_ENV__BASE_URL ?? '') + '/claude-cleanup-docs/'`,
+ * so every internal <a href> — sidebar links and markdown-rewritten links
+ * alike — must go through this to survive sub-path deployments.
+ */
+export function withBase(path: string): string {
+  const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+  if (!path.startsWith('/')) return base + '/' + path;
+  return base + path;
+}
+
 // Explicit table keeps routing deterministic — README is at the package root
 // while the rest lives under docs/ (and docs/cli/ is cli-forge-generated, so
 // its layout is already fixed).

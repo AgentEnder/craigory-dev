@@ -15,7 +15,7 @@ import remarkRehype from 'remark-rehype';
 import remarkSmartypants from 'remark-smartypants';
 import { unified } from 'unified';
 
-import { DOC_SOURCES } from './docs-index';
+import { DOC_SOURCES, withBase } from './docs-index';
 
 // `process.cwd()` is the app directory during `vike dev`, `vike build`, and
 // prerender. Can't use `import.meta.url` — after bundling this file lives
@@ -72,7 +72,7 @@ function rewriteRelativeLinks(
     const resolved = relative(packageRoot, join(packageRoot, sourceDir, pathPart));
     const slug = fileToSlug.get(resolved);
     if (slug === undefined) return full;
-    const url = '/' + slug + (hash ? '#' + hash : '');
+    const url = withBase('/' + slug) + (hash ? '#' + hash : '');
     return `](${url})`;
   });
 }

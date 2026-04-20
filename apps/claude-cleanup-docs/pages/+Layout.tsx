@@ -1,11 +1,12 @@
 import type { ReactNode } from 'react';
 import { usePageContext } from 'vike-react/usePageContext';
 
-import { DOC_INDEX } from '../src/docs-index';
+import { DOC_INDEX, withBase } from '../src/docs-index';
 import '../src/styles.css';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const pageContext = usePageContext();
+  // urlPathname is always app-relative (base stripped) — compare directly.
   const currentPath = pageContext.urlPathname.replace(/\/$/, '') || '/';
 
   const sections = new Map<string, typeof DOC_INDEX>();
@@ -17,7 +18,7 @@ export default function Layout({ children }: { children: ReactNode }) {
   return (
     <div className="docs-shell">
       <aside className="docs-sidebar">
-        <a className="docs-brand" href="/">
+        <a className="docs-brand" href={withBase('/')}>
           claude-cleanup
         </a>
         <nav>
@@ -26,13 +27,13 @@ export default function Layout({ children }: { children: ReactNode }) {
               <h3 className="docs-nav-heading">{section}</h3>
               <ul>
                 {entries.map((entry) => {
-                  const href = entry.path === '/' ? '/' : entry.path;
-                  const normalized = href.replace(/\/$/, '') || '/';
+                  const appPath = entry.path === '/' ? '/' : entry.path;
+                  const normalized = appPath.replace(/\/$/, '') || '/';
                   const active = normalized === currentPath;
                   return (
                     <li key={entry.slug}>
                       <a
-                        href={href}
+                        href={withBase(appPath)}
                         className={active ? 'docs-nav-link docs-nav-link--active' : 'docs-nav-link'}
                       >
                         {entry.title}
