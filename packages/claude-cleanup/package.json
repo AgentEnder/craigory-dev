@@ -1,6 +1,15 @@
 {
   "name": "claude-cleanup",
   "version": "0.0.1",
+  "description": "Find and kill stale Claude Code sessions, interactively or via a background monitor daemon.",
+  "keywords": [
+    "claude",
+    "claude-code",
+    "cli",
+    "cleanup",
+    "daemon",
+    "process-management"
+  ],
   "author": {
     "name": "Craigory Coppola",
     "url": "https://craigory.dev"
@@ -8,7 +17,7 @@
   "bugs": {
     "url": "https://github.com/AgentEnder/craigory-dev/issues"
   },
-  "homepage": "https://craigory.dev",
+  "homepage": "https://github.com/AgentEnder/craigory-dev/tree/main/packages/claude-cleanup",
   "repository": {
     "type": "git",
     "url": "https://github.com/AgentEnder/craigory-dev.git",
@@ -18,6 +27,13 @@
     "access": "public"
   },
   "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "os": [
+    "darwin",
+    "linux"
+  ],
   "type": "module",
   "bin": {
     "claude-cleanup": "./dist/cli.js"
@@ -37,11 +53,12 @@
     "test:watch": "vitest",
     "lint": "eslint .",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "docs": "cli-forge generate-documentation ./dist/cli.js --output ./docs/cli --llms false",
     "cli": "node dist/cli.js"
   },
   "dependencies": {
     "@clack/prompts": "^0.10.0",
-    "cli-forge": "^1.2.0",
+    "cli-forge": "catalog:",
     "es-main": "catalog:",
     "tslib": "^2.5.0"
   },
@@ -57,6 +74,8 @@
   },
   "files": [
     "dist",
-    "README.md"
+    "docs",
+    "README.md",
+    "LICENSE"
   ]
 }

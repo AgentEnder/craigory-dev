@@ -1365,10 +1365,36 @@ export async function loadAllProjects(): Promise<RepoData[]> {
     }
   }
 
-  const mergedProjects = await normalizePublishedPackageEntries([
-    ...githubProjects,
-    ...localProjects,
-  ]);
+  // Fold docs-site apps back into their target project. Any local app with
+  // `documentationFor: "<name>"` in its project-metadata.json contributes its
+  // deployment URL to the target as `documentationUrl` and drops itself from
+  // the public list — so claude-cleanup-docs doesn't show up as a standalone
+  // entry alongside the package it documents.
+  const docSites = localProjects.filter(
+    (p) => 'metadata' in p && p.metadata.documentationFor,
+  );
+  const visibleLocalProjects = localProjects.filter(
+    (p) => !('metadata' in p) || !p.metadata.documentationFor,
+  );
+  const allProjects: RepoData[] = [...githubProjects, ...visibleLocalProjects];
+  for (const docSite of docSites) {
+    if (!('metadata' in docSite)) continue;
+    const targetName = docSite.metadata.documentationFor!;
+    const target = allProjects.find(
+      (p) => p.repo.toLowerCase() === targetName.toLowerCase(),
+    );
+    if (!target) {
+      console.warn(
+        `Project "${docSite.repo}" is marked as documentation for "${targetName}", but no such project exists.`,
+      );
+      continue;
+    }
+    if (docSite.deployment) {
+      target.documentationUrl = docSite.deployment;
+    }
+  }
+
+  const mergedProjects = await normalizePublishedPackageEntries(allProjects);
 
   console.log('GitHub requests:', githubRequestCount);
 

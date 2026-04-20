@@ -227,6 +227,6 @@ const claudeCleanupCLI = cli('claude-cleanup', {
 
 export default claudeCleanupCLI;
 
-if (isMain) {
+if (isMain(import.meta)) {
   claudeCleanupCLI.forge();
 }
