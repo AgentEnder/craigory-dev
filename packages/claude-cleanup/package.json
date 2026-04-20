@@ -58,7 +58,7 @@
   },
   "dependencies": {
     "@clack/prompts": "^0.10.0",
-    "cli-forge": "^1.9.2",
+    "cli-forge": "catalog:",
     "es-main": "catalog:",
     "tslib": "^2.5.0"
   },

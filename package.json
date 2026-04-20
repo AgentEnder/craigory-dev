@@ -67,7 +67,7 @@
     "@vitejs/plugin-react": "5.0.2",
     "@vitest/coverage-v8": "4.0.9",
     "@vitest/ui": "4.0.9",
-    "cli-forge": "^1.2.0",
+    "cli-forge": "catalog:",
     "cypress": "15.9.0",
     "eslint": "8.57.0",
     "eslint-config-prettier": "10.1.8",
