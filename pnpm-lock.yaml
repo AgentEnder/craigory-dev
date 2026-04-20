@@ -598,8 +598,8 @@ importers:
         specifier: ^0.10.0
         version: 0.10.1
       cli-forge:
-        specifier: ^1.2.0
-        version: 1.7.1(@clack/prompts@0.10.1)(markdown-factory@0.2.0)(tsx@4.21.0)
+        specifier: ^1.9.2
+        version: 1.9.2(@clack/prompts@0.10.1)(markdown-factory@0.2.0)(tsx@4.21.0)
       es-main:
         specifier: 'catalog:'
         version: 1.4.0
@@ -1458,6 +1458,9 @@ packages:
 
   '@cli-forge/parser@1.7.1':
     resolution: {integrity: sha512-BaMbTSzvbOEt0b26U22zU/5UIICgwrJFZnUXojUGEj7VT60MU9IuHJLrJQyeWlqg566s56c0Qy2fzgynEwMYkQ==}
+
+  '@cli-forge/parser@1.9.2':
+    resolution: {integrity: sha512-EjCH13OVkOUau98oZMIyYpYECQm8pKqcUOFLRD/7nMuNOHMoq+RlEwKtXeQqyHhhityVJCh+nYNtr9GDMtMnJw==}
 
   '@codemirror/language@6.0.0':
     resolution: {integrity: sha512-rtjk5ifyMzOna1c7PBu7J1VCt0PvA5wy3o8eMVnxMKb7z8KA7JFecvD04dSn14vj/bBaAbqRsGed5OjtofEnLA==}
@@ -5670,6 +5673,24 @@ packages:
 
   cli-forge@1.7.1:
     resolution: {integrity: sha512-JbL4lKljcF9xhz8PbzUJhI4KDAm6118VLvOdm+j1lsrT3q8jwcNqvOhDBiUmy8qOS4OF+y+SWmnWelZSwPIk1g==}
+    hasBin: true
+    peerDependencies:
+      '@clack/prompts': '*'
+      markdown-factory: ^1.0.0
+      tsx: ^4.19.0
+      zod: ^4.1.13
+    peerDependenciesMeta:
+      '@clack/prompts':
+        optional: true
+      markdown-factory:
+        optional: true
+      tsx:
+        optional: true
+      zod:
+        optional: true
+
+  cli-forge@1.9.2:
+    resolution: {integrity: sha512-OVQ/PuekElA/rSeosQldZSQqciWRgvJgiwG1YV/RhmcZOndXhUT2aoTRneMBHLNRJUo3nGKCXE+n99/HTF7BtQ==}
     hasBin: true
     peerDependencies:
       '@clack/prompts': '*'
@@ -12459,6 +12480,10 @@ snapshots:
     dependencies:
       tslib: 2.8.1
 
+  '@cli-forge/parser@1.9.2':
+    dependencies:
+      tslib: 2.8.1
+
   '@codemirror/language@6.0.0':
     dependencies:
       '@codemirror/state': 6.6.0
@@ -17429,6 +17454,15 @@ snapshots:
   cli-forge@1.7.1(@clack/prompts@0.10.1)(markdown-factory@0.2.0)(tsx@4.21.0):
     dependencies:
       '@cli-forge/parser': 1.7.1
+      tslib: 2.8.1
+    optionalDependencies:
+      '@clack/prompts': 0.10.1
+      markdown-factory: 0.2.0(yaml@2.8.1)
+      tsx: 4.21.0
+
+  cli-forge@1.9.2(@clack/prompts@0.10.1)(markdown-factory@0.2.0)(tsx@4.21.0):
+    dependencies:
+      '@cli-forge/parser': 1.9.2
       tslib: 2.8.1
     optionalDependencies:
       '@clack/prompts': 0.10.1

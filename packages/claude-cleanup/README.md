@@ -114,7 +114,7 @@ where `<encoded-cwd>` is the cwd with `/` and `.` replaced by `-` (matching Clau
 pnpm build        # tsc → dist/
 pnpm test         # vitest
 pnpm typecheck    # tsc --noEmit
-pnpm docs         # regenerate docs/cli/ from the built CLI
+pnpm run docs     # regenerate docs/cli/ from the built CLI
 pnpm cli -- --help
 ```
 
