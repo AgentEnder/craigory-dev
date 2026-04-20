@@ -1,0 +1,5 @@
+{
+  "name": "claude-cleanup docs",
+  "description": "Documentation site for the claude-cleanup package.",
+  "technologies": ["TypeScript", "React", "Vike"]
+}
