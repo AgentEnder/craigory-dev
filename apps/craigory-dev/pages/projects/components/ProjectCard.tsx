@@ -1,5 +1,5 @@
 import { DiNpm } from 'react-icons/di';
-import { FaCalendar, FaGithub, FaGlobe, FaStar } from 'react-icons/fa';
+import { FaBook, FaCalendar, FaGithub, FaGlobe, FaStar } from 'react-icons/fa';
 import { FormattedDate } from '@new-personal-monorepo/date-utils';
 import { getLanguageLogo } from '../language-logos';
 import { PercentBar } from './percent-bar';
@@ -40,6 +40,18 @@ export function ProjectCard({ project }: ProjectCardProps) {
             </span>
             <span className={styles.infoValue}>
               <DeploymentLink deployment={p.deployment} />
+            </span>
+          </div>
+        )}
+
+        {p.documentationUrl && (
+          <div className={styles.infoRow}>
+            <span className={styles.infoLabel}>
+              <FaBook />
+              Documentation
+            </span>
+            <span className={styles.infoValue}>
+              <DeploymentLink deployment={p.documentationUrl} />
             </span>
           </div>
         )}

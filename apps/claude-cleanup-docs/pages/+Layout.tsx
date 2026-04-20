@@ -1,15 +1,15 @@
 import type { ReactNode } from 'react';
 import { usePageContext } from 'vike-react/usePageContext';
 
+import { DOC_INDEX } from '../src/docs-index';
 import '../src/styles.css';
 
 export default function Layout({ children }: { children: ReactNode }) {
   const pageContext = usePageContext();
-  const nav = pageContext.globalContext.docsNav;
   const currentPath = pageContext.urlPathname.replace(/\/$/, '') || '/';
 
-  const sections = new Map<string, typeof nav>();
-  for (const entry of nav) {
+  const sections = new Map<string, typeof DOC_INDEX>();
+  for (const entry of DOC_INDEX) {
     if (!sections.has(entry.section)) sections.set(entry.section, []);
     sections.get(entry.section)!.push(entry);
   }

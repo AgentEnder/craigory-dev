@@ -5,6 +5,7 @@ export type ProjectData = GithubProjectData | LocalProjectData;
 export type BaseProjectData = {
   repo: string;
   deployment?: string | null;
+  documentationUrl?: string | null;
   description?: string | null;
   url: string;
   lastCommit?: string | null;
@@ -40,6 +41,12 @@ export type LocalProjectMetadata = {
   featured?: boolean;
   order?: number;
   category?: string;
+  /**
+   * Marks this local project as the documentation site for another project.
+   * The loader hoists its deployment URL onto the target project's
+   * `documentationUrl` and drops the docs app from the public list.
+   */
+  documentationFor?: string;
 };
 
 export type RepoData = ProjectData;

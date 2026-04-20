@@ -1,9 +1,9 @@
 import type { OnBeforePrerenderStartAsync } from 'vike/types';
 
-import { getAllSlugs } from '../../src/docs.server';
+import { DOC_SLUGS } from '../../src/docs-index';
 
 export const onBeforePrerenderStart: OnBeforePrerenderStartAsync = async () => {
-  return getAllSlugs()
+  return Array.from(DOC_SLUGS)
     .filter((slug) => slug.length > 0)
     .map((slug) => '/' + slug);
 };

@@ -1,6 +1,6 @@
-// Reads the claude-cleanup package's markdown files, renders each to HTML,
-// and emits a manifest the Vike pages consume. Server-only (file system +
-// unified pipeline).
+// Reads the claude-cleanup package's markdown files and renders each to
+// HTML. Server-only (file system + unified pipeline) — the routing table is
+// kept in ./docs-index.ts so the client bundle doesn't need to pull this in.
 import { readFileSync, statSync } from 'node:fs';
 import { dirname, join, relative, resolve } from 'node:path';
 
@@ -15,10 +15,11 @@ import remarkRehype from 'remark-rehype';
 import remarkSmartypants from 'remark-smartypants';
 import { unified } from 'unified';
 
+import { DOC_SOURCES } from './docs-index';
+
 // `process.cwd()` is the app directory during `vike dev`, `vike build`, and
-// prerender. `import.meta.url` can't be used here because after bundling the
-// file lives under dist/server/chunks/... which breaks relative paths to
-// packages/claude-cleanup.
+// prerender. Can't use `import.meta.url` — after bundling this file lives
+// under dist/server/chunks/... which breaks relative paths back to packages/.
 const packageRoot = resolve(process.cwd(), '..', '..', 'packages', 'claude-cleanup');
 
 export interface DocPage {
@@ -29,32 +30,6 @@ export interface DocPage {
   section: string;
   order: number;
 }
-
-export interface DocIndexEntry {
-  slug: string;
-  path: string;
-  title: string;
-  section: string;
-}
-
-// Explicit table so routing stays deterministic — README lives at the
-// package root while everything else is under docs/.
-const SOURCES: Array<{
-  slug: string;
-  file: string;
-  section: string;
-  order: number;
-  titleOverride?: string;
-}> = [
-  { slug: '', file: 'README.md', section: 'Overview', order: 0, titleOverride: 'claude-cleanup' },
-  { slug: 'monitor', file: 'docs/monitor.md', section: 'Guides', order: 1, titleOverride: 'Monitor daemon' },
-  { slug: 'cli', file: 'docs/cli/index.md', section: 'CLI reference', order: 10 },
-  { slug: 'cli/monitor', file: 'docs/cli/monitor/index.md', section: 'CLI reference', order: 11 },
-  { slug: 'cli/monitor/start', file: 'docs/cli/monitor/start.md', section: 'CLI reference', order: 12 },
-  { slug: 'cli/monitor/stop', file: 'docs/cli/monitor/stop.md', section: 'CLI reference', order: 13 },
-  { slug: 'cli/monitor/status', file: 'docs/cli/monitor/status.md', section: 'CLI reference', order: 14 },
-  { slug: 'cli/monitor/reset', file: 'docs/cli/monitor/reset.md', section: 'CLI reference', order: 15 },
-];
 
 function buildProcessor() {
   return unified()
@@ -82,9 +57,9 @@ function extractTitle(markdown: string, fallback: string): string {
   return match ? match[1] : fallback;
 }
 
-// Swap relative links between source files (`./docs/monitor.md`,
-// `./cli/start.md`) for the matching in-site route. Operates on raw
-// markdown so rehype plugins don't need to know the filesystem layout.
+// Rewrite relative links between source files (`./docs/monitor.md`,
+// `./cli/start.md`) to the matching in-site route. Runs on raw markdown so
+// rehype plugins don't need to know the filesystem layout.
 function rewriteRelativeLinks(
   markdown: string,
   fileRelPath: string,
@@ -107,10 +82,10 @@ let cached: DocPage[] | null = null;
 export function loadDocs(): DocPage[] {
   if (cached) return cached;
   const processor = buildProcessor();
-  const fileToSlug = new Map(SOURCES.map((s) => [s.file, s.slug]));
+  const fileToSlug = new Map(DOC_SOURCES.map((s) => [s.file, s.slug]));
   const pages: DocPage[] = [];
 
-  for (const src of SOURCES) {
+  for (const src of DOC_SOURCES) {
     const abs = join(packageRoot, src.file);
     try {
       statSync(abs);
@@ -137,17 +112,4 @@ export function loadDocs(): DocPage[] {
 
 export function getPageBySlug(slug: string): DocPage | undefined {
   return loadDocs().find((p) => p.slug === slug);
-}
-
-export function listPageIndex(): DocIndexEntry[] {
-  return loadDocs().map(({ slug, path, title, section }) => ({
-    slug,
-    path,
-    title,
-    section,
-  }));
-}
-
-export function getAllSlugs(): string[] {
-  return loadDocs().map((p) => p.slug);
 }
