@@ -1,8 +1,12 @@
 import { usePageContext } from 'vike-react/usePageContext';
 
 export default function Page() {
-  const { abortStatusCode } = usePageContext();
-  const is404 = abortStatusCode === 404;
+  const pageContext = usePageContext();
+  // Vike sets `is404` directly on pageContext when the prerender miss
+  // path or a thrown `render(404)` resolves; `abortStatusCode` is only
+  // populated for runtime aborts, so we check both.
+  const is404 =
+    pageContext.is404 === true || pageContext.abortStatusCode === 404;
 
   return (
     <article className="docs-article">
