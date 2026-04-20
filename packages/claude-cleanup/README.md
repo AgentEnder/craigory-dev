@@ -6,7 +6,9 @@ Find and kill stale [Claude Code](https://docs.claude.com/en/docs/claude-code/ov
 
 ## Why
 
-Claude Code writes a small JSON file to `~/.claude/sessions/` for every interactive session it starts and usually removes it on clean exit. Crashes, force-quit terminal windows, and forgotten `claude` processes leave those entries behind along with the process itself, which can accumulate over time. `claude-cleanup` reads those session files, cross-references the PIDs against the OS process table, and lets you clean up the ones that are dead or idle.
+Running several Claude Code agents across a handful of terminals adds up fast. Each `claude` process carries a non-trivial RAM footprint, and they don't always go away when you expect — the parent shell can die and orphan a detached agent, a terminal tab closes without killing its child, or you just forget about one in another workspace. Left alone, a day's worth of agents can quietly chew through gigabytes of RAM. Pair that with an intermittent memory leak somewhere in the Claude CLI stack and an overnight session was enough to take my laptop down.
+
+`claude-cleanup` reads `~/.claude/sessions/`, cross-references each entry's PID against the OS process table and the conversation log's last-activity timestamp, and lets you kill the ones that are dead or idle — either interactively or via a background daemon that sweeps on a schedule.
 
 ## Install
 
