@@ -4,6 +4,7 @@ import {
   ReactElement,
   ReactNode,
   useEffect,
+  useId,
   useState,
 } from 'react';
 import classes from './tabs.module.scss';
@@ -79,6 +80,7 @@ export interface TabsProps {
 }
 
 export function Tabs({ groupId, children }: TabsProps) {
+  const instanceId = useId();
   const panels = Children.toArray(children).filter(
     (child): child is ReactElement<TabProps> =>
       isValidElement(child) && child.type === Tab
@@ -98,8 +100,8 @@ export function Tabs({ groupId, children }: TabsProps) {
       <div className={classes['tabList']} role="tablist">
         {labels.map((label) => {
           const isActive = label === active;
-          const tabId = `tab-${groupId ?? 'local'}-${label}`;
-          const panelId = `panel-${groupId ?? 'local'}-${label}`;
+          const tabId = `${instanceId}-tab-${label}`;
+          const panelId = `${instanceId}-panel-${label}`;
           return (
             <button
               key={label}
@@ -121,8 +123,8 @@ export function Tabs({ groupId, children }: TabsProps) {
       </div>
       {panels.map((panel) => {
         const isActive = panel.props.label === active;
-        const tabId = `tab-${groupId ?? 'local'}-${panel.props.label}`;
-        const panelId = `panel-${groupId ?? 'local'}-${panel.props.label}`;
+        const tabId = `${instanceId}-tab-${panel.props.label}`;
+        const panelId = `${instanceId}-panel-${panel.props.label}`;
         return (
           <div
             key={panel.props.label}
