@@ -3,6 +3,8 @@ import {
   CodeWrapper,
   LinkToPost,
   PostContext,
+  Tab,
+  Tabs,
   TikiTable,
 } from '@new-personal-monorepo/blog-posts';
 import { usePageContext } from 'vike-react/usePageContext';
@@ -57,6 +59,8 @@ export function Page() {
                 pre: CodeWrapper,
                 Anchor: ContentMarker,
                 LinkToPost,
+                Tab,
+                Tabs,
                 TikiTable,
               },
             })}
