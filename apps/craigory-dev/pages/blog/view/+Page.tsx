@@ -2,6 +2,8 @@ import {
   slugMap,
   CodeWrapper,
   LinkToPost,
+  PackageManagerTab,
+  PackageManagerTabs,
   PostContext,
   TikiTable,
 } from '@new-personal-monorepo/blog-posts';
@@ -57,6 +59,8 @@ export function Page() {
                 pre: CodeWrapper,
                 Anchor: ContentMarker,
                 LinkToPost,
+                PackageManagerTab,
+                PackageManagerTabs,
                 TikiTable,
               },
             })}

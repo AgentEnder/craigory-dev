@@ -39,9 +39,12 @@ None of the four tools support applying the gate to one registry but not another
 
 pnpm 11 enables the gate by default at 1440 minutes, and npm CLI v12 is expected to do the same.<sup><a href="#ref-1">[1]</a></sup> Setting the value explicitly today preserves the current configured behavior when the upstream defaults change.
 
-## npm
+## Per-project configuration
 
-### Per-project
+Per-project configuration is committed to the repository and applies to every developer and CI run that uses a supported package manager version. The selected tab is remembered across the rest of the post.
+
+<PackageManagerTabs>
+<PackageManagerTab manager="npm">
 
 The setting belongs in the project's `.npmrc`:
 
@@ -49,25 +52,14 @@ The setting belongs in the project's `.npmrc`:
 min-release-age=1
 ```
 
-The value is in days. The setting cannot be combined with `--before` in the same invocation; npm raises an error if both are provided. An npm CLI version that does not recognize the key emits the following warning:
+The value is in days. The setting cannot be combined with `--before` in the same invocation; npm raises an error if both are provided. An npm CLI version that does not recognize the key emits the following warning, which is cosmetic and does not prevent the setting from applying on a supporting CLI:
 
 ```text
 npm warn Unknown project config "min-release-age". This will stop working in the next major version of npm.
 ```
 
-The warning is cosmetic. The setting applies on a supporting CLI and is harmlessly ignored on one that does not support it.
-
-### User-wide
-
-```bash
-npm config set min-release-age 1 --location=user
-```
-
-This writes to `~/.npmrc`. Substituting `global` for `user` writes to the global npm configuration instead.
-
-## pnpm
-
-### Per-project
+</PackageManagerTab>
+<PackageManagerTab manager="pnpm">
 
 Since pnpm 11, the canonical location is `pnpm-workspace.yaml`:
 
@@ -91,19 +83,10 @@ minimum-release-age=1440
 
 A known bug on pnpm 10.x causes `minimumReleaseAge` to be silently ignored when any package in the workspace sets `shared-workspace-lockfile=false` in its `.npmrc`.<sup><a href="#ref-8">[8]</a></sup> On 10.x, this is worth verifying before assuming the setting is honored.
 
-### User-wide
+</PackageManagerTab>
+<PackageManagerTab manager="yarn">
 
-```bash
-pnpm config set minimumReleaseAge 1440 --location=user
-```
-
-On pnpm 11 and later, non-auth settings written this way are stored in `~/.config/pnpm/config.yaml` rather than `~/.npmrc`.
-
-## Yarn (Berry 4.10+)
-
-### Per-project
-
-The setting belongs in `.yarnrc.yml`:
+The setting belongs in `.yarnrc.yml` (Yarn Berry 4.10 or later):
 
 ```yaml filename=".yarnrc.yml"
 npmMinimalAgeGate: 1440
@@ -121,17 +104,8 @@ npmPreapprovedPackages:
 
 The documentation states that a duration suffix such as `"7d"` is accepted, but a known parsing bug causes the suffix to be dropped.<sup><a href="#ref-9">[9]</a></sup> Until that is resolved, a plain minute count is the reliable form: one day is `npmMinimalAgeGate: 1440`.
 
-### User-wide
-
-```bash
-yarn config set --home npmMinimalAgeGate 1440
-```
-
-`--home` writes to `~/.yarnrc.yml` rather than the project-local file.
-
-## Bun
-
-### Per-project
+</PackageManagerTab>
+<PackageManagerTab manager="bun">
 
 The setting belongs under `[install]` in `bunfig.toml`:
 
@@ -150,9 +124,47 @@ minimumReleaseAge = 86400
 minimumReleaseAgeExcludes = ["@types/node", "typescript"]
 ```
 
-### User-wide
+</PackageManagerTab>
+</PackageManagerTabs>
+
+## User-wide configuration
+
+User-wide configuration applies on a single machine, across every repository that does not override it. As noted in the caveats above, project-level configuration takes precedence over the values shown here.
+
+<PackageManagerTabs>
+<PackageManagerTab manager="npm">
+
+```bash
+npm config set min-release-age 1 --location=user
+```
+
+This writes to `~/.npmrc`. Substituting `global` for `user` writes to the global npm configuration instead.
+
+</PackageManagerTab>
+<PackageManagerTab manager="pnpm">
+
+```bash
+pnpm config set minimumReleaseAge 1440 --location=user
+```
+
+On pnpm 11 and later, non-auth settings written this way are stored in `~/.config/pnpm/config.yaml` rather than `~/.npmrc`.
+
+</PackageManagerTab>
+<PackageManagerTab manager="yarn">
+
+```bash
+yarn config set --home npmMinimalAgeGate 1440
+```
+
+`--home` writes to `~/.yarnrc.yml` rather than the project-local file.
+
+</PackageManagerTab>
+<PackageManagerTab manager="bun">
 
 Bun reads project-level `bunfig.toml` only; user-wide configuration is not yet supported. An open pull request adds the corresponding behavior.<sup><a href="#ref-10">[10]</a></sup> Once merged, the same key written in a user-wide `bunfig.toml` will apply across projects.
+
+</PackageManagerTab>
+</PackageManagerTabs>
 
 ## References
 

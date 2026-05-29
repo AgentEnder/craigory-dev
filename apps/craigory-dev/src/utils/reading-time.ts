@@ -9,6 +9,8 @@ export function calculateReadingTimeFromPost(post: BlogPost): number {
       Anchor: () => null, // Just ignore anchors for text extraction
       LinkToPost: () => null, // Ignore link components
       TikiTable: ({ children }: { children?: any }) => children || '', // Pass through table content
+      PackageManagerTabs: ({ children }: { children?: any }) => children || '', // Pass through tabbed content
+      PackageManagerTab: ({ children }: { children?: any }) => children || '', // Pass through tab panel content
       pre: ({ children }: { children?: any }) => children || '', // Keep code content for word count
     };
     
