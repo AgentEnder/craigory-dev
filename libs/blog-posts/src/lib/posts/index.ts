@@ -2,6 +2,7 @@ import { githubPagesPreviewEnv } from './github-pages-preview-env/post';
 import { githubUnlistedRepos } from './github-unlisted-repos/post';
 import { multifunctionExampleFiles } from './multifunctional-example-files/post';
 import { nxConfigurationHistory } from './nx-configuration-history/post';
+import { packageManagerReleaseCooldown } from './package-manager-release-cooldown/post';
 import { superpoweredGitAliases } from './superpowered-git-aliases/post';
 import { pineappleParlor } from './tiki/pineapple-parlor/post';
 import { infernoRoom } from './tiki/inferno-room/post';
@@ -28,6 +29,7 @@ const ALL_BLOG_POSTS = [
   superpoweredGitAliases,
   multifunctionExampleFiles,
   githubUnlistedRepos,
+  packageManagerReleaseCooldown,
   pineappleParlor,
   infernoRoom,
   traderSamsGrogGrotto,
