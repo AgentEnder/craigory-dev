@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+    <html lang="en">
+      <head>
+        <link rel="stylesheet" type="text/css" href="/pr/42/assets/static/style-5774bf13.BcWtY8Ol.css">
+        <link rel="stylesheet" type="text/css" href="/pr/42/assets/static/Layout.CM1M0hot.css">
+        <link rel="stylesheet" type="text/css" href="/pr/42/assets/static/PageShell.CJ_TIreb.css">
+        <link rel="stylesheet" type="text/css" href="/pr/42/assets/static/view.Bt-1NU10.css">
+        <meta charset="UTF-8" />
+        
+    <title>Configuring minimum release age across npm, pnpm, yarn, and bun</title><meta property="og:title" content="Configuring minimum release age across npm, pnpm, yarn, and bun" />
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <meta charSet="UTF-8"/><meta name="viewport" content="width=device-width, initial-scale=1.0"/><script async="" src="https://www.googletagmanager.com/gtag/js?id=G-1180FLF5RC"></script><meta name="description" content="A one-day cooldown on new dependency versions catches most of what supply-chain attackers ship, and every major Node.js package manager now supports it — but each chose its own name for the setting, its own unit of time, and its own set of ways the gate can quietly do nothing."/><link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.8.0/styles/obsidian.min.css"/><script>window.dataLayer = window.dataLayer || [];
+        function gtag() {
+          dataLayer.push(arguments);
+        }
+        gtag('js', new Date());
+  
+        gtag('config', 'G-1180FLF5RC');
+          </script>
+    
+    
+    <meta property="og:image" content="https://craigory.dev/blog/2026-05-29/package-manager-release-cooldown/og.png"><meta name="twitter:card" content="summary_large_image">
+  
+      </head>
+      <body>
+        
+        <div id="root"><div class="layout"><div class="sidebar"><div class="sidebar-nav"><a href="/pr/42/" class="navitem">Home</a><a href="/pr/42/projects" class="navitem">Projects</a><a href="/pr/42/tools" class="navitem">Tools</a><a href="/pr/42/presentations" class="navitem">Speaking + Presentations</a><a href="/pr/42/blog/1" class="navitem">Blog</a></div><div class="sidebar-footer"><a href="/pr/42/privacy" class="footer-link">Privacy Policy</a></div></div><div class="content"><div class="blog-post-theme theme-technical"><div class="reading-progress" style="transform:scaleX(0)"></div><div class="blog-post-container"><div class="blog-content"><header class="blog-header"><h1>Configuring minimum release age across npm, pnpm, yarn, and bun</h1><div class="meta-info"><span class="publish-date">May 29, 2026</span></div></header>
+<p>A minimum release age — or “cooldown” — tells your package manager to ignore any version of a dependency that was published less than <em>N</em> time ago. It is a one-line config change that buys you most of the protection you would get from a sophisticated supply-chain monitoring setup: the typical malicious release is caught and pulled from the registry within a few hours, so even a one-day delay routes around the worst of them.<sup><a href="#ref-1">[1]</a></sup></p>
+<p>Every major Node.js package manager now supports this, but each picked its own name for the setting and its own unit of time. The notes below are mostly a cross-reference of what to write, where to write it, and the parts that bit me (or are about to). The technical bones come from Matteo Collina’s original gist on the npm / pnpm / Yarn setup,<sup><a href="#ref-1">[1]</a></sup> Tom Ricci’s expansion that added Bun,<sup><a href="#ref-2">[2]</a></sup> and each tool’s own documentation.<sup><a href="#ref-3">[3]</a></sup><sup><a href="#ref-4">[4]</a></sup><sup><a href="#ref-5">[5]</a></sup><sup><a href="#ref-6">[6]</a></sup></p>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#quick-reference">Quick reference</a></li>
+<li><a href="#things-to-know-before-you-turn-it-on">Things to know before you turn it on</a>
+<ul>
+<li><a href="#the-gate-runs-at-install-not-when-a-bot-opens-a-pr">The gate runs at install, not when a bot opens a PR</a></li>
+<li><a href="#a-repo-that-pins-an-older-package-manager-wins-every-time">A repo that pins an older package manager wins, every time</a></li>
+<li><a href="#a-lax-repo-config-beats-a-stricter-user-config">A lax repo config beats a stricter user config</a></li>
+<li><a href="#no-per-registry-scope">No per-registry scope</a></li>
+<li><a href="#defaults-are-about-to-move">Defaults are about to move</a></li>
+</ul>
+</li>
+<li><a href="#npm">npm</a>
+<ul>
+<li><a href="#per-project">Per-project</a></li>
+<li><a href="#user-wide">User-wide</a></li>
+</ul>
+</li>
+<li><a href="#pnpm">pnpm</a>
+<ul>
+<li><a href="#per-project-1">Per-project</a></li>
+<li><a href="#user-wide-1">User-wide</a></li>
+</ul>
+</li>
+<li><a href="#yarn-berry-410">Yarn (Berry 4.10+)</a>
+<ul>
+<li><a href="#per-project-2">Per-project</a></li>
+<li><a href="#user-wide-2">User-wide</a></li>
+</ul>
+</li>
+<li><a href="#bun">Bun</a>
+<ul>
+<li><a href="#per-project-3">Per-project</a></li>
+<li><a href="#user-wide-3">User-wide</a></li>
+</ul>
+</li>
+<li><a href="#references">References</a></li>
+</ul>
+<h2 id="quick-reference">Quick reference<a class="heading-link" href="#quick-reference"><div style="display:inline-block">#</div></a></h2>
+<ul>
+<li><strong>npm</strong> — <code>min-release-age</code>, measured in <strong>days</strong>, available from npm CLI <strong>11.10.0</strong> (Feb 2026).<sup><a href="#ref-3">[3]</a></sup></li>
+<li><strong>pnpm</strong> — <code>minimumReleaseAge</code>, measured in <strong>minutes</strong>, available from pnpm <strong>10.16</strong> (Sep 2025); the default became <code>1440</code> in pnpm <strong>11.0</strong>.<sup><a href="#ref-4">[4]</a></sup></li>
+<li><strong>Yarn</strong> — <code>npmMinimalAgeGate</code>, measured in <strong>minutes</strong>, available from Yarn Berry <strong>4.10.0</strong>.<sup><a href="#ref-5">[5]</a></sup></li>
+<li><strong>Bun</strong> — <code>minimumReleaseAge</code>, measured in <strong>seconds</strong>, available from Bun <strong>1.3.0</strong>.<sup><a href="#ref-6">[6]</a></sup></li>
+</ul>
+<h2 id="things-to-know-before-you-turn-it-on">Things to know before you turn it on<a class="heading-link" href="#things-to-know-before-you-turn-it-on"><div style="display:inline-block">#</div></a></h2>
+<p>I have these up front because three of them are how you <em>think</em> the cooldown is protecting you when it actually isn’t.</p>
+<h3 id="the-gate-runs-at-install-not-when-a-bot-opens-a-pr">The gate runs at install, not when a bot opens a PR<a class="heading-link" href="#the-gate-runs-at-install-not-when-a-bot-opens-a-pr"><div style="display:inline-block">#</div></a></h3>
+<p>The check happens when the package manager resolves and installs a version. A bot that proposes an update is doing neither — so Renovate and Dependabot will happily file PRs against versions your install command will refuse. Configure their cooldown options too: Renovate 42’s <code>config:best-practices</code> preset already enables a three-day cooldown for npm,<sup><a href="#ref-1">[1]</a></sup> and Dependabot’s <code>cooldown.default-days</code> is the corresponding knob.</p>
+<h3 id="a-repo-that-pins-an-older-package-manager-wins-every-time">A repo that pins an older package manager wins, every time<a class="heading-link" href="#a-repo-that-pins-an-older-package-manager-wins-every-time"><div style="display:inline-block">#</div></a></h3>
+<p>If a project pins its package manager — via the <code>packageManager</code> field in <code>package.json</code>, Corepack, Volta, a Docker base image, the <code>setup-node</code> action’s <code>version-file</code> input, anything — the version the project pins is the version that actually runs your install. If that pinned version predates cooldown support, the gate does not exist for that repo, no matter what your globally installed package manager is or what your user-level config says. An older binary has no concept of the setting and silently ignores it.</p>
+<p>This is the failure mode I see most often. The fix is to confirm the version that actually runs (<code>pnpm --version</code> from inside the repo, <code>corepack pnpm --version</code>, the <code>setup-node</code> log line in CI) is new enough to honor the setting.</p>
+<h3 id="a-lax-repo-config-beats-a-stricter-user-config">A lax repo config beats a stricter user config<a class="heading-link" href="#a-lax-repo-config-beats-a-stricter-user-config"><div style="display:inline-block">#</div></a></h3>
+<p>Per-project settings take precedence over per-user settings in all four tools. If your <code>~/.npmrc</code> / <code>~/.config/pnpm/config.yaml</code> / <code>~/.yarnrc.yml</code> / <code>~/.bunfig.toml</code> sets a one-day cooldown but the project sets zero — or sets nothing on an older tool version where the default is zero — the project value wins. The setting behaves like a project policy, not a personal safety preference.</p>
+<p>Practically, this means setting cooldown globally on your laptop is not a substitute for setting it in each repo. A repo that has not opted in is a repo without a cooldown, for you.</p>
+<h3 id="no-per-registry-scope">No per-registry scope<a class="heading-link" href="#no-per-registry-scope"><div style="display:inline-block">#</div></a></h3>
+<p>None of the four tools let you apply the gate to one registry but not another. Internal packages from a private registry get delayed alongside everything else unless you list them in the per-tool exclude option. npm does not have an exclude option yet — there is an open issue tracking it.<sup><a href="#ref-7">[7]</a></sup></p>
+<h3 id="defaults-are-about-to-move">Defaults are about to move<a class="heading-link" href="#defaults-are-about-to-move"><div style="display:inline-block">#</div></a></h3>
+<p>pnpm 11 already enables the gate at 1440 minutes by default; npm CLI v12 is expected to follow.<sup><a href="#ref-1">[1]</a></sup> If you set a value explicitly today, you keep the behavior you wrote down when the defaults shift under you.</p>
+<h2 id="npm">npm<a class="heading-link" href="#npm"><div style="display:inline-block">#</div></a></h2>
+<h3 id="per-project">Per-project<a class="heading-link" href="#per-project"><div style="display:inline-block">#</div></a></h3>
+<p>Put the setting in the project’s <code>.npmrc</code>:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><code class="_filename_1uasc_35">.npmrc</code></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-INI"><span class="hljs-attr">min-release-age</span>=<span class="hljs-number">1</span>
+</code></pre></div>
+<p>The value is in days. You cannot combine it with <code>--before</code> in the same invocation; npm errors out if both are present. Older npm CLI versions that don’t recognize the key will print:</p>
+<div style="display:flex;flex-direction:column"><pre style="margin-top:0" class="_code-wrapper_1uasc_1 "><code class="hljs language-text">npm warn Unknown project config &quot;min-release-age&quot;. This will stop working in the next major version of npm.
+</code></pre></div>
+<p>The warning is cosmetic — the setting still applies on a CLI that supports it, and is harmlessly ignored on one that doesn’t.</p>
+<h3 id="user-wide">User-wide<a class="heading-link" href="#user-wide"><div style="display:inline-block">#</div></a></h3>
+<div style="display:flex;flex-direction:column"><pre style="margin-top:0" class="_code-wrapper_1uasc_1 "><code class="hljs language-bash">npm config <span class="hljs-built_in">set</span> min-release-age 1 --location=user
+</code></pre></div>
+<p>That writes to <code>~/.npmrc</code>. Swap <code>user</code> for <code>global</code> if you want it in the global npm config instead.</p>
+<h2 id="pnpm">pnpm<a class="heading-link" href="#pnpm"><div style="display:inline-block">#</div></a></h2>
+<h3 id="per-project-1">Per-project<a class="heading-link" href="#per-project-1"><div style="display:inline-block">#</div></a></h3>
+<p>Since pnpm 11, the canonical home is <code>pnpm-workspace.yaml</code>:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><code class="_filename_1uasc_35">pnpm-workspace.yaml</code></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-yaml"><span class="hljs-attr">minimumReleaseAge:</span> <span class="hljs-number">1440</span>
+</code></pre></div>
+<p>If you publish internal packages and want them to bypass the gate:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><code class="_filename_1uasc_35">pnpm-workspace.yaml</code></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-yaml"><span class="hljs-attr">minimumReleaseAge:</span> <span class="hljs-number">1440</span>
+<span class="hljs-attr">minimumReleaseAgeExclude:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-string">&#x27;@platformatic/*&#x27;</span>
+</code></pre></div>
+<p>On pnpm 10.x you write the same idea in <code>.npmrc</code> with a different casing:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><code class="_filename_1uasc_35">.npmrc</code></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-INI"><span class="hljs-attr">minimum-release-age</span>=<span class="hljs-number">1440</span>
+</code></pre></div>
+<p>Worth knowing on 10.x: there is an open bug where <code>minimumReleaseAge</code> is silently ignored if any package in the workspace has <code>shared-workspace-lockfile=false</code> set in its <code>.npmrc</code>.<sup><a href="#ref-8">[8]</a></sup> If you’ve configured the gate but it doesn’t seem to be doing anything, that’s the first thing I’d check.</p>
+<h3 id="user-wide-1">User-wide<a class="heading-link" href="#user-wide-1"><div style="display:inline-block">#</div></a></h3>
+<div style="display:flex;flex-direction:column"><pre style="margin-top:0" class="_code-wrapper_1uasc_1 "><code class="hljs language-bash">pnpm config <span class="hljs-built_in">set</span> minimumReleaseAge 1440 --location=user
+</code></pre></div>
+<p>On pnpm 11+, non-auth settings written this way land in <code>~/.config/pnpm/config.yaml</code> rather than <code>~/.npmrc</code>.</p>
+<h2 id="yarn-berry-410">Yarn (Berry 4.10+)<a class="heading-link" href="#yarn-berry-410"><div style="display:inline-block">#</div></a></h2>
+<h3 id="per-project-2">Per-project<a class="heading-link" href="#per-project-2"><div style="display:inline-block">#</div></a></h3>
+<p>In <code>.yarnrc.yml</code>:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><code class="_filename_1uasc_35">.yarnrc.yml</code></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-yaml"><span class="hljs-attr">npmMinimalAgeGate:</span> <span class="hljs-number">1440</span>
+</code></pre></div>
+<p>If some packages need to skip the gate:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><code class="_filename_1uasc_35">.yarnrc.yml</code></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-yaml"><span class="hljs-attr">npmMinimalAgeGate:</span> <span class="hljs-number">1440</span>
+<span class="hljs-attr">npmPreapprovedPackages:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-string">&#x27;@platformatic/*&#x27;</span>
+</code></pre></div>
+<p><code>npmPreapprovedPackages</code> accepts both glob patterns and exact locators (e.g. <code>@aws-sdk/types@3.877.0</code>), which is a notch more flexible than pnpm’s package-name-only exclude list.</p>
+<p>The docs suggest you can pass a duration string like <code>&quot;7d&quot;</code> instead of a number, but there’s an outstanding bug where the suffix is silently dropped.<sup><a href="#ref-9">[9]</a></sup> Until that’s resolved everywhere, stick to a plain minute count: one day is <code>npmMinimalAgeGate: 1440</code>.</p>
+<h3 id="user-wide-2">User-wide<a class="heading-link" href="#user-wide-2"><div style="display:inline-block">#</div></a></h3>
+<div style="display:flex;flex-direction:column"><pre style="margin-top:0" class="_code-wrapper_1uasc_1 "><code class="hljs language-bash">yarn config <span class="hljs-built_in">set</span> --home npmMinimalAgeGate 1440
+</code></pre></div>
+<p><code>--home</code> writes to <code>~/.yarnrc.yml</code> instead of the project-local file.</p>
+<h2 id="bun">Bun<a class="heading-link" href="#bun"><div style="display:inline-block">#</div></a></h2>
+<h3 id="per-project-3">Per-project<a class="heading-link" href="#per-project-3"><div style="display:inline-block">#</div></a></h3>
+<p>Bun puts it under <code>[install]</code> in <code>bunfig.toml</code>:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><code class="_filename_1uasc_35">bunfig.toml</code></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-toml"><span class="hljs-section">[install]</span>
+<span class="hljs-attr">minimumReleaseAge</span> = <span class="hljs-number">86400</span>
+</code></pre></div>
+<p>The value is in seconds. One day is <code>86400</code>.</p>
+<p>To skip the gate for a few packages, use <code>minimumReleaseAgeExcludes</code>:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><code class="_filename_1uasc_35">bunfig.toml</code></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-toml"><span class="hljs-section">[install]</span>
+<span class="hljs-attr">minimumReleaseAge</span> = <span class="hljs-number">86400</span>
+<span class="hljs-attr">minimumReleaseAgeExcludes</span> = [<span class="hljs-string">&quot;@types/node&quot;</span>, <span class="hljs-string">&quot;typescript&quot;</span>]
+</code></pre></div>
+<h3 id="user-wide-3">User-wide<a class="heading-link" href="#user-wide-3"><div style="display:inline-block">#</div></a></h3>
+<p>There is no user-wide config story yet — Bun reads project-level <code>bunfig.toml</code> only. An open PR is wiring up support;<sup><a href="#ref-10">[10]</a></sup> when it merges, the same key in a user-wide <code>bunfig.toml</code> will work the way it does for the other tools.</p>
+<h2 id="references">References<a class="heading-link" href="#references"><div style="display:inline-block">#</div></a></h2>
+<ol><li id="ref-1">Matteo Collina, <a href="https://gist.github.com/mcollina/b294a6c39ee700d24073c0e5a4e93104">“Configuring minimum release age across npm, pnpm, and yarn”</a> (gist, April 2026). Original write-up; covered npm, pnpm, and Yarn, and the install-time vs. PR-time distinction.</li><li id="ref-2">Tom Ricci, <a href="https://gist.github.com/tom-ricci/bade55606ebb7a550598f11e29f1d6b0">“Configuring minimum release age across npm, pnpm, yarn, and bun”</a> (gist). Extends Collina’s notes with Bun coverage, version metadata, and the exclusion-list options per tool.</li><li id="ref-3">npm CLI docs, <a href="https://docs.npmjs.com/cli/v11/using-npm/config#min-release-age"><code>min-release-age</code></a>.</li><li id="ref-4">pnpm docs, <a href="https://pnpm.io/settings#minimumreleaseage"><code>minimumReleaseAge</code></a>.</li><li id="ref-5">Yarn docs, <a href="https://yarnpkg.com/configuration/yarnrc#npmMinimalAgeGate"><code>npmMinimalAgeGate</code></a>.</li><li id="ref-6">Bun docs, <a href="https://bun.sh/docs/runtime/bunfig#install-minimumreleaseage"><code>install.minimumReleaseAge</code></a>.</li><li id="ref-7">npm CLI issue <a href="https://github.com/npm/cli/issues/8994">#8994</a> — tracking an exclusion list for <code>min-release-age</code>.</li><li id="ref-8">pnpm issue <a href="https://github.com/pnpm/pnpm/issues/10008">#10008</a> — <code>minimumReleaseAge</code> silently ignored on pnpm 10.x when any workspace package sets <code>shared-workspace-lockfile=false</code>.</li><li id="ref-9">Yarn issue <a href="https://github.com/yarnpkg/berry/issues/6991">#6991</a> — duration suffixes silently dropped when parsing <code>npmMinimalAgeGate</code>.</li><li id="ref-10">Bun PR <a href="https://github.com/oven-sh/bun/pull/28727">#28727</a> — user-wide <code>bunfig.toml</code> support.</li></ol></div></div><button class="scroll-to-top " aria-label="Scroll to top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"></path></svg></button></div></div></div><div class="mobile-nav-container"><header class="mobile-header"><div class="mobile-header-brand"></div></header><div class="mobile-content"><div class="blog-post-theme theme-technical"><div class="reading-progress" style="transform:scaleX(0)"></div><div class="blog-post-container"><div class="blog-content"><header class="blog-header"><h1>Configuring minimum release age across npm, pnpm, yarn, and bun</h1><div class="meta-info"><span class="publish-date">May 29, 2026</span></div></header>
+<p>A minimum release age — or “cooldown” — tells your package manager to ignore any version of a dependency that was published less than <em>N</em> time ago. It is a one-line config change that buys you most of the protection you would get from a sophisticated supply-chain monitoring setup: the typical malicious release is caught and pulled from the registry within a few hours, so even a one-day delay routes around the worst of them.<sup><a href="#ref-1">[1]</a></sup></p>
+<p>Every major Node.js package manager now supports this, but each picked its own name for the setting and its own unit of time. The notes below are mostly a cross-reference of what to write, where to write it, and the parts that bit me (or are about to). The technical bones come from Matteo Collina’s original gist on the npm / pnpm / Yarn setup,<sup><a href="#ref-1">[1]</a></sup> Tom Ricci’s expansion that added Bun,<sup><a href="#ref-2">[2]</a></sup> and each tool’s own documentation.<sup><a href="#ref-3">[3]</a></sup><sup><a href="#ref-4">[4]</a></sup><sup><a href="#ref-5">[5]</a></sup><sup><a href="#ref-6">[6]</a></sup></p>
+<h2 id="table-of-contents">Table of Contents</h2>
+<ul>
+<li><a href="#quick-reference">Quick reference</a></li>
+<li><a href="#things-to-know-before-you-turn-it-on">Things to know before you turn it on</a>
+<ul>
+<li><a href="#the-gate-runs-at-install-not-when-a-bot-opens-a-pr">The gate runs at install, not when a bot opens a PR</a></li>
+<li><a href="#a-repo-that-pins-an-older-package-manager-wins-every-time">A repo that pins an older package manager wins, every time</a></li>
+<li><a href="#a-lax-repo-config-beats-a-stricter-user-config">A lax repo config beats a stricter user config</a></li>
+<li><a href="#no-per-registry-scope">No per-registry scope</a></li>
+<li><a href="#defaults-are-about-to-move">Defaults are about to move</a></li>
+</ul>
+</li>
+<li><a href="#npm">npm</a>
+<ul>
+<li><a href="#per-project">Per-project</a></li>
+<li><a href="#user-wide">User-wide</a></li>
+</ul>
+</li>
+<li><a href="#pnpm">pnpm</a>
+<ul>
+<li><a href="#per-project-1">Per-project</a></li>
+<li><a href="#user-wide-1">User-wide</a></li>
+</ul>
+</li>
+<li><a href="#yarn-berry-410">Yarn (Berry 4.10+)</a>
+<ul>
+<li><a href="#per-project-2">Per-project</a></li>
+<li><a href="#user-wide-2">User-wide</a></li>
+</ul>
+</li>
+<li><a href="#bun">Bun</a>
+<ul>
+<li><a href="#per-project-3">Per-project</a></li>
+<li><a href="#user-wide-3">User-wide</a></li>
+</ul>
+</li>
+<li><a href="#references">References</a></li>
+</ul>
+<h2 id="quick-reference">Quick reference<a class="heading-link" href="#quick-reference"><div style="display:inline-block">#</div></a></h2>
+<ul>
+<li><strong>npm</strong> — <code>min-release-age</code>, measured in <strong>days</strong>, available from npm CLI <strong>11.10.0</strong> (Feb 2026).<sup><a href="#ref-3">[3]</a></sup></li>
+<li><strong>pnpm</strong> — <code>minimumReleaseAge</code>, measured in <strong>minutes</strong>, available from pnpm <strong>10.16</strong> (Sep 2025); the default became <code>1440</code> in pnpm <strong>11.0</strong>.<sup><a href="#ref-4">[4]</a></sup></li>
+<li><strong>Yarn</strong> — <code>npmMinimalAgeGate</code>, measured in <strong>minutes</strong>, available from Yarn Berry <strong>4.10.0</strong>.<sup><a href="#ref-5">[5]</a></sup></li>
+<li><strong>Bun</strong> — <code>minimumReleaseAge</code>, measured in <strong>seconds</strong>, available from Bun <strong>1.3.0</strong>.<sup><a href="#ref-6">[6]</a></sup></li>
+</ul>
+<h2 id="things-to-know-before-you-turn-it-on">Things to know before you turn it on<a class="heading-link" href="#things-to-know-before-you-turn-it-on"><div style="display:inline-block">#</div></a></h2>
+<p>I have these up front because three of them are how you <em>think</em> the cooldown is protecting you when it actually isn’t.</p>
+<h3 id="the-gate-runs-at-install-not-when-a-bot-opens-a-pr">The gate runs at install, not when a bot opens a PR<a class="heading-link" href="#the-gate-runs-at-install-not-when-a-bot-opens-a-pr"><div style="display:inline-block">#</div></a></h3>
+<p>The check happens when the package manager resolves and installs a version. A bot that proposes an update is doing neither — so Renovate and Dependabot will happily file PRs against versions your install command will refuse. Configure their cooldown options too: Renovate 42’s <code>config:best-practices</code> preset already enables a three-day cooldown for npm,<sup><a href="#ref-1">[1]</a></sup> and Dependabot’s <code>cooldown.default-days</code> is the corresponding knob.</p>
+<h3 id="a-repo-that-pins-an-older-package-manager-wins-every-time">A repo that pins an older package manager wins, every time<a class="heading-link" href="#a-repo-that-pins-an-older-package-manager-wins-every-time"><div style="display:inline-block">#</div></a></h3>
+<p>If a project pins its package manager — via the <code>packageManager</code> field in <code>package.json</code>, Corepack, Volta, a Docker base image, the <code>setup-node</code> action’s <code>version-file</code> input, anything — the version the project pins is the version that actually runs your install. If that pinned version predates cooldown support, the gate does not exist for that repo, no matter what your globally installed package manager is or what your user-level config says. An older binary has no concept of the setting and silently ignores it.</p>
+<p>This is the failure mode I see most often. The fix is to confirm the version that actually runs (<code>pnpm --version</code> from inside the repo, <code>corepack pnpm --version</code>, the <code>setup-node</code> log line in CI) is new enough to honor the setting.</p>
+<h3 id="a-lax-repo-config-beats-a-stricter-user-config">A lax repo config beats a stricter user config<a class="heading-link" href="#a-lax-repo-config-beats-a-stricter-user-config"><div style="display:inline-block">#</div></a></h3>
+<p>Per-project settings take precedence over per-user settings in all four tools. If your <code>~/.npmrc</code> / <code>~/.config/pnpm/config.yaml</code> / <code>~/.yarnrc.yml</code> / <code>~/.bunfig.toml</code> sets a one-day cooldown but the project sets zero — or sets nothing on an older tool version where the default is zero — the project value wins. The setting behaves like a project policy, not a personal safety preference.</p>
+<p>Practically, this means setting cooldown globally on your laptop is not a substitute for setting it in each repo. A repo that has not opted in is a repo without a cooldown, for you.</p>
+<h3 id="no-per-registry-scope">No per-registry scope<a class="heading-link" href="#no-per-registry-scope"><div style="display:inline-block">#</div></a></h3>
+<p>None of the four tools let you apply the gate to one registry but not another. Internal packages from a private registry get delayed alongside everything else unless you list them in the per-tool exclude option. npm does not have an exclude option yet — there is an open issue tracking it.<sup><a href="#ref-7">[7]</a></sup></p>
+<h3 id="defaults-are-about-to-move">Defaults are about to move<a class="heading-link" href="#defaults-are-about-to-move"><div style="display:inline-block">#</div></a></h3>
+<p>pnpm 11 already enables the gate at 1440 minutes by default; npm CLI v12 is expected to follow.<sup><a href="#ref-1">[1]</a></sup> If you set a value explicitly today, you keep the behavior you wrote down when the defaults shift under you.</p>
+<h2 id="npm">npm<a class="heading-link" href="#npm"><div style="display:inline-block">#</div></a></h2>
+<h3 id="per-project">Per-project<a class="heading-link" href="#per-project"><div style="display:inline-block">#</div></a></h3>
+<p>Put the setting in the project’s <code>.npmrc</code>:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><code class="_filename_1uasc_35">.npmrc</code></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-INI"><span class="hljs-attr">min-release-age</span>=<span class="hljs-number">1</span>
+</code></pre></div>
+<p>The value is in days. You cannot combine it with <code>--before</code> in the same invocation; npm errors out if both are present. Older npm CLI versions that don’t recognize the key will print:</p>
+<div style="display:flex;flex-direction:column"><pre style="margin-top:0" class="_code-wrapper_1uasc_1 "><code class="hljs language-text">npm warn Unknown project config &quot;min-release-age&quot;. This will stop working in the next major version of npm.
+</code></pre></div>
+<p>The warning is cosmetic — the setting still applies on a CLI that supports it, and is harmlessly ignored on one that doesn’t.</p>
+<h3 id="user-wide">User-wide<a class="heading-link" href="#user-wide"><div style="display:inline-block">#</div></a></h3>
+<div style="display:flex;flex-direction:column"><pre style="margin-top:0" class="_code-wrapper_1uasc_1 "><code class="hljs language-bash">npm config <span class="hljs-built_in">set</span> min-release-age 1 --location=user
+</code></pre></div>
+<p>That writes to <code>~/.npmrc</code>. Swap <code>user</code> for <code>global</code> if you want it in the global npm config instead.</p>
+<h2 id="pnpm">pnpm<a class="heading-link" href="#pnpm"><div style="display:inline-block">#</div></a></h2>
+<h3 id="per-project-1">Per-project<a class="heading-link" href="#per-project-1"><div style="display:inline-block">#</div></a></h3>
+<p>Since pnpm 11, the canonical home is <code>pnpm-workspace.yaml</code>:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><code class="_filename_1uasc_35">pnpm-workspace.yaml</code></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-yaml"><span class="hljs-attr">minimumReleaseAge:</span> <span class="hljs-number">1440</span>
+</code></pre></div>
+<p>If you publish internal packages and want them to bypass the gate:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><code class="_filename_1uasc_35">pnpm-workspace.yaml</code></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-yaml"><span class="hljs-attr">minimumReleaseAge:</span> <span class="hljs-number">1440</span>
+<span class="hljs-attr">minimumReleaseAgeExclude:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-string">&#x27;@platformatic/*&#x27;</span>
+</code></pre></div>
+<p>On pnpm 10.x you write the same idea in <code>.npmrc</code> with a different casing:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><code class="_filename_1uasc_35">.npmrc</code></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-INI"><span class="hljs-attr">minimum-release-age</span>=<span class="hljs-number">1440</span>
+</code></pre></div>
+<p>Worth knowing on 10.x: there is an open bug where <code>minimumReleaseAge</code> is silently ignored if any package in the workspace has <code>shared-workspace-lockfile=false</code> set in its <code>.npmrc</code>.<sup><a href="#ref-8">[8]</a></sup> If you’ve configured the gate but it doesn’t seem to be doing anything, that’s the first thing I’d check.</p>
+<h3 id="user-wide-1">User-wide<a class="heading-link" href="#user-wide-1"><div style="display:inline-block">#</div></a></h3>
+<div style="display:flex;flex-direction:column"><pre style="margin-top:0" class="_code-wrapper_1uasc_1 "><code class="hljs language-bash">pnpm config <span class="hljs-built_in">set</span> minimumReleaseAge 1440 --location=user
+</code></pre></div>
+<p>On pnpm 11+, non-auth settings written this way land in <code>~/.config/pnpm/config.yaml</code> rather than <code>~/.npmrc</code>.</p>
+<h2 id="yarn-berry-410">Yarn (Berry 4.10+)<a class="heading-link" href="#yarn-berry-410"><div style="display:inline-block">#</div></a></h2>
+<h3 id="per-project-2">Per-project<a class="heading-link" href="#per-project-2"><div style="display:inline-block">#</div></a></h3>
+<p>In <code>.yarnrc.yml</code>:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><code class="_filename_1uasc_35">.yarnrc.yml</code></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-yaml"><span class="hljs-attr">npmMinimalAgeGate:</span> <span class="hljs-number">1440</span>
+</code></pre></div>
+<p>If some packages need to skip the gate:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><code class="_filename_1uasc_35">.yarnrc.yml</code></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-yaml"><span class="hljs-attr">npmMinimalAgeGate:</span> <span class="hljs-number">1440</span>
+<span class="hljs-attr">npmPreapprovedPackages:</span>
+  <span class="hljs-bullet">-</span> <span class="hljs-string">&#x27;@platformatic/*&#x27;</span>
+</code></pre></div>
+<p><code>npmPreapprovedPackages</code> accepts both glob patterns and exact locators (e.g. <code>@aws-sdk/types@3.877.0</code>), which is a notch more flexible than pnpm’s package-name-only exclude list.</p>
+<p>The docs suggest you can pass a duration string like <code>&quot;7d&quot;</code> instead of a number, but there’s an outstanding bug where the suffix is silently dropped.<sup><a href="#ref-9">[9]</a></sup> Until that’s resolved everywhere, stick to a plain minute count: one day is <code>npmMinimalAgeGate: 1440</code>.</p>
+<h3 id="user-wide-2">User-wide<a class="heading-link" href="#user-wide-2"><div style="display:inline-block">#</div></a></h3>
+<div style="display:flex;flex-direction:column"><pre style="margin-top:0" class="_code-wrapper_1uasc_1 "><code class="hljs language-bash">yarn config <span class="hljs-built_in">set</span> --home npmMinimalAgeGate 1440
+</code></pre></div>
+<p><code>--home</code> writes to <code>~/.yarnrc.yml</code> instead of the project-local file.</p>
+<h2 id="bun">Bun<a class="heading-link" href="#bun"><div style="display:inline-block">#</div></a></h2>
+<h3 id="per-project-3">Per-project<a class="heading-link" href="#per-project-3"><div style="display:inline-block">#</div></a></h3>
+<p>Bun puts it under <code>[install]</code> in <code>bunfig.toml</code>:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><code class="_filename_1uasc_35">bunfig.toml</code></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-toml"><span class="hljs-section">[install]</span>
+<span class="hljs-attr">minimumReleaseAge</span> = <span class="hljs-number">86400</span>
+</code></pre></div>
+<p>The value is in seconds. One day is <code>86400</code>.</p>
+<p>To skip the gate for a few packages, use <code>minimumReleaseAgeExcludes</code>:</p>
+<div style="display:flex;flex-direction:column"><div class="_code-tabs_1uasc_25"><code class="_filename_1uasc_35">bunfig.toml</code></div><pre style="margin-top:0" class="_code-wrapper_1uasc_1 _has-filename_1uasc_21"><code class="hljs language-toml"><span class="hljs-section">[install]</span>
+<span class="hljs-attr">minimumReleaseAge</span> = <span class="hljs-number">86400</span>
+<span class="hljs-attr">minimumReleaseAgeExcludes</span> = [<span class="hljs-string">&quot;@types/node&quot;</span>, <span class="hljs-string">&quot;typescript&quot;</span>]
+</code></pre></div>
+<h3 id="user-wide-3">User-wide<a class="heading-link" href="#user-wide-3"><div style="display:inline-block">#</div></a></h3>
+<p>There is no user-wide config story yet — Bun reads project-level <code>bunfig.toml</code> only. An open PR is wiring up support;<sup><a href="#ref-10">[10]</a></sup> when it merges, the same key in a user-wide <code>bunfig.toml</code> will work the way it does for the other tools.</p>
+<h2 id="references">References<a class="heading-link" href="#references"><div style="display:inline-block">#</div></a></h2>
+<ol><li id="ref-1">Matteo Collina, <a href="https://gist.github.com/mcollina/b294a6c39ee700d24073c0e5a4e93104">“Configuring minimum release age across npm, pnpm, and yarn”</a> (gist, April 2026). Original write-up; covered npm, pnpm, and Yarn, and the install-time vs. PR-time distinction.</li><li id="ref-2">Tom Ricci, <a href="https://gist.github.com/tom-ricci/bade55606ebb7a550598f11e29f1d6b0">“Configuring minimum release age across npm, pnpm, yarn, and bun”</a> (gist). Extends Collina’s notes with Bun coverage, version metadata, and the exclusion-list options per tool.</li><li id="ref-3">npm CLI docs, <a href="https://docs.npmjs.com/cli/v11/using-npm/config#min-release-age"><code>min-release-age</code></a>.</li><li id="ref-4">pnpm docs, <a href="https://pnpm.io/settings#minimumreleaseage"><code>minimumReleaseAge</code></a>.</li><li id="ref-5">Yarn docs, <a href="https://yarnpkg.com/configuration/yarnrc#npmMinimalAgeGate"><code>npmMinimalAgeGate</code></a>.</li><li id="ref-6">Bun docs, <a href="https://bun.sh/docs/runtime/bunfig#install-minimumreleaseage"><code>install.minimumReleaseAge</code></a>.</li><li id="ref-7">npm CLI issue <a href="https://github.com/npm/cli/issues/8994">#8994</a> — tracking an exclusion list for <code>min-release-age</code>.</li><li id="ref-8">pnpm issue <a href="https://github.com/pnpm/pnpm/issues/10008">#10008</a> — <code>minimumReleaseAge</code> silently ignored on pnpm 10.x when any workspace package sets <code>shared-workspace-lockfile=false</code>.</li><li id="ref-9">Yarn issue <a href="https://github.com/yarnpkg/berry/issues/6991">#6991</a> — duration suffixes silently dropped when parsing <code>npmMinimalAgeGate</code>.</li><li id="ref-10">Bun PR <a href="https://github.com/oven-sh/bun/pull/28727">#28727</a> — user-wide <code>bunfig.toml</code> support.</li></ol></div></div><button class="scroll-to-top " aria-label="Scroll to top"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 15l-6-6-6 6"></path></svg></button></div></div><nav class="mobile-drawer " role="dialog" aria-label="Navigation menu" aria-hidden="true"><div class="mobile-drawer-nav"><a href="/pr/42/" class="mobile-navitem">Home</a><a href="/pr/42/projects" class="mobile-navitem">Projects</a><a href="/pr/42/tools" class="mobile-navitem">Tools</a><a href="/pr/42/presentations" class="mobile-navitem">Speaking + Presentations</a><a href="/pr/42/blog/1" class="mobile-navitem">Blog</a></div><div class="mobile-drawer-footer"><a href="/pr/42/privacy" class="mobile-footer-link">Privacy Policy</a></div></nav><div class="mobile-overlay " aria-hidden="true"></div><button class="menu-toggle" aria-label="Open navigation menu" aria-expanded="false"><svg class="hamburger-icon" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line class="hamburger-line hamburger-line-top" x1="3" y1="6" x2="21" y2="6"></line><line class="hamburger-line hamburger-line-middle" x1="3" y1="12" x2="21" y2="12"></line><line class="hamburger-line hamburger-line-bottom" x1="3" y1="18" x2="21" y2="18"></line></svg></button></div><div style="position:fixed;bottom:0;right:0;display:flex;flex-direction:column;gap:8px;margin:16px;border-radius:8px;width:min(100%, 400px)"></div></div>
+        
+        <script id="vike_pageContext" type="application/json">{"pageProps":{"is404":false},"urlPathname":"\\/blog\\/2026-05-29\\/package-manager-release-cooldown","urlParsed":{"href":"\\/blog\\/2026-05-29\\/package-manager-release-cooldown","protocol":null,"hostname":null,"port":null,"origin":null,"pathname":"\\/blog\\/2026-05-29\\/package-manager-release-cooldown","pathnameOriginal":"\\/blog\\/2026-05-29\\/package-manager-release-cooldown","search":{},"searchAll":{},"searchOriginal":null},"routeParams":{"date":"2026-05-29","slug":"package-manager-release-cooldown"},"data":{},"pageId":"\\/pages\\/blog\\/view"}</script>
+        <script id="vike_globalContext" type="application/json">{}</script>
+        <script src="/pr/42/assets/entries/entry-server-routing.DJgeuIMu.js" type="module" async></script>
+        <link rel="modulepreload" href="/pr/42/assets/entries/pages_blog_view.BT8CkHh8.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/42/assets/chunks/chunk-DqTgHvO9.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/42/assets/chunks/chunk-BhW2AVEc.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/42/assets/chunks/chunk-Ca9RsbaM.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/42/assets/chunks/chunk-CiO_TN-f.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/42/assets/chunks/chunk-B9Drug8a.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/42/assets/chunks/chunk-DI4sGg5h.js" as="script" type="text/javascript">
+        <link rel="modulepreload" href="/pr/42/assets/chunks/chunk-BuheXQOU.js" as="script" type="text/javascript">
+      </body>
+    </html>
