@@ -1,63 +1,61 @@
 # Configuring minimum release age across npm, pnpm, yarn, and bun
 
-A minimum release age — or "cooldown" — tells your package manager to ignore any version of a dependency that was published less than _N_ time ago. It is a one-line config change that buys you most of the protection you would get from a sophisticated supply-chain monitoring setup: the typical malicious release is caught and pulled from the registry within a few hours, so even a one-day delay routes around the worst of them.<sup><a href="#ref-1">[1]</a></sup>
+A minimum release age (or "cooldown") instructs a package manager to ignore any dependency version published less than a configured amount of time ago. Most malicious releases are reported and removed from the registry within a few hours of publication, so even a 24-hour delay screens out the majority of compromised versions before they reach a local install.<sup><a href="#ref-1">[1]</a></sup>
 
-Every major Node.js package manager now supports this, but each picked its own name for the setting and its own unit of time. The notes below are mostly a cross-reference of what to write, where to write it, and the parts that bit me (or are about to). The technical bones come from Matteo Collina's original gist on the npm / pnpm / Yarn setup,<sup><a href="#ref-1">[1]</a></sup> Tom Ricci's expansion that added Bun,<sup><a href="#ref-2">[2]</a></sup> and each tool's own documentation.<sup><a href="#ref-3">[3]</a></sup><sup><a href="#ref-4">[4]</a></sup><sup><a href="#ref-5">[5]</a></sup><sup><a href="#ref-6">[6]</a></sup>
+Each major Node.js package manager now supports this configuration, though the setting name and the unit of time differ in each one. The reference below was assembled from Matteo Collina's original gist covering npm, pnpm, and Yarn,<sup><a href="#ref-1">[1]</a></sup> Tom Ricci's expansion adding Bun,<sup><a href="#ref-2">[2]</a></sup> and the official documentation for each tool.<sup><a href="#ref-3">[3]</a></sup><sup><a href="#ref-4">[4]</a></sup><sup><a href="#ref-5">[5]</a></sup><sup><a href="#ref-6">[6]</a></sup>
 
 ## Table of Contents
 
 ## Quick reference
 
-- **npm** — `min-release-age`, measured in **days**, available from npm CLI **11.10.0** (Feb 2026).<sup><a href="#ref-3">[3]</a></sup>
-- **pnpm** — `minimumReleaseAge`, measured in **minutes**, available from pnpm **10.16** (Sep 2025); the default became `1440` in pnpm **11.0**.<sup><a href="#ref-4">[4]</a></sup>
-- **Yarn** — `npmMinimalAgeGate`, measured in **minutes**, available from Yarn Berry **4.10.0**.<sup><a href="#ref-5">[5]</a></sup>
-- **Bun** — `minimumReleaseAge`, measured in **seconds**, available from Bun **1.3.0**.<sup><a href="#ref-6">[6]</a></sup>
+- **npm**: `min-release-age`, in **days**. Supported in npm CLI **11.10.0** (February 2026).<sup><a href="#ref-3">[3]</a></sup>
+- **pnpm**: `minimumReleaseAge`, in **minutes**. Supported in pnpm **10.16** (September 2025). The default became `1440` in pnpm **11.0**.<sup><a href="#ref-4">[4]</a></sup>
+- **Yarn**: `npmMinimalAgeGate`, in **minutes**. Supported in Yarn Berry **4.10.0**.<sup><a href="#ref-5">[5]</a></sup>
+- **Bun**: `minimumReleaseAge`, in **seconds**. Supported in Bun **1.3.0**.<sup><a href="#ref-6">[6]</a></sup>
 
-## Things to know before you turn it on
+## Caveats
 
-I have these up front because three of them are how you _think_ the cooldown is protecting you when it actually isn't.
+Several aspects of the cooldown's behavior can cause it to be silently bypassed. They are documented here, ahead of the per-tool configuration, because each one is a common source of misconfiguration.
 
-### The gate runs at install, not when a bot opens a PR
+### The check runs at install time
 
-The check happens when the package manager resolves and installs a version. A bot that proposes an update is doing neither — so Renovate and Dependabot will happily file PRs against versions your install command will refuse. Configure their cooldown options too: Renovate 42's `config:best-practices` preset already enables a three-day cooldown for npm,<sup><a href="#ref-1">[1]</a></sup> and Dependabot's `cooldown.default-days` is the corresponding knob.
+The cooldown is enforced when the package manager resolves and installs a version, not when an automation suggests one. Renovate and Dependabot will open update PRs regardless of any cooldown configured in the package manager itself, so their own cooldown options must be set independently. Renovate 42's `config:best-practices` preset enables a three-day cooldown for npm by default.<sup><a href="#ref-1">[1]</a></sup> Dependabot exposes the equivalent control as `cooldown.default-days`.
 
-### A repo that pins an older package manager wins, every time
+### A repository pinning an older package manager disables the gate
 
-If a project pins its package manager — via the `packageManager` field in `package.json`, Corepack, Volta, a Docker base image, the `setup-node` action's `version-file` input, anything — the version the project pins is the version that actually runs your install. If that pinned version predates cooldown support, the gate does not exist for that repo, no matter what your globally installed package manager is or what your user-level config says. An older binary has no concept of the setting and silently ignores it.
+If a project pins its package manager via the `packageManager` field in `package.json`, Corepack, Volta, a Docker base image, or a CI action such as `setup-node` with `version-file`, the pinned version is the one that performs installs. When the pinned version predates cooldown support, the setting has no effect, regardless of the globally installed package manager or any global configuration. An older binary has no concept of the option and ignores it.
 
-This is the failure mode I see most often. The fix is to confirm the version that actually runs (`pnpm --version` from inside the repo, `corepack pnpm --version`, the `setup-node` log line in CI) is new enough to honor the setting.
+This is the most common reason for a cooldown to be present in configuration but absent in effect. The version that actually performs the install can be confirmed by running `pnpm --version` (or the equivalent for npm, yarn, or bun) from inside the repository, or by inspecting the `setup-node` step in the CI logs.
 
-### A lax repo config beats a stricter user config
+### A repository's looser configuration overrides a stricter user configuration
 
-Per-project settings take precedence over per-user settings in all four tools. If your `~/.npmrc` / `~/.config/pnpm/config.yaml` / `~/.yarnrc.yml` / `~/.bunfig.toml` sets a one-day cooldown but the project sets zero — or sets nothing on an older tool version where the default is zero — the project value wins. The setting behaves like a project policy, not a personal safety preference.
-
-Practically, this means setting cooldown globally on your laptop is not a substitute for setting it in each repo. A repo that has not opted in is a repo without a cooldown, for you.
+Project-level configuration takes precedence over user-level configuration in all four tools. A user-wide cooldown of one day does not apply inside a repository whose `.npmrc`, `pnpm-workspace.yaml`, `.yarnrc.yml`, or `bunfig.toml` sets a smaller value or no value at all. The setting behaves as project policy rather than as a per-user safety preference. A global value, therefore, cannot serve as a backstop for repositories that have not opted in.
 
 ### No per-registry scope
 
-None of the four tools let you apply the gate to one registry but not another. Internal packages from a private registry get delayed alongside everything else unless you list them in the per-tool exclude option. npm does not have an exclude option yet — there is an open issue tracking it.<sup><a href="#ref-7">[7]</a></sup>
+None of the four tools support applying the gate to one registry but not another. Internal packages from a private registry are subject to the cooldown unless explicitly listed in the per-tool exclusion option. npm does not yet expose an exclusion option; an issue is open against the CLI tracking it.<sup><a href="#ref-7">[7]</a></sup>
 
-### Defaults are about to move
+### Defaults are likely to shift
 
-pnpm 11 already enables the gate at 1440 minutes by default; npm CLI v12 is expected to follow.<sup><a href="#ref-1">[1]</a></sup> If you set a value explicitly today, you keep the behavior you wrote down when the defaults shift under you.
+pnpm 11 enables the gate by default at 1440 minutes, and npm CLI v12 is expected to do the same.<sup><a href="#ref-1">[1]</a></sup> Setting the value explicitly today preserves the current configured behavior when the upstream defaults change.
 
 ## npm
 
 ### Per-project
 
-Put the setting in the project's `.npmrc`:
+The setting belongs in the project's `.npmrc`:
 
 ```INI filename=".npmrc"
 min-release-age=1
 ```
 
-The value is in days. You cannot combine it with `--before` in the same invocation; npm errors out if both are present. Older npm CLI versions that don't recognize the key will print:
+The value is in days. The setting cannot be combined with `--before` in the same invocation; npm raises an error if both are provided. An npm CLI version that does not recognize the key emits the following warning:
 
 ```text
 npm warn Unknown project config "min-release-age". This will stop working in the next major version of npm.
 ```
 
-The warning is cosmetic — the setting still applies on a CLI that supports it, and is harmlessly ignored on one that doesn't.
+The warning is cosmetic. The setting applies on a supporting CLI and is harmlessly ignored on one that does not support it.
 
 ### User-wide
 
@@ -65,19 +63,19 @@ The warning is cosmetic — the setting still applies on a CLI that supports it,
 npm config set min-release-age 1 --location=user
 ```
 
-That writes to `~/.npmrc`. Swap `user` for `global` if you want it in the global npm config instead.
+This writes to `~/.npmrc`. Substituting `global` for `user` writes to the global npm configuration instead.
 
 ## pnpm
 
 ### Per-project
 
-Since pnpm 11, the canonical home is `pnpm-workspace.yaml`:
+Since pnpm 11, the canonical location is `pnpm-workspace.yaml`:
 
 ```yaml filename="pnpm-workspace.yaml"
 minimumReleaseAge: 1440
 ```
 
-If you publish internal packages and want them to bypass the gate:
+Internal packages that should bypass the gate can be listed under `minimumReleaseAgeExclude`:
 
 ```yaml filename="pnpm-workspace.yaml"
 minimumReleaseAge: 1440
@@ -85,13 +83,13 @@ minimumReleaseAgeExclude:
   - '@platformatic/*'
 ```
 
-On pnpm 10.x you write the same idea in `.npmrc` with a different casing:
+On pnpm 10.x, the same setting is written in `.npmrc` with a different casing:
 
 ```INI filename=".npmrc"
 minimum-release-age=1440
 ```
 
-Worth knowing on 10.x: there is an open bug where `minimumReleaseAge` is silently ignored if any package in the workspace has `shared-workspace-lockfile=false` set in its `.npmrc`.<sup><a href="#ref-8">[8]</a></sup> If you've configured the gate but it doesn't seem to be doing anything, that's the first thing I'd check.
+A known bug on pnpm 10.x causes `minimumReleaseAge` to be silently ignored when any package in the workspace sets `shared-workspace-lockfile=false` in its `.npmrc`.<sup><a href="#ref-8">[8]</a></sup> On 10.x, this is worth verifying before assuming the setting is honored.
 
 ### User-wide
 
@@ -99,19 +97,19 @@ Worth knowing on 10.x: there is an open bug where `minimumReleaseAge` is silentl
 pnpm config set minimumReleaseAge 1440 --location=user
 ```
 
-On pnpm 11+, non-auth settings written this way land in `~/.config/pnpm/config.yaml` rather than `~/.npmrc`.
+On pnpm 11 and later, non-auth settings written this way are stored in `~/.config/pnpm/config.yaml` rather than `~/.npmrc`.
 
 ## Yarn (Berry 4.10+)
 
 ### Per-project
 
-In `.yarnrc.yml`:
+The setting belongs in `.yarnrc.yml`:
 
 ```yaml filename=".yarnrc.yml"
 npmMinimalAgeGate: 1440
 ```
 
-If some packages need to skip the gate:
+Packages that should bypass the gate can be listed under `npmPreapprovedPackages`:
 
 ```yaml filename=".yarnrc.yml"
 npmMinimalAgeGate: 1440
@@ -119,9 +117,9 @@ npmPreapprovedPackages:
   - '@platformatic/*'
 ```
 
-`npmPreapprovedPackages` accepts both glob patterns and exact locators (e.g. `@aws-sdk/types@3.877.0`), which is a notch more flexible than pnpm's package-name-only exclude list.
+`npmPreapprovedPackages` accepts both glob patterns and exact locators (for example, `@aws-sdk/types@3.877.0`), giving it more granularity than pnpm's package-name-only exclude list.
 
-The docs suggest you can pass a duration string like `"7d"` instead of a number, but there's an outstanding bug where the suffix is silently dropped.<sup><a href="#ref-9">[9]</a></sup> Until that's resolved everywhere, stick to a plain minute count: one day is `npmMinimalAgeGate: 1440`.
+The documentation states that a duration suffix such as `"7d"` is accepted, but a known parsing bug causes the suffix to be dropped.<sup><a href="#ref-9">[9]</a></sup> Until that is resolved, a plain minute count is the reliable form: one day is `npmMinimalAgeGate: 1440`.
 
 ### User-wide
 
@@ -129,13 +127,13 @@ The docs suggest you can pass a duration string like `"7d"` instead of a number,
 yarn config set --home npmMinimalAgeGate 1440
 ```
 
-`--home` writes to `~/.yarnrc.yml` instead of the project-local file.
+`--home` writes to `~/.yarnrc.yml` rather than the project-local file.
 
 ## Bun
 
 ### Per-project
 
-Bun puts it under `[install]` in `bunfig.toml`:
+The setting belongs under `[install]` in `bunfig.toml`:
 
 ```toml filename="bunfig.toml"
 [install]
@@ -144,7 +142,7 @@ minimumReleaseAge = 86400
 
 The value is in seconds. One day is `86400`.
 
-To skip the gate for a few packages, use `minimumReleaseAgeExcludes`:
+Packages that should bypass the gate can be listed under `minimumReleaseAgeExcludes`:
 
 ```toml filename="bunfig.toml"
 [install]
@@ -154,19 +152,19 @@ minimumReleaseAgeExcludes = ["@types/node", "typescript"]
 
 ### User-wide
 
-There is no user-wide config story yet — Bun reads project-level `bunfig.toml` only. An open PR is wiring up support;<sup><a href="#ref-10">[10]</a></sup> when it merges, the same key in a user-wide `bunfig.toml` will work the way it does for the other tools.
+Bun reads project-level `bunfig.toml` only; user-wide configuration is not yet supported. An open pull request adds the corresponding behavior.<sup><a href="#ref-10">[10]</a></sup> Once merged, the same key written in a user-wide `bunfig.toml` will apply across projects.
 
 ## References
 
 <ol>
-  <li id="ref-1">Matteo Collina, <a href="https://gist.github.com/mcollina/b294a6c39ee700d24073c0e5a4e93104">"Configuring minimum release age across npm, pnpm, and yarn"</a> (gist, April 2026). Original write-up; covered npm, pnpm, and Yarn, and the install-time vs. PR-time distinction.</li>
-  <li id="ref-2">Tom Ricci, <a href="https://gist.github.com/tom-ricci/bade55606ebb7a550598f11e29f1d6b0">"Configuring minimum release age across npm, pnpm, yarn, and bun"</a> (gist). Extends Collina's notes with Bun coverage, version metadata, and the exclusion-list options per tool.</li>
-  <li id="ref-3">npm CLI docs, <a href="https://docs.npmjs.com/cli/v11/using-npm/config#min-release-age"><code>min-release-age</code></a>.</li>
-  <li id="ref-4">pnpm docs, <a href="https://pnpm.io/settings#minimumreleaseage"><code>minimumReleaseAge</code></a>.</li>
-  <li id="ref-5">Yarn docs, <a href="https://yarnpkg.com/configuration/yarnrc#npmMinimalAgeGate"><code>npmMinimalAgeGate</code></a>.</li>
-  <li id="ref-6">Bun docs, <a href="https://bun.sh/docs/runtime/bunfig#install-minimumreleaseage"><code>install.minimumReleaseAge</code></a>.</li>
-  <li id="ref-7">npm CLI issue <a href="https://github.com/npm/cli/issues/8994">#8994</a> — tracking an exclusion list for <code>min-release-age</code>.</li>
-  <li id="ref-8">pnpm issue <a href="https://github.com/pnpm/pnpm/issues/10008">#10008</a> — <code>minimumReleaseAge</code> silently ignored on pnpm 10.x when any workspace package sets <code>shared-workspace-lockfile=false</code>.</li>
-  <li id="ref-9">Yarn issue <a href="https://github.com/yarnpkg/berry/issues/6991">#6991</a> — duration suffixes silently dropped when parsing <code>npmMinimalAgeGate</code>.</li>
-  <li id="ref-10">Bun PR <a href="https://github.com/oven-sh/bun/pull/28727">#28727</a> — user-wide <code>bunfig.toml</code> support.</li>
+  <li id="ref-1">Matteo Collina, <a href="https://gist.github.com/mcollina/b294a6c39ee700d24073c0e5a4e93104">"Configuring minimum release age across npm, pnpm, and yarn"</a> (gist, April 2026). Original write-up covering npm, pnpm, and Yarn, including the install-time vs. PR-time distinction and the expected default shifts.</li>
+  <li id="ref-2">Tom Ricci, <a href="https://gist.github.com/tom-ricci/bade55606ebb7a550598f11e29f1d6b0">"Configuring minimum release age across npm, pnpm, yarn, and bun"</a> (gist). Extends Collina's notes with Bun coverage, version metadata, and the per-tool exclusion options.</li>
+  <li id="ref-3">npm CLI documentation, <a href="https://docs.npmjs.com/cli/v11/using-npm/config#min-release-age"><code>min-release-age</code></a>.</li>
+  <li id="ref-4">pnpm documentation, <a href="https://pnpm.io/settings#minimumreleaseage"><code>minimumReleaseAge</code></a>.</li>
+  <li id="ref-5">Yarn documentation, <a href="https://yarnpkg.com/configuration/yarnrc#npmMinimalAgeGate"><code>npmMinimalAgeGate</code></a>.</li>
+  <li id="ref-6">Bun documentation, <a href="https://bun.sh/docs/runtime/bunfig#install-minimumreleaseage"><code>install.minimumReleaseAge</code></a>.</li>
+  <li id="ref-7">npm CLI issue <a href="https://github.com/npm/cli/issues/8994">#8994</a>. Tracks an exclusion list for <code>min-release-age</code>.</li>
+  <li id="ref-8">pnpm issue <a href="https://github.com/pnpm/pnpm/issues/10008">#10008</a>. <code>minimumReleaseAge</code> silently ignored on pnpm 10.x when any workspace package sets <code>shared-workspace-lockfile=false</code>.</li>
+  <li id="ref-9">Yarn issue <a href="https://github.com/yarnpkg/berry/issues/6991">#6991</a>. Duration suffixes silently dropped when parsing <code>npmMinimalAgeGate</code>.</li>
+  <li id="ref-10">Bun pull request <a href="https://github.com/oven-sh/bun/pull/28727">#28727</a>. Adds user-wide <code>bunfig.toml</code> support.</li>
 </ol>
