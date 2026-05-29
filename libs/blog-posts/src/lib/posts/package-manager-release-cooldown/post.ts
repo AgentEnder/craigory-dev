@@ -6,6 +6,6 @@ export const packageManagerReleaseCooldown: BlogPost = {
   publishDate: new Date(2026, 4, 29),
   slug: 'package-manager-release-cooldown',
   title: 'Configuring minimum release age across npm, pnpm, yarn, and bun',
-  description: `Setting a minimum release age ("cooldown") on dependencies is a cheap, high-leverage defense against supply-chain attacks. All four major Node.js package managers now support it — each with a different name, a different unit, and a few surprising caveats.`,
+  description: `A one-day cooldown on new dependency versions catches most of what supply-chain attackers ship, and every major Node.js package manager now supports it — but each chose its own name for the setting, its own unit of time, and its own set of ways the gate can quietly do nothing.`,
   tags: ['technical', 'tooling', 'devops', 'javascript'] as BlogTag[],
 };
