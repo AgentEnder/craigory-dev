@@ -232,6 +232,9 @@ export default function Page() {
           <div className="header-count">
             {filtered.length.toLocaleString()} glyphs
           </div>
+          <a className="header-nav-link" href={withBase('/unicode/versions')}>
+            Version history
+          </a>
         </div>
       </header>
 

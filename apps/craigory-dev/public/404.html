@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="robots" content="noindex" />
+    <title>Page not found</title>
+    <script>
+      // GitHub Pages SPA fallback — SCOPED to the alt-codes client-only /glyph viewer.
+      // Those URLs (the 12k+ CJK & Scripts glyphs) aren't prerendered, so a cold deep
+      // link 404s here. We rewrite it into a query the alt-codes index can restore (see
+      // the restore script in alt-codes' +Head), then redirect to the alt-codes root.
+      // Every OTHER 404 (other apps, the site root, a genuinely missing alt-codes page)
+      // falls through to the static "not found" message below — untouched.
+      (function () {
+        var l = window.location;
+        var GLYPH = '/alt-codes/glyph/';
+        var APP = '/alt-codes/';
+        if (l.pathname.indexOf(GLYPH) === -1) return;
+        // Base = everything up to and including "/alt-codes/" — works under the bare
+        // production path and under PR-preview prefixes like "/pr/123/alt-codes/".
+        var base = l.pathname.slice(0, l.pathname.indexOf(APP) + APP.length);
+        var rest = l.pathname.slice(base.length);
+        l.replace(
+          l.protocol + '//' + l.host + base + '?/' +
+          rest.replace(/&/g, '~and~') +
+          (l.search ? '&' + l.search.slice(1).replace(/&/g, '~and~') : '') +
+          l.hash
+        );
+      })();
+    </script>
+  </head>
+  <body>
+    <h1>404 — Page not found</h1>
+    <p><a href="/">Return to craigory.dev</a></p>
+  </body>
+</html>

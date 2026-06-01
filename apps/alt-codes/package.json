@@ -7,7 +7,8 @@
     "dev": "vike dev",
     "build": "vike build",
     "preview": "vike preview",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "gen:unicode": "node scripts/generate-unicode-data.mjs"
   },
   "nx": {
     "targets": {
@@ -29,7 +30,6 @@
     "react-dom": "^19.1.1",
     "tailwindcss": "^4.1.12",
     "gemoji": "^8.1.0",
-    "unicode-emoji-json": "^0.8.0",
     "vike": "catalog:",
     "vike-react": "catalog:"
   }

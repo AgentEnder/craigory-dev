@@ -677,3 +677,76 @@ body {
 .skin-tone-swatch--active {
   border-color: var(--color-amber);
 }
+
+/* ── Version history pages ────────────────────── */
+
+.header-nav-link {
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-amber);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.header-nav-link:hover {
+  text-decoration: underline;
+}
+
+.version-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  max-width: 900px;
+}
+
+.version-row {
+  display: flex;
+  align-items: baseline;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 3px;
+  text-decoration: none;
+  transition: border-color 0.1s, background 0.1s;
+}
+
+.version-row:hover {
+  border-color: var(--color-amber);
+  background: var(--color-surface-hover);
+}
+
+.version-row-num {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  color: var(--color-amber);
+  min-width: 140px;
+}
+
+.version-row-cats {
+  flex: 1;
+  font-size: 12px;
+  color: var(--color-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.version-row-count {
+  margin-left: auto;
+  font-family: var(--font-mono);
+  color: var(--color-text);
+  font-variant-numeric: tabular-nums;
+}
+
+.symbol-version-link {
+  display: inline-block;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-amber);
+  text-decoration: none;
+}
+
+.symbol-version-link:hover {
+  text-decoration: underline;
+}
