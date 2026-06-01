@@ -1,3 +1,5 @@
+import { generatedMeta } from './generated/meta';
+
 export interface EmojiMeta {
   group: string;           // "Smileys & Emotion"
   subgroup: string;        // "face-smiling"
@@ -17,6 +19,7 @@ export interface CharacterEntry {
   aliases: string[];
   tags: string[];
   emoji: EmojiMeta | null;    // null for non-emoji
+  unicodeVersion: string | null;  // version introduced, e.g. "6.1", "18.0"; null if unknown
 }
 
 /** Slim version of CharacterEntry for the home page grid — strips emoji metadata
@@ -30,6 +33,7 @@ export interface GridEntry {
   altCode: number | null;
   aliases: string[];
   tags: string[];
+  unicodeVersion: string | null;
 }
 
 export function toGridEntry(entry: CharacterEntry): GridEntry {
@@ -42,6 +46,7 @@ export function toGridEntry(entry: CharacterEntry): GridEntry {
     altCode: entry.altCode,
     aliases: entry.aliases,
     tags: entry.tags,
+    unicodeVersion: entry.unicodeVersion,
   };
 }
 
@@ -101,6 +106,35 @@ export const CATEGORIES: Category[] = [
   { id: 'symbols-emoji', name: 'Symbols (Emoji)' },
   { id: 'flags', name: 'Flags' },
 ];
+
+/** Categories that exist only in the version / change-history pages — kept out of the
+ *  home browse and per-category pages because of their bulk (12k+ CJK & script glyphs). */
+export const EXTRA_CATEGORY_NAMES: Record<string, string> = {
+  'cjk-scripts': 'CJK & Scripts',
+};
+
+/** Resolve a category id to its display name (falls back to the id itself). */
+export function categoryName(id: string): string {
+  return CATEGORIES.find((c) => c.id === id)?.name ?? EXTRA_CATEGORY_NAMES[id] ?? id;
+}
+
+/** Sort Unicode version strings ("1.1", "6.3", "15.1", "18.0") newest-first. */
+export function compareVersionsDesc(a: string, b: string): number {
+  const [aMaj, aMin = 0] = a.split('.').map(Number);
+  const [bMaj, bMin = 0] = b.split('.').map(Number);
+  return bMaj - aMaj || bMin - aMin;
+}
+
+/** The unreleased (beta/working-draft) Unicode version, or null when built from a
+ *  released UCD. Set by the generator when sourcing from unicode.org's draft tree. */
+export const DRAFT_VERSION: string | null = generatedMeta.draftVersion;
+
+/** True when `version` is the working-draft version (or newer) — i.e. no released font
+ *  has glyphs for it yet, so the UI should show a placeholder instead of likely tofu. */
+export function isUnreleasedVersion(version: string | null | undefined): boolean {
+  if (!version || !DRAFT_VERSION) return false;
+  return compareVersionsDesc(version, DRAFT_VERSION) <= 0;
+}
 
 /** Categories included in the initial SSR payload for fast FCP/LCP.
  *  Remaining categories are lazy-loaded as JSON from /generated/{id}.json. */
@@ -282,6 +316,8 @@ export interface UnicodeData {
   characters: CharacterEntry[];
   byCodePoints: Map<string, CharacterEntry>;
   byCategory: Map<string, CharacterEntry[]>;
+  byVersion: Map<string, CharacterEntry[]>;  // unicodeVersion → entries introduced then
+  versions: string[];                         // versions present, newest-first
 }
 
 declare global {

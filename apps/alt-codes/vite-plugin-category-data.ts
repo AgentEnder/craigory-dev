@@ -1,6 +1,6 @@
 import type { Plugin } from 'vite';
 import { loadUnicodeData } from './pages/unicode-loader.server';
-import { toGridEntry } from './src/unicode-data';
+import { CATEGORIES, toGridEntry } from './src/unicode-data';
 
 /**
  * Vite plugin that generates per-category JSON files for lazy loading on the home page.
@@ -11,8 +11,11 @@ import { toGridEntry } from './src/unicode-data';
  */
 export function categoryDataPlugin(): Plugin {
   const { byCategory } = loadUnicodeData();
+  const homeCategories = new Set(CATEGORIES.map((c) => c.id));
   const jsonMap = new Map<string, string>();
   for (const [categoryId, entries] of byCategory) {
+    // Skip version-only buckets (e.g. cjk-scripts) — they're served by the version plugin.
+    if (!homeCategories.has(categoryId)) continue;
     jsonMap.set(categoryId, JSON.stringify(entries.map(toGridEntry)));
   }
 

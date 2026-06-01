@@ -188,6 +188,14 @@ export default function Page() {
               <div className="symbol-hero-glyph">{displayChar}</div>
               <div className="symbol-hero-info">
                 <h1 className="symbol-name">{entry.name || entry.hex}</h1>
+                {entry.unicodeVersion && (
+                  <a
+                    className="symbol-version-link"
+                    href={withBase(`/unicode/versions/${entry.unicodeVersion}`)}
+                  >
+                    Introduced in Unicode {entry.unicodeVersion}
+                  </a>
+                )}
                 {entry.tags.length > 0 && (
                   <ul className="symbol-tag-list" aria-label="Tags">
                     {entry.tags.map(t => (

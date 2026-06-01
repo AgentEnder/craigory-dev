@@ -1,7 +1,7 @@
 import type { PageContextServer } from 'vike/types';
 import type { CharacterEntry, EncodingInfo } from '../../../src/unicode-data';
 import { parseSymbolSlug, codePointsKey, CATEGORIES } from '../../../src/unicode-data';
-import { getEncodingInfo } from '../../unicode-loader.server';
+import { getEncodingInfo } from '../../../src/encoding';
 
 export type SymbolData = {
   entry: CharacterEntry;
