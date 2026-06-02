@@ -118,9 +118,12 @@
     visibility 0s linear 0s;
 }
 
-// CSS Anchor Positioning path. Browsers that support it (Chrome 125+,
-// Edge 125+, Safari 26+) get spec-driven centering on the marker.
-// Other browsers fall through to the transform-based positioning above.
+// CSS Anchor Positioning path. Uses anchor() inset functions rather than
+// position-area because position-area shipped under different names in
+// different Chromium versions (inset-area pre-Chrome-129, position-area
+// after) — anchor() has been stable since the feature first shipped.
+// Browsers without anchor positioning fall through to the transform-based
+// path above.
 @supports (anchor-name: --x) {
   .marker {
     anchor-name: var(--cite-anchor);
@@ -128,24 +131,17 @@
 
   .popover {
     // Clear the transform-based fallback inset.
-    bottom: auto;
-    left: auto;
-
-    position-anchor: var(--cite-anchor);
-    position-area: top;
+    bottom: anchor(top);
+    left: anchor(center);
     margin-bottom: 0.875rem;
 
-    // No translateX needed: position-area handles centering on the anchor.
+    // Center the popover on the marker. The translate property is applied
+    // before transform, so the entry animation in `transform` composes on
+    // top of it cleanly.
+    translate: -50% 0;
+
     transform: translateY(0.25rem) scale(0.94);
     transform-origin: center bottom;
-  }
-
-  // Pin the caret horizontally to the marker rather than the popover's
-  // own center. This keeps the arrow pointing at the marker even when the
-  // popover itself overflows or is shifted off-center.
-  .popover::after {
-    position-anchor: var(--cite-anchor);
-    left: anchor(center);
   }
 
   .citation:hover .popover,
