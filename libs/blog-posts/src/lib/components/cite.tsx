@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { CSSProperties, ReactNode, useId } from 'react';
 import classes from './cite.module.scss';
 
 export interface CiteProps {
@@ -14,8 +14,15 @@ export interface CiteProps {
 }
 
 export function Cite({ n, href, children }: CiteProps) {
+  // CSS dashed-idents only accept [a-zA-Z0-9_-]; useId returns identifiers
+  // that include `:` and `«»` characters, so strip them.
+  const cleanId = useId().replace(/[^a-zA-Z0-9]/g, '');
+  const anchorVariables = {
+    '--cite-anchor': `--cite-${cleanId}`,
+  } as CSSProperties;
+
   return (
-    <span className={classes['citation']}>
+    <span className={classes['citation']} style={anchorVariables}>
       <sup className={classes['marker']}>
         <a
           href={href}

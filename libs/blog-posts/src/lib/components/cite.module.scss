@@ -118,6 +118,49 @@
     visibility 0s linear 0s;
 }
 
+// CSS Anchor Positioning path. Browsers that support it (Chrome 125+,
+// Edge 125+, Safari 26+) get spec-driven centering on the marker and
+// automatic horizontal-shift fallbacks when the popover would overflow.
+// Other browsers fall through to the transform-based positioning above.
+@supports (anchor-name: --x) {
+  .marker {
+    anchor-name: var(--cite-anchor);
+  }
+
+  .popover {
+    // Clear the transform-based fallback inset.
+    bottom: auto;
+    left: auto;
+
+    position-anchor: var(--cite-anchor);
+    position-area: top;
+    margin-bottom: 0.875rem;
+
+    // No translateX needed: position-area handles centering on the anchor.
+    transform: translateY(0.25rem) scale(0.94);
+    transform-origin: center bottom;
+
+    // When the centered placement would overflow the viewport horizontally,
+    // shift to whichever side has room. Caret stays at bottom-center of the
+    // card, which can leave it slightly off the marker in the shifted
+    // positions — an acceptable trade-off vs. a clipped popover.
+    position-try-fallbacks: --cite-shift-end, --cite-shift-start;
+  }
+
+  .citation:hover .popover,
+  .citation:focus-within .popover {
+    transform: translateY(0) scale(1);
+  }
+}
+
+@position-try --cite-shift-end {
+  position-area: top span-right;
+}
+
+@position-try --cite-shift-start {
+  position-area: top span-left;
+}
+
 // Touch-only viewports don't reliably fire :hover. Leaving the popover
 // closed there is preferable to flashing it on tap; the marker still
 // navigates to the source on tap.
