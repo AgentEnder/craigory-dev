@@ -71,6 +71,26 @@
     transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1),
     visibility 0s linear 0.18s;
 
+  // Invisible hover bridge spanning the margin gap between the popover
+  // and the marker. Without this, the cursor crosses an unhoverable strip
+  // of empty space on its way from the marker to the popover, briefly
+  // dropping :hover and starting the fade-out. Explicit visibility +
+  // pointer-events here override the hidden/none state the popover sits
+  // in by default, so the bridge can catch the cursor before :hover is
+  // lost. The bridge stays narrow so accidental hovers in the line above
+  // the marker do not trigger the popover.
+  &::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 2.5em;
+    height: 0.875rem;
+    transform: translateX(-50%);
+    visibility: visible;
+    pointer-events: auto;
+  }
+
   // Downward caret pointing at the marker. Half of the rotated square peeks
   // out below the popover; the other half overlaps the popover edge so the
   // seam disappears.
@@ -107,7 +127,7 @@
 }
 
 .citation:hover .popover,
-.citation:focus-within .popover {
+.citation:has(:focus-visible) .popover {
   opacity: 1;
   visibility: visible;
   pointer-events: auto;
@@ -150,7 +170,7 @@
   }
 
   .citation:hover .popover,
-  .citation:focus-within .popover {
+  .citation:has(:focus-visible) .popover {
     transform: translateY(0) scale(1);
   }
 }
@@ -165,7 +185,7 @@
   }
 
   .citation:hover .popover,
-  .citation:focus-within .popover {
+  .citation:has(:focus-visible) .popover {
     transform: translateX(-50%) translateY(0) scale(1);
     transition: opacity 0.12s ease, visibility 0s linear 0s;
   }
