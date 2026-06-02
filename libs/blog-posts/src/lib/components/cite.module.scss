@@ -130,7 +130,12 @@
   }
 
   .popover {
-    // Clear the transform-based fallback inset.
+    // Declare which anchor the anchor() functions below resolve against.
+    // Without this, the bare anchor() calls have no target and the
+    // declarations become invalid, dropping the popover back to its
+    // static absolute position next to the marker.
+    position-anchor: var(--cite-anchor);
+
     bottom: anchor(top);
     left: anchor(center);
     margin-bottom: 0.875rem;
