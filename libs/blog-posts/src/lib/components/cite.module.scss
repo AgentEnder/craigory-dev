@@ -1,0 +1,133 @@
+.citation {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  // The popover lives inside; if any ancestor sets overflow:hidden, it will
+  // still clip — but most blog containers leave overflow visible.
+}
+
+.marker {
+  font-size: 0.75em;
+  line-height: 0;
+  vertical-align: super;
+}
+
+.anchor {
+  color: #4c51bf;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0 0.1em;
+  border-radius: 3px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+
+  &:hover,
+  &:focus-visible {
+    background-color: rgba(76, 81, 191, 0.12);
+    color: #2d3748;
+    text-decoration: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #4c51bf;
+    outline-offset: 2px;
+  }
+}
+
+.popover {
+  position: absolute;
+  bottom: calc(100% + 0.5rem);
+  left: 50%;
+  z-index: 50;
+
+  // Sized so it doesn't span the whole article column.
+  width: max-content;
+  max-width: min(22rem, calc(100vw - 2rem));
+
+  // The visual chrome.
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  color: #1a202c;
+  border: 1px solid rgba(76, 81, 191, 0.18);
+  border-radius: 10px;
+  padding: 0.75rem 0.875rem;
+  box-shadow:
+    0 18px 32px -12px rgba(45, 55, 72, 0.32),
+    0 4px 8px -4px rgba(45, 55, 72, 0.18);
+
+  font-style: normal;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-align: left;
+
+  // Closed state: hidden but kept in the DOM. visibility transition is
+  // delayed on exit so the fade plays before the element becomes inert.
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(0.25rem) scale(0.94);
+  transform-origin: 50% calc(100% + 0.4rem);
+  transition:
+    opacity 0.18s ease,
+    transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1),
+    visibility 0s linear 0.18s;
+
+  // Small downward caret pointing at the marker.
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 0.625rem;
+    height: 0.625rem;
+    background: #f8fafc;
+    border-right: 1px solid rgba(76, 81, 191, 0.18);
+    border-bottom: 1px solid rgba(76, 81, 191, 0.18);
+    transform: translate(-50%, -55%) rotate(45deg);
+    box-shadow: 2px 2px 4px -2px rgba(45, 55, 72, 0.12);
+  }
+}
+
+.popoverBody {
+  display: block;
+  // Internal links inherit the popover's accent.
+  a {
+    color: #4c51bf;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    word-break: break-word;
+
+    &:hover,
+    &:focus-visible {
+      color: #2d3748;
+    }
+  }
+}
+
+.citation:hover .popover,
+.citation:focus-within .popover {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0) scale(1);
+  transition:
+    opacity 0.18s ease,
+    transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1),
+    visibility 0s linear 0s;
+}
+
+// Touch-only viewports don't reliably fire :hover. Leaving the popover
+// closed there is preferable to flashing it on tap; the marker still
+// navigates to the source on tap.
+@media (prefers-reduced-motion: reduce) {
+  .popover {
+    transition: opacity 0.12s ease, visibility 0s linear 0.12s;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+
+  .citation:hover .popover,
+  .citation:focus-within .popover {
+    transform: translateX(-50%) translateY(0) scale(1);
+    transition: opacity 0.12s ease, visibility 0s linear 0s;
+  }
+}

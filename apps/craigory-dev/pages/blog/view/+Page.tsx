@@ -1,5 +1,6 @@
 import {
   slugMap,
+  Cite,
   CodeWrapper,
   LinkToPost,
   PostContext,
@@ -58,6 +59,7 @@ export function Page() {
                 h1: BlogH1,
                 pre: CodeWrapper,
                 Anchor: ContentMarker,
+                Cite,
                 LinkToPost,
                 Tab,
                 Tabs,

@@ -1,4 +1,5 @@
 export { blogPosts, pages, slugMap } from './lib/posts';
+export * from './lib/components/cite';
 export * from './lib/components/code-wrapper';
 export * from './lib/components/link-to-post';
 export * from './lib/components/post-context';
