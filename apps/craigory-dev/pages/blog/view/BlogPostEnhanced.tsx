@@ -85,37 +85,6 @@ export function BlogPostEnhanced({ children }: BlogPostEnhancedProps) {
     };
   }, [toc]);
 
-  // Add copy buttons to code blocks
-  useEffect(() => {
-    const codeBlocks = contentRef.current?.querySelectorAll('pre code');
-    
-    codeBlocks?.forEach((block) => {
-      const pre = block.parentElement;
-      if (!pre) return;
-      
-      // Check if button already exists
-      if (pre.querySelector('.copy-button')) return;
-      
-      const button = document.createElement('button');
-      button.className = 'copy-button';
-      button.textContent = 'Copy';
-      
-      button.addEventListener('click', () => {
-        const text = block.textContent || '';
-        navigator.clipboard.writeText(text).then(() => {
-          button.textContent = 'Copied!';
-          button.classList.add('copied');
-          setTimeout(() => {
-            button.textContent = 'Copy';
-            button.classList.remove('copied');
-          }, 2000);
-        });
-      });
-      
-      pre.appendChild(button);
-    });
-  }, [children]);
-
   const scrollToTop = useCallback(() => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, []);

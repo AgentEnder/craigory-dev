@@ -1,0 +1,192 @@
+.citation {
+  position: relative;
+  display: inline-block;
+  line-height: 0;
+  // The popover lives inside; if any ancestor sets overflow:hidden, it will
+  // still clip — but most blog containers leave overflow visible.
+}
+
+.marker {
+  font-size: 0.75em;
+  line-height: 0;
+  vertical-align: super;
+}
+
+.anchor {
+  color: #4c51bf;
+  text-decoration: none;
+  font-weight: 600;
+  padding: 0 0.1em;
+  border-radius: 3px;
+  transition: background-color 0.15s ease, color 0.15s ease;
+
+  &:hover,
+  &:focus-visible {
+    background-color: rgba(76, 81, 191, 0.12);
+    color: #2d3748;
+    text-decoration: none;
+  }
+
+  &:focus-visible {
+    outline: 2px solid #4c51bf;
+    outline-offset: 2px;
+  }
+}
+
+.popover {
+  position: absolute;
+  bottom: calc(100% + 0.875rem);
+  left: 50%;
+  z-index: 50;
+
+  // Sized so it doesn't span the whole article column.
+  width: max-content;
+  max-width: min(22rem, calc(100vw - 2rem));
+
+  // The visual chrome.
+  background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%);
+  color: #1a202c;
+  border: 1px solid rgba(76, 81, 191, 0.18);
+  border-radius: 10px;
+  padding: 0.75rem 0.875rem;
+  box-shadow:
+    0 18px 32px -12px rgba(45, 55, 72, 0.32),
+    0 4px 8px -4px rgba(45, 55, 72, 0.18);
+
+  font-style: normal;
+  font-size: 0.85rem;
+  line-height: 1.5;
+  letter-spacing: 0;
+  text-align: left;
+
+  // Closed state: hidden but kept in the DOM. visibility transition is
+  // delayed on exit so the fade plays before the element becomes inert.
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transform: translateX(-50%) translateY(0.25rem) scale(0.94);
+  transform-origin: 50% calc(100% + 0.75rem);
+  transition:
+    opacity 0.18s ease,
+    transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1),
+    visibility 0s linear 0.18s;
+
+  // Invisible hover bridge spanning the margin gap between the popover
+  // and the marker. Without this, the cursor crosses an unhoverable strip
+  // of empty space on its way from the marker to the popover, briefly
+  // dropping :hover and starting the fade-out. Explicit visibility +
+  // pointer-events here override the hidden/none state the popover sits
+  // in by default, so the bridge can catch the cursor before :hover is
+  // lost. The bridge stays narrow so accidental hovers in the line above
+  // the marker do not trigger the popover.
+  &::before {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 2.5em;
+    height: 0.875rem;
+    transform: translateX(-50%);
+    visibility: visible;
+    pointer-events: auto;
+  }
+
+  // Downward caret pointing at the marker. Half of the rotated square peeks
+  // out below the popover; the other half overlaps the popover edge so the
+  // seam disappears.
+  &::after {
+    content: '';
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    width: 0.75rem;
+    height: 0.75rem;
+    background: #f8fafc;
+    border-right: 1px solid rgba(76, 81, 191, 0.18);
+    border-bottom: 1px solid rgba(76, 81, 191, 0.18);
+    transform: translate(-50%, -50%) rotate(45deg);
+    box-shadow: 2px 2px 4px -2px rgba(45, 55, 72, 0.18);
+  }
+}
+
+.popoverBody {
+  display: block;
+  // Internal links inherit the popover's accent.
+  a {
+    color: #4c51bf;
+    text-decoration: underline;
+    text-decoration-thickness: 1px;
+    text-underline-offset: 2px;
+    word-break: break-word;
+
+    &:hover,
+    &:focus-visible {
+      color: #2d3748;
+    }
+  }
+}
+
+.citation:hover .popover,
+.citation:has(:focus-visible) .popover {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translateX(-50%) translateY(0) scale(1);
+  transition:
+    opacity 0.18s ease,
+    transform 0.32s cubic-bezier(0.34, 1.56, 0.64, 1),
+    visibility 0s linear 0s;
+}
+
+// CSS Anchor Positioning path. Uses anchor() inset functions rather than
+// position-area because position-area shipped under different names in
+// different Chromium versions (inset-area pre-Chrome-129, position-area
+// after) — anchor() has been stable since the feature first shipped.
+// Browsers without anchor positioning fall through to the transform-based
+// path above.
+@supports (anchor-name: --x) {
+  .marker {
+    anchor-name: var(--cite-anchor);
+  }
+
+  .popover {
+    // Declare which anchor the anchor() functions below resolve against.
+    // Without this, the bare anchor() calls have no target and the
+    // declarations become invalid, dropping the popover back to its
+    // static absolute position next to the marker.
+    position-anchor: var(--cite-anchor);
+
+    bottom: anchor(top);
+    left: anchor(center);
+    margin-bottom: 0.875rem;
+
+    // Center the popover on the marker. The translate property is applied
+    // before transform, so the entry animation in `transform` composes on
+    // top of it cleanly.
+    translate: -50% 0;
+
+    transform: translateY(0.25rem) scale(0.94);
+    transform-origin: center bottom;
+  }
+
+  .citation:hover .popover,
+  .citation:has(:focus-visible) .popover {
+    transform: translateY(0) scale(1);
+  }
+}
+
+// Touch-only viewports don't reliably fire :hover. Leaving the popover
+// closed there is preferable to flashing it on tap; the marker still
+// navigates to the source on tap.
+@media (prefers-reduced-motion: reduce) {
+  .popover {
+    transition: opacity 0.12s ease, visibility 0s linear 0.12s;
+    transform: translateX(-50%) translateY(0) scale(1);
+  }
+
+  .citation:hover .popover,
+  .citation:has(:focus-visible) .popover {
+    transform: translateX(-50%) translateY(0) scale(1);
+    transition: opacity 0.12s ease, visibility 0s linear 0s;
+  }
+}

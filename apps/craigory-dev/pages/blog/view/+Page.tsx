@@ -1,8 +1,11 @@
 import {
   slugMap,
+  Cite,
   CodeWrapper,
   LinkToPost,
   PostContext,
+  Tab,
+  Tabs,
   TikiTable,
 } from '@new-personal-monorepo/blog-posts';
 import { usePageContext } from 'vike-react/usePageContext';
@@ -56,7 +59,10 @@ export function Page() {
                 h1: BlogH1,
                 pre: CodeWrapper,
                 Anchor: ContentMarker,
+                Cite,
                 LinkToPost,
+                Tab,
+                Tabs,
                 TikiTable,
               },
             })}

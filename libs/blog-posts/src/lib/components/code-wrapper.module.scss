@@ -1,46 +1,141 @@
+// Unified dark surface for the whole code block. Border-radius + overflow:hidden
+// on this wrapper lets the header and the highlight.js <code> share rounded corners
+// without us having to coordinate radii on the children.
+.code-block {
+  position: relative;
+  margin: 2rem 0;
+  border-radius: 10px;
+  background: #282b2e;
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22),
+    0 0 0 1px rgba(255, 255, 255, 0.04);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.4rem 0.75rem;
+  background: linear-gradient(180deg, #2f3236 0%, #282b2e 100%);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+  font-family: 'Fira Code', 'SFMono-Regular', Menlo, Monaco, Consolas, monospace;
+  font-size: 0.78rem;
+  color: #ccd0d4;
+  user-select: none;
+}
+
+.code-header-left {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+  flex: 1 1 auto;
+}
+
+.language-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1rem 0.55rem;
+  border-radius: 999px;
+  background: rgba(139, 233, 253, 0.12);
+  color: #8be9fd;
+  font-size: 0.65rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  line-height: 1.5;
+  flex-shrink: 0;
+}
+
+.filename {
+  background: none;
+  padding: 0;
+  margin: 0;
+  color: #f8f8f2;
+  font-size: 0.78rem;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  min-width: 0;
+}
+
+.copy-button {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.6rem;
+  background: rgba(255, 255, 255, 0.05);
+  color: #ccd0d4;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+  flex-shrink: 0;
+
+  &:hover {
+    background: rgba(255, 255, 255, 0.1);
+    color: #fff;
+    border-color: rgba(255, 255, 255, 0.16);
+  }
+
+  &:focus-visible {
+    outline: 2px solid #8be9fd;
+    outline-offset: 2px;
+  }
+
+  &.copied {
+    background: rgba(80, 250, 123, 0.14);
+    color: #50fa7b;
+    border-color: rgba(80, 250, 123, 0.28);
+  }
+
+  svg {
+    display: block;
+  }
+}
+
+.code-wrapper {
+  margin: 0;
+  padding: 0;
+  background: transparent;
+}
+
+// Reset the global hljs styling we used to rely on (radius + shadow) because the
+// wrapper now provides them. Keep padding and font metrics so the typography
+// matches the rest of the post.
+:global(.blog-content) .code-wrapper :global(code.hljs) {
+  display: block;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 1.1rem 1.25rem;
+  background: #282b2e;
+}
+
+// Custom scrollbar inside the code block.
 .code-wrapper code::-webkit-scrollbar {
-  width: 16px;
+  height: 10px;
+  width: 10px;
 }
 
 .code-wrapper code::-webkit-scrollbar-track {
-  border-radius: 0 0 8px 8px;
-  background-color: #282b2e;
-  border: none;
+  background-color: transparent;
 }
 
 .code-wrapper code::-webkit-scrollbar-thumb {
   border-radius: 8px;
-  border: 3px solid transparent;
+  border: 2px solid transparent;
   background-clip: content-box;
-  background-color: #3a3a5a;
-}
+  background-color: rgba(255, 255, 255, 0.15);
 
-.code-wrapper {
-  code {
-    border-radius: 8px;
-  }
-
-  &.has-filename > code {
-    border-radius: 0 0 8px 8px;
-  }
-}
-
-.code-tabs {
-  display: flex;
-  flex-direction: row;
-  gap: 1em;
-  padding: 0.5em 0.5em 0 0.5em;
-  border: 2px solid black;
-  background-color: #3a3a5a;
-  box-shadow: 0 4px 8px #000000e8;
-  border-radius: 8px 8px 0 0;
-
-  .filename {
-    background-color: #282b2e;
-    border-radius: 0.5em 0.5em 0 0;
-    padding: 0.5em;
-    color: #f8f8f2;
-    border: 2px solid black;
-    border-bottom: none;
+  &:hover {
+    background-color: rgba(255, 255, 255, 0.25);
   }
 }
