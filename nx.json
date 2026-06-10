@@ -106,6 +106,5 @@
       }
     }
   },
-  "useInferencePlugins": false,
-  "analytics": false
+  "analytics": true
 }
