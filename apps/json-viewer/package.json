@@ -26,6 +26,7 @@
     "ace-code": "^1.43.6",
     "ace-linters": "^2.1.1",
     "autoprefixer": "^10.4.21",
+    "base2048": "^2.0.2",
     "jq-web": "^0.6.2",
     "postcss": "^8.5.6",
     "react": "^19.1.1",

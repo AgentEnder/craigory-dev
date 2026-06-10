@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import { applyVisibilityFilter, findSiblingPaths } from './visibility-filter';
+import type { SharePayload } from './share-url';
 
 type Tab = 'jq' | 'typescript' | 'visibility';
 
@@ -8,39 +9,61 @@ interface AppError {
   message: string;
 }
 
+const DEFAULT_JQ = '.';
+const DEFAULT_TS = `export default function transform(data: DataType) {
+  return data;
+}
+`;
+
 interface JsonViewerState {
   jsonData: unknown;
+  rawJsonText: string;
   activeTab: Tab;
   output: unknown;
   errors: AppError[];
   hiddenPaths: Set<string>;
+  jqExpression: string;
+  tsCode: string;
 }
 
 interface JsonViewerActions {
-  setJsonData: (data: unknown) => void;
+  setJsonData: (data: unknown, rawText?: string) => void;
+  setRawJsonText: (text: string) => void;
   setActiveTab: (tab: Tab) => void;
   setOutput: (output: unknown) => void;
   setError: (location: AppError['location'], message: string) => void;
   clearError: (location: AppError['location']) => void;
   togglePath: (path: string) => void;
+  setJqExpression: (expr: string) => void;
+  setTsCode: (code: string) => void;
+  restoreShare: (payload: SharePayload) => void;
 }
 
 export type JsonViewerStore = JsonViewerState & JsonViewerActions;
 
+export const DEFAULT_TS_CODE = DEFAULT_TS;
+export const DEFAULT_JQ_EXPRESSION = DEFAULT_JQ;
+
 export const useJsonViewerStore = create<JsonViewerStore>((set, get) => ({
   jsonData: null,
+  rawJsonText: '',
   activeTab: 'typescript',
   output: null,
   errors: [],
   hiddenPaths: new Set(),
+  jqExpression: DEFAULT_JQ,
+  tsCode: DEFAULT_TS,
 
-  setJsonData: (data) =>
+  setJsonData: (data, rawText) =>
     set({
       jsonData: data,
+      rawJsonText: rawText ?? '',
       output: data,
       hiddenPaths: new Set(),
       errors: [],
     }),
+
+  setRawJsonText: (text) => set({ rawJsonText: text }),
 
   setActiveTab: (tab) => {
     const { jsonData, hiddenPaths } = get();
@@ -105,5 +128,33 @@ export const useJsonViewerStore = create<JsonViewerStore>((set, get) => ({
     } catch {
       // Silently keep current state on failure
     }
+  },
+
+  setJqExpression: (expr) => set({ jqExpression: expr }),
+  setTsCode: (code) => set({ tsCode: code }),
+
+  restoreShare: (payload) => {
+    const hiddenPaths = new Set(payload.hidden);
+    let output: unknown = payload.data;
+    if (payload.tab === 'visibility' && payload.data !== null) {
+      try {
+        output = applyVisibilityFilter(payload.data, hiddenPaths);
+      } catch {
+        output = payload.data;
+      }
+    }
+    set({
+      jsonData: payload.data,
+      rawJsonText:
+        payload.data === null
+          ? ''
+          : JSON.stringify(payload.data, null, 2),
+      activeTab: payload.tab,
+      hiddenPaths,
+      jqExpression: payload.jq || DEFAULT_JQ,
+      tsCode: payload.ts || DEFAULT_TS,
+      output,
+      errors: [],
+    });
   },
 }));

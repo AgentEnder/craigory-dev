@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useJsonViewerStore } from '../src/store';
 
 interface JqApi {
@@ -7,16 +7,14 @@ interface JqApi {
 
 export function JqEditor() {
   const jsonData = useJsonViewerStore((s) => s.jsonData);
+  const expression = useJsonViewerStore((s) => s.jqExpression);
+  const setJqExpression = useJsonViewerStore((s) => s.setJqExpression);
   const setOutput = useJsonViewerStore((s) => s.setOutput);
   const setError = useJsonViewerStore((s) => s.setError);
   const clearError = useJsonViewerStore((s) => s.clearError);
 
-  const [expression, setExpression] = useState('.');
   const [jqApi, setJqApi] = useState<JqApi | null>(null);
   const [loading, setLoading] = useState(true);
-  const debounceRef = useRef<ReturnType<typeof setTimeout> | undefined>(
-    undefined
-  );
 
   useEffect(() => {
     let cancelled = false;
@@ -77,15 +75,12 @@ export function JqEditor() {
     [jqApi, jsonData, setOutput, setError, clearError]
   );
 
+  // Debounce expression/data changes; re-run when jq engine becomes available.
   useEffect(() => {
-    if (jqApi) runQuery(expression);
-  }, [jqApi, jsonData]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  const handleChange = (value: string) => {
-    setExpression(value);
-    if (debounceRef.current) clearTimeout(debounceRef.current);
-    debounceRef.current = setTimeout(() => runQuery(value), 300);
-  };
+    if (!jqApi) return;
+    const t = setTimeout(() => runQuery(expression), 300);
+    return () => clearTimeout(t);
+  }, [jqApi, jsonData, expression, runQuery]);
 
   if (loading) {
     return <p className="text-gray-400 text-sm">Loading jq engine...</p>;
@@ -99,7 +94,7 @@ export function JqEditor() {
       <input
         type="text"
         value={expression}
-        onChange={(e) => handleChange(e.target.value)}
+        onChange={(e) => setJqExpression(e.target.value)}
         className="w-full px-4 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-200 text-gray-900 font-mono text-sm"
         placeholder="e.g. .users[] | .name"
         spellCheck={false}

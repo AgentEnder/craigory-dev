@@ -1,22 +1,18 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { generateTypeDeclaration } from '../src/type-generator';
-import { useJsonViewerStore } from '../src/store';
+import { useJsonViewerStore, DEFAULT_TS_CODE } from '../src/store';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AceEditor = any;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 type AceLanguageProvider = any;
 
-const DEFAULT_CODE = `export default function transform(data: DataType) {
-  return data;
-}
-`;
-
 export function TypeScriptEditor() {
   const jsonData = useJsonViewerStore((s) => s.jsonData);
   const setOutput = useJsonViewerStore((s) => s.setOutput);
   const setError = useJsonViewerStore((s) => s.setError);
   const clearError = useJsonViewerStore((s) => s.clearError);
+  const setTsCode = useJsonViewerStore((s) => s.setTsCode);
 
   const editorRef = useRef<HTMLDivElement>(null);
   const aceEditorRef = useRef<AceEditor>(null);
@@ -74,7 +70,9 @@ export function TypeScriptEditor() {
       editor.session.setMode(new tsMode.Mode());
       editor.setTheme(chromeTheme);
 
-      editor.setValue(DEFAULT_CODE, -1);
+      const initialCode =
+        useJsonViewerStore.getState().tsCode || DEFAULT_TS_CODE;
+      editor.setValue(initialCode, -1);
 
       // Set up ace-linters with custom worker that registers the TypeScript service
       try {
@@ -113,7 +111,13 @@ export function TypeScriptEditor() {
           runTransformRef.current();
         }, 500);
       };
-      editor.session.on('change', scheduleAutoRun);
+      const syncCodeToStore = () => {
+        setTsCode(editor.getValue());
+      };
+      editor.session.on('change', () => {
+        syncCodeToStore();
+        scheduleAutoRun();
+      });
       editor.session.on('changeAnnotation', scheduleAutoRun);
 
       aceEditorRef.current = editor;

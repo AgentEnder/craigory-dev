@@ -1,8 +1,5 @@
-import { useState, useRef, useCallback } from 'react';
-
-interface JsonInputProps {
-  onJsonParsed: (data: unknown, rawJson: string) => void;
-}
+import { useState, useRef, useCallback, useEffect } from 'react';
+import { useJsonViewerStore } from '../src/store';
 
 function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
@@ -21,27 +18,46 @@ function getSummary(data: unknown, rawJson: string): string {
   return `${typeof data} · ${size}`;
 }
 
-export function JsonInput({ onJsonParsed }: JsonInputProps) {
-  const [rawText, setRawText] = useState('');
+export function JsonInput() {
+  const jsonData = useJsonViewerStore((s) => s.jsonData);
+  const rawText = useJsonViewerStore((s) => s.rawJsonText);
+  const setJsonData = useJsonViewerStore((s) => s.setJsonData);
+  const setRawJsonText = useJsonViewerStore((s) => s.setRawJsonText);
+
   const [error, setError] = useState<string | null>(null);
-  const [collapsed, setCollapsed] = useState(false);
-  const [summary, setSummary] = useState('');
+  const [collapsed, setCollapsed] = useState(jsonData !== null);
   const [isDragging, setIsDragging] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const prevJsonDataRef = useRef(jsonData);
+
+  // Auto-collapse only on the null → non-null transition (share-link restore).
+  // We deliberately don't watch rawText, because typing in the edit-mode
+  // textarea changes rawText and would otherwise re-collapse mid-edit.
+  useEffect(() => {
+    const wasNull = prevJsonDataRef.current === null;
+    prevJsonDataRef.current = jsonData;
+    if (wasNull && jsonData !== null) {
+      setCollapsed(true);
+    }
+  }, [jsonData]);
+
+  const summary =
+    jsonData !== null
+      ? getSummary(jsonData, rawText || JSON.stringify(jsonData))
+      : '';
 
   const parseAndSubmit = useCallback(
     (text: string) => {
       try {
         const parsed = JSON.parse(text);
         setError(null);
-        setSummary(getSummary(parsed, text));
         setCollapsed(true);
-        onJsonParsed(parsed, text);
+        setJsonData(parsed, text);
       } catch (e) {
         setError(e instanceof Error ? e.message : 'Invalid JSON');
       }
     },
-    [onJsonParsed]
+    [setJsonData]
   );
 
   const handleSubmit = () => {
@@ -53,7 +69,7 @@ export function JsonInput({ onJsonParsed }: JsonInputProps) {
     const reader = new FileReader();
     reader.onload = (e) => {
       const text = e.target?.result as string;
-      setRawText(text);
+      setRawJsonText(text);
       parseAndSubmit(text);
     };
     reader.readAsText(file);
@@ -72,6 +88,35 @@ export function JsonInput({ onJsonParsed }: JsonInputProps) {
   };
 
   const handleDragLeave = () => setIsDragging(false);
+
+  // Intercept paste so the giant string never lands in the textarea DOM node —
+  // a textarea forced to lay out millions of chars will lock the browser.
+  // Only hijack when (a) the pasted text is itself a complete JSON document
+  // and (b) it would replace the whole textarea (empty or full selection),
+  // so editing-time pastes of fragments still go through the default path.
+  const handlePaste = (e: React.ClipboardEvent<HTMLTextAreaElement>) => {
+    const text = e.clipboardData.getData('text');
+    if (!text) return;
+
+    const target = e.currentTarget;
+    const replacesAll =
+      target.value.length === 0 ||
+      (target.selectionStart === 0 &&
+        target.selectionEnd === target.value.length);
+    if (!replacesAll) return;
+
+    try {
+      JSON.parse(text);
+    } catch {
+      return;
+    }
+
+    e.preventDefault();
+    setError(null);
+    setRawJsonText(text);
+    setCollapsed(true);
+    setTimeout(() => parseAndSubmit(text), 0);
+  };
 
   if (collapsed) {
     return (
@@ -101,8 +146,9 @@ export function JsonInput({ onJsonParsed }: JsonInputProps) {
           className="w-full h-48 px-4 py-3 bg-gray-50 border border-gray-200 rounded-2xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none transition-all duration-200 text-gray-900 placeholder-gray-400 font-mono text-sm"
           placeholder='Paste JSON here or drag and drop a .json file...'
           value={rawText}
+          onPaste={handlePaste}
           onChange={(e) => {
-            setRawText(e.target.value);
+            setRawJsonText(e.target.value);
             setError(null);
           }}
         />
