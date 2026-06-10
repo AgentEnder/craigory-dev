@@ -22,7 +22,7 @@
     "@tailwindcss/vite": "^4.1.12",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
-    "@vitejs/plugin-react": "^5.0.0",
+    "@vitejs/plugin-react": "^6.0.0",
     "ace-code": "^1.43.6",
     "ace-linters": "^2.1.1",
     "autoprefixer": "^10.4.21",

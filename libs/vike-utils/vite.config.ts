@@ -8,11 +8,12 @@ export default defineConfig({
   cacheDir: '../../node_modules/.vite/vike-utils',
 
   plugins: [
+    // vite-plugin-dts is still typed against Vite 7 (Rollup-based plugin
+    // hooks); cast until it ships Vite 8 / Rolldown-compatible types.
     dts({
       entryRoot: 'src',
-      tsConfigFilePath: path.join(__dirname, 'tsconfig.lib.json'),
-      skipDiagnostics: true,
-    }),
+      tsconfigPath: path.join(__dirname, 'tsconfig.lib.json'),
+    }) as any,
     react(),
     viteTsConfigPaths({
       root: '../../',
@@ -40,7 +41,11 @@ export default defineConfig({
       // Don't forget to update your package.json as well.
       formats: ['es', 'cjs'],
     },
-    rolldownOptions: {
+    // Intentionally `rollupOptions` (not `rolldownOptions`): this config is
+    // only consumed by vitest, which still runs Vite 7 internally. Vite 8
+    // accepts `rollupOptions` as a deprecated alias, so this also works if
+    // this config is ever loaded by Vite 8.
+    rollupOptions: {
       // External packages that should not be bundled into your library.
       external: ['react', 'react-dom', 'react/jsx-runtime'],
     },

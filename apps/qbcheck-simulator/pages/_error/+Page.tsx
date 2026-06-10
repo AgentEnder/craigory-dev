@@ -1,4 +1,4 @@
-import { PageContext } from 'vike/types';
+import type { PageContext } from 'vike/types';
 
 export function Page({ is404, abortReason, abortStatusCode }: PageContext) {
   if (is404) {

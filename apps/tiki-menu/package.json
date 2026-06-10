@@ -28,7 +28,7 @@
     "@tailwindcss/vite": "^4.1.12",
     "@types/react": "^19.1.6",
     "@types/react-dom": "^19.1.6",
-    "@vitejs/plugin-react": "^5.0.0",
+    "@vitejs/plugin-react": "^6.0.0",
     "autoprefixer": "^10.4.21",
     "firebase": "^12.2.1",
     "postcss": "^8.5.6",
