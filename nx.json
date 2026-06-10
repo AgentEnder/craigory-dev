@@ -2,9 +2,7 @@
   "$schema": "./node_modules/nx/schemas/nx-schema.json",
   "defaultProject": "craigory-dev",
   "release": {
-    "projects": [
-      "packages/*"
-    ],
+    "projects": ["packages/*"],
     "projectsRelationship": "independent",
     "version": {
       "preVersionCommand": "npx nx run-many -t build -p packages/*",
@@ -19,11 +17,9 @@
       "commitMessage": "chore(release): release {version} [skip ci]"
     }
   },
-  "targetDefaults": {
-    "build": {
-      "dependsOn": [
-        "^build"
-      ],
+  "targetDefaults": [
+    {
+      "dependsOn": ["^build"],
       "inputs": [
         "production",
         "^production",
@@ -31,29 +27,24 @@
           "env": "PUBLIC_ENV__BASE_URL"
         }
       ],
-      "cache": true
+      "cache": true,
+      "target": "build"
     },
-    "e2e": {
-      "inputs": [
-        "default",
-        "^production"
-      ],
-      "cache": true
+    {
+      "inputs": ["default", "^production"],
+      "cache": true,
+      "target": "e2e"
     },
-    "prepare": {
-      "cache": true
+    {
+      "cache": true,
+      "target": "prepare"
     },
-    "deploy": {
-      "dependsOn": [
-        "build"
-      ]
+    {
+      "dependsOn": ["build"],
+      "target": "deploy"
     },
-    "@nx/jest:jest": {
-      "inputs": [
-        "default",
-        "^production",
-        "{workspaceRoot}/jest.preset.js"
-      ],
+    {
+      "inputs": ["default", "^production", "{workspaceRoot}/jest.preset.js"],
       "cache": true,
       "options": {
         "passWithNoTests": true
@@ -63,24 +54,26 @@
           "ci": true,
           "codeCoverage": true
         }
-      }
+      },
+      "executor": "@nx/jest:jest"
     },
-    "@nx/eslint:lint": {
+    {
+      "executor": "@nx/eslint:lint",
       "inputs": [
         "default",
+        "^default",
         "{workspaceRoot}/.eslintrc.json",
-        "{workspaceRoot}/.eslintignore"
+        "{workspaceRoot}/.eslintignore",
+        "{workspaceRoot}/tools/eslint-rules/**/*"
       ],
       "cache": true
     },
-    "@nx/vitest:test": {
-      "inputs": [
-        "default",
-        "^production"
-      ],
-      "cache": true
+    {
+      "inputs": ["default", "^production"],
+      "cache": true,
+      "executor": "@nx/vitest:test"
     },
-    "@nx/js/typescript": {
+    {
       "options": {
         "typecheck": {
           "targetName": "typecheck"
@@ -89,14 +82,12 @@
           "targetName": "build",
           "configName": "tsconfig.json"
         }
-      }
+      },
+      "target": "@nx/js/typescript"
     }
-  },
+  ],
   "namedInputs": {
-    "default": [
-      "{projectRoot}/**/*",
-      "sharedGlobals"
-    ],
+    "default": ["{projectRoot}/**/*", "sharedGlobals"],
     "production": [
       "default",
       "!{projectRoot}/**/?(*.)+(spec|test).[jt]s?(x)?(.snap)",
