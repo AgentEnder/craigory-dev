@@ -48,3 +48,4 @@ Thumbs.db
 !.env.schema
 .nx/migrate-runs
 .nx/polygraph
+.nx/self-healing
