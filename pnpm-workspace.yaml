@@ -10,10 +10,22 @@ packages:
 
   # Tools directory if it contains packages
   - 'tools'
+allowBuilds:
+  '@firebase/util': true
+  '@parcel/watcher': true
+  '@swc/core': true
+  '@tailwindcss/oxide': true
+  cypress: true
+  esbuild: true
+  nx: true
+  protobufjs: true
+  re2: true
+  unrs-resolver: true
 catalog:
   cli-forge: ^1.9.2
   es-main: ^1.4.0
   vike: 0.4.258
   vike-react: ^0.6.5
-patchedDependencies:
-  nx@22.6.5: patches/nx@22.6.5.patch
+minimumReleaseAgeExclude:
+  - nx
+  - '@nx/*'
