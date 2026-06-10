@@ -278,6 +278,9 @@ importers:
       typescript:
         specifier: 5.9.2
         version: 5.9.2
+      varlock:
+        specifier: ^1.3.0
+        version: 1.3.0
       vite:
         specifier: 7.1.5
         version: 7.1.5(@types/node@22.18.1)(jiti@2.5.1)(lightningcss@1.30.1)(sass@1.92.0)(terser@5.44.0)(tsx@4.21.0)(yaml@2.8.1)
@@ -11114,6 +11117,11 @@ packages:
 
   valid-url@1.0.9:
     resolution: {integrity: sha512-QQDsV8OnSf5Uc30CKSwG9lnhMPe6exHtTXLRYX8uMwKENy640pU+2BgBL0LRbDh/eYRahNCS7aewCx0wf3NYVA==}
+
+  varlock@1.3.0:
+    resolution: {integrity: sha512-gXISmMishOkcU+sP9OoYGowDUSR3B7UTa9Cqs77oBIY/VAlj2NPNhMIaxtGVdW0OdMIPzCzVjZi/8vr2fox5cQ==}
+    engines: {bun: '>=1.3.3', node: '>=22'}
+    hasBin: true
 
   vary@1.1.2:
     resolution: {integrity: sha512-BNGbWLfd0eUPabhkXUVm0j8uuvREyTh5ovRa/dyow/BqAbZJyC+5fU+IzQOzmAKzYqYRAISoRhdQr3eIZ/PXqg==}
@@ -24729,6 +24737,8 @@ snapshots:
       convert-source-map: 2.0.0
 
   valid-url@1.0.9: {}
+
+  varlock@1.3.0: {}
 
   vary@1.1.2: {}
 
