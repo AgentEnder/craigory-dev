@@ -61,16 +61,14 @@ export const dependabotCooldown = (
 
 export const npmExcludeIssue = (
   <>
-    npm CLI issue{' '}
-    <a href="https://github.com/npm/cli/issues/8994">#8994</a>. Tracks an
-    exclusion list for <code>min-release-age</code>.
+    npm CLI issue <a href="https://github.com/npm/cli/issues/8994">#8994</a>.
+    Tracks an exclusion list for <code>min-release-age</code>.
   </>
 );
 
 export const pnpmLockfileBug = (
   <>
-    pnpm issue{' '}
-    <a href="https://github.com/pnpm/pnpm/issues/10008">#10008</a>.{' '}
+    pnpm issue <a href="https://github.com/pnpm/pnpm/issues/10008">#10008</a>.{' '}
     <code>minimumReleaseAge</code> silently ignored on pnpm 10.x when any
     workspace package sets <code>shared-workspace-lockfile=false</code>.
   </>
@@ -78,9 +76,9 @@ export const pnpmLockfileBug = (
 
 export const yarnSuffixBug = (
   <>
-    Yarn issue{' '}
-    <a href="https://github.com/yarnpkg/berry/issues/6991">#6991</a>. Duration
-    suffixes silently dropped when parsing <code>npmMinimalAgeGate</code>.
+    Yarn issue <a href="https://github.com/yarnpkg/berry/issues/6991">#6991</a>.
+    Duration suffixes silently dropped when parsing{' '}
+    <code>npmMinimalAgeGate</code>.
   </>
 );
 
@@ -92,9 +90,101 @@ export const bunUserWidePr = (
   </>
 );
 
-# Configuring minimum release age across npm, pnpm, yarn, and bun
+export const npmApproveScripts = (
+  <>
+    npm CLI documentation,{' '}
+    <a href="https://docs.npmjs.com/cli/v11/commands/npm-approve-scripts">
+      <code>npm approve-scripts</code>
+    </a>
+    . Manages the <code>allowScripts</code> field, available since npm <code>
+      11.16.0
+    </code>.
+  </>
+);
 
-A minimum release age (or "cooldown") instructs a package manager to ignore any dependency version published less than a configured amount of time ago. The reference below covers the four major Node.js package managers; the setting name and the unit of time differ in each.
+export const npmV12Plan = (
+  <>
+    GitHub community discussion,{' '}
+    <a href="https://github.com/orgs/community/discussions/198547">
+      "Preparing for npm v12: install scripts and non-registry sources become
+      opt-in"
+    </a>
+    .
+  </>
+);
+
+export const pnpmAllowBuilds = (
+  <>
+    pnpm documentation,{' '}
+    <a href="https://pnpm.io/settings#allowbuilds">
+      <code>allowBuilds</code>
+    </a>
+    . Added in pnpm 10.26; replaces <code>onlyBuiltDependencies</code> and <code>
+      neverBuiltDependencies
+    </code> in pnpm 11.
+  </>
+);
+
+export const yarnEnableScripts = (
+  <>
+    Yarn documentation,{' '}
+    <a href="https://yarnpkg.com/configuration/yarnrc#enableScripts">
+      <code>enableScripts</code>
+    </a>{' '}
+    and{' '}
+    <a href="https://yarnpkg.com/configuration/manifest#dependenciesMeta">
+      <code>dependenciesMeta</code>
+    </a>
+    .
+  </>
+);
+
+export const yarnEnableScriptsDefaultPr = (
+  <>
+    Yarn pull request{' '}
+    <a href="https://github.com/yarnpkg/berry/pull/7089">#7089</a>. Makes{' '}
+    <code>enableScripts: false</code> the default; released in Yarn 4.14.0.
+    Existing projects are migrated with an explicit{' '}
+    <code>enableScripts: true</code>.
+  </>
+);
+
+export const yarnHardenedMode = (
+  <>
+    Yarn documentation,{' '}
+    <a href="https://yarnpkg.com/configuration/yarnrc#enableHardenedMode">
+      <code>enableHardenedMode</code>
+    </a>
+    . Enabled automatically on pull requests from public GitHub repositories.
+  </>
+);
+
+export const bunLifecycle = (
+  <>
+    Bun documentation,{' '}
+    <a href="https://bun.sh/docs/install/lifecycle">Lifecycle scripts</a>.
+    Covers <code>trustedDependencies</code> and the{' '}
+    <a href="https://github.com/oven-sh/bun/blob/main/src/install/default-trusted-dependencies.txt">
+      default trusted list
+    </a>
+    .
+  </>
+);
+
+export const pnpmTrustPolicy = (
+  <>
+    pnpm documentation,{' '}
+    <a href="https://pnpm.io/settings#trustpolicy">
+      <code>trustPolicy</code>
+    </a>
+    . Added in pnpm 10.21, alongside <code>trustPolicyExclude</code> (10.22) and{' '}
+    <code>trustPolicyIgnoreAfter</code> (10.27).
+  </>
+);
+
+# Locking down dependency installs across npm, pnpm, yarn, and bun
+
+A minimum release age (or "cooldown") instructs a package manager to ignore any dependency version published less than a configured amount of time ago. The reference below covers the cooldown, install-time lifecycle script gating, and pnpm's trust policy across the four major Node.js package managers; the setting names and units differ in each.
 
 ## Table of Contents
 
@@ -110,6 +200,8 @@ Each tool exposes the setting under its own name and unit of time:
 - **Bun**: `minimumReleaseAge`, in **seconds**. Bun **1.3.0**.<Cite n={4} href="https://bun.sh/docs/runtime/bunfig#install-minimumreleaseage">{bunDocs}</Cite>
 
 The setting can be written per-project or per-user. A per-project value protects the codebase against newly published policy violations; a user-wide value extends the cooldown to repositories that have not opted in. Both are worth setting; neither replaces the other, and the conditions under which either is silently bypassed are listed in the [caveats](#caveats) below.
+
+A cooldown is also only one of the install-time controls the package managers now ship. [Lifecycle scripts](#lifecycle-scripts) covers disabling or allow-listing install-time script execution, and [pnpm's trust policy](#pnpms-trust-policy) covers rejecting releases whose provenance regressed.
 
 ## Per-project
 
@@ -238,6 +330,94 @@ Bun reads project-level `bunfig.toml` only; user-wide configuration is not yet s
 </Tab>
 </Tabs>
 
+## Lifecycle scripts
+
+A cooldown controls _when_ a version becomes installable; it says nothing about what the package does once it lands. Install-time lifecycle scripts (`preinstall`, `install`, `postinstall`) run arbitrary shell commands during `install`, which makes them the primary payload mechanism in npm supply-chain attacks — the malicious code in a compromised release typically runs from a `postinstall` hook, not from anything the application imports. All four tools can disable these scripts outright or gate them behind a per-package allowlist. The granular options are recent additions, so the [pinned-version caveat](#caveats) applies here just as much as it does to the cooldown.
+
+<Tabs groupId="package-manager">
+<Tab label="npm">
+
+The blunt instrument is `ignore-scripts`, which works on every npm version:
+
+```INI filename=".npmrc"
+ignore-scripts=true
+```
+
+This disables lifecycle scripts for all dependencies, but it also affects the project's own hooks: `npm run`, `npm start`, and `npm test` still execute the named script, but skip its pre- and post-scripts.
+
+npm **11.16.0** adds a granular alternative: an `allowScripts` field in `package.json`, managed with `npm approve-scripts` and `npm deny-scripts`.<Cite n={11} href="https://docs.npmjs.com/cli/v11/commands/npm-approve-scripts">{npmApproveScripts}</Cite> On npm 11 the field is advisory — unreviewed install scripts still run, and the install prints a warning listing them. Enforcement is opt-in:
+
+```INI filename=".npmrc"
+strict-allow-scripts=true
+```
+
+npm v12 (estimated July 2026) makes enforcement the default: install scripts from dependencies will not run unless explicitly allowed, and git and remote-URL dependencies will not resolve unless `--allow-git` or `--allow-remote` is granted.<Cite n={12} href="https://github.com/orgs/community/discussions/198547">{npmV12Plan}</Cite>
+
+</Tab>
+<Tab label="pnpm">
+
+Since pnpm 10, dependency build scripts do not run unless approved. `pnpm approve-builds` walks through the dependencies that want to run them, and the approvals are recorded in the `allowBuilds` map (pnpm 10.26 and later; it replaces `onlyBuiltDependencies` and `neverBuiltDependencies` in pnpm 11):<Cite n={13} href="https://pnpm.io/settings#allowbuilds">{pnpmAllowBuilds}</Cite>
+
+```yaml filename="pnpm-workspace.yaml"
+allowBuilds:
+  esbuild: true
+  core-js: false
+```
+
+Packages not listed are not built. `strictDepBuilds` (default `true`) fails the install with a non-zero exit code when any dependency has an unreviewed build script, which turns a warning into a CI gate. The escape hatch that runs everything without approval is named `dangerouslyAllowAllBuilds`, which is a fair summary of what it does.
+
+</Tab>
+<Tab label="Yarn">
+
+`enableScripts: false` stops postinstall scripts from third-party packages; workspace packages still run their own:
+
+```yaml filename=".yarnrc.yml"
+enableScripts: false
+```
+
+`false` is the default since Yarn **4.14.0**; every earlier release defaulted to `true`.<Cite n={18} href="https://github.com/yarnpkg/berry/pull/7089">{yarnEnableScriptsDefaultPr}</Cite> The 4.14 migration also preserves old behavior by writing an explicit `enableScripts: true` into existing projects, so a repository upgraded across the flip stays opted in until that line is removed. Both conditions argue for setting `false` explicitly rather than relying on the default. Individual packages are opted back in through `dependenciesMeta` in `package.json`, which acts as an allowlist while scripts are globally disabled:<Cite n={14} href="https://yarnpkg.com/configuration/yarnrc#enableScripts">{yarnEnableScripts}</Cite>
+
+```json filename="package.json"
+{
+  "dependenciesMeta": {
+    "esbuild": { "built": true }
+  }
+}
+```
+
+Yarn also ships `enableHardenedMode`, which re-validates lockfile resolutions and checksums against the remote registry during install. It is enabled automatically on pull requests from public GitHub repositories and can be forced on for any branch edited from outside the circle of trust.<Cite n={15} href="https://yarnpkg.com/configuration/yarnrc#enableHardenedMode">{yarnHardenedMode}</Cite>
+
+</Tab>
+<Tab label="Bun">
+
+Bun is default-secure here: lifecycle scripts only run for packages on a curated default trusted list, and only when those packages are installed from npm. Additional packages are trusted via `trustedDependencies` in `package.json`:<Cite n={16} href="https://bun.sh/docs/install/lifecycle">{bunLifecycle}</Cite>
+
+```json filename="package.json"
+{
+  "trustedDependencies": ["node-sass"]
+}
+```
+
+Defining the field _replaces_ the default list rather than extending it, so an explicit list must re-include any default-trusted packages whose scripts are still needed (`sharp`, `esbuild`, and similar). Setting `trustedDependencies: []` opts out of the default list entirely. Disabling scripts wholesale is also available:
+
+```toml filename="bunfig.toml"
+[install]
+ignoreScripts = true
+```
+
+</Tab>
+</Tabs>
+
+## pnpm's trust policy
+
+pnpm 10.21 adds a check orthogonal to both the cooldown and script gating. With `trustPolicy` set to `no-downgrade`, the install fails if a package's trust level has decreased relative to its earlier releases — for example, a package whose previous versions carried provenance attestations suddenly shipping a version without one.<Cite n={17} href="https://pnpm.io/settings#trustpolicy">{pnpmTrustPolicy}</Cite> That signature is characteristic of a stolen-token compromise: the attacker publishes from their own machine, and the provenance that the maintainer's CI pipeline would have attached is missing.
+
+```yaml filename="pnpm-workspace.yaml"
+trustPolicy: no-downgrade
+```
+
+Two companion settings handle false positives. `trustPolicyExclude` (pnpm 10.22) takes package selectors to skip, for packages that legitimately changed how they publish. `trustPolicyIgnoreAfter` (pnpm 10.27) skips the check for versions older than a given number of minutes — the cooldown's reasoning applied in reverse: a release that has been public for weeks without being pulled is unlikely to be the compromise this check exists to catch. Like the cooldown, the setting can be written per-project in `pnpm-workspace.yaml` or user-wide with `pnpm config set trustPolicy no-downgrade --location=user`.
+
 ## Caveats
 
 A handful of conditions can quietly bypass the configured cooldown or change what is actually being honored.
@@ -250,7 +430,7 @@ A handful of conditions can quietly bypass the configured cooldown or change wha
 
 **None of the four tools support per-registry scoping.** Internal packages from a private registry are subject to the cooldown unless explicitly listed in the per-tool exclusion option. npm does not yet expose one; an issue is open against the CLI tracking it.<Cite n={7} href="https://github.com/npm/cli/issues/8994">{npmExcludeIssue}</Cite>
 
-**Defaults are shifting upward.** pnpm 11 ships with the gate enabled at 1440 minutes by default.<Cite n={2} href="https://pnpm.io/settings#minimumreleaseage">{pnpmDocs}</Cite> Setting an explicit value insulates the configured behavior against changes elsewhere in the ecosystem.
+**Defaults are shifting upward.** pnpm 11 ships with the gate enabled at 1440 minutes by default,<Cite n={2} href="https://pnpm.io/settings#minimumreleaseage">{pnpmDocs}</Cite> and npm v12 is set to make install scripts and non-registry dependency sources opt-in.<Cite n={12} href="https://github.com/orgs/community/discussions/198547">{npmV12Plan}</Cite> Setting explicit values insulates the configured behavior against changes elsewhere in the ecosystem.
 
 ## Acknowledgements
 
@@ -258,5 +438,3 @@ This digest closely follows two gists that did the original work of pulling the 
 
 - Matteo Collina, <a href="https://gist.github.com/mcollina/b294a6c39ee700d24073c0e5a4e93104" target="_blank" rel="noopener noreferrer">"Configuring minimum release age across npm, pnpm, and yarn"</a> (April 2026). The original write-up covering npm, pnpm, and Yarn.
 - Tom Ricci, <a href="https://gist.github.com/tom-ricci/bade55606ebb7a550598f11e29f1d6b0" target="_blank" rel="noopener noreferrer">"Configuring minimum release age across npm, pnpm, yarn, and bun"</a>. Extended Collina's notes with Bun coverage and the per-tool exclusion options.
-
-Several specific facts in this post — the Renovate three-day default, the pnpm 11 default value, the in-flight default shifts — were sourced from those gists during the initial draft. Inline citations have since been moved to the primary documentation, release notes, or upstream issues so the digest stays accurate when the gists do not get further updates.
