@@ -1,3 +1,14 @@
+## 0.2.3 (2026-06-18)
+
+### 🚀 Features
+
+- add PR digest viewer app ([#28](https://github.com/AgentEnder/craigory-dev/pull/28))
+
+### ❤️ Thank You
+
+- Claude
+- Craigory Coppola @AgentEnder
+
 ## 0.2.2 (2026-02-27)
 
 This was a version bump only for node-pagefind to align it with other projects, there were no code changes.
