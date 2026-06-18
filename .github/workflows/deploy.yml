@@ -63,3 +63,27 @@ jobs:
           GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
           ENV: ${{ github.event.inputs.environment || github.ref_name }}
+
+      - name: Release
+        if: ${{ github.event_name == 'workflow_dispatch' }}
+        env:
+          # Enable npm provenance attestations (uses the id-token permission above).
+          NPM_CONFIG_PROVENANCE: 'true'
+        run: |
+          FLAGS="--yes"
+          if [ -n "${{ inputs.version }}" ]; then
+            # An explicit specifier overrides conventional-commit derivation —
+            # use it to pin the first release (e.g. "0.1.0").
+            FLAGS="$FLAGS ${{ inputs.version }}"
+          fi
+          if [ "${{ inputs.dry-run }}" = "true" ]; then
+            FLAGS="$FLAGS --dry-run"
+          fi
+          if [ "${{ inputs.first-release }}" = "true" ]; then
+            FLAGS="$FLAGS --first-release"
+          fi
+          if [ "${{ inputs.publish-only }}" = "true" ]; then
+            FLAGS="publish $FLAGS"
+          fi
+          echo "Running: nx release $FLAGS"
+          pnpm exec nx release $FLAGS
