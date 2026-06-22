@@ -1,5 +1,7 @@
 export { run, type RunFlags } from './cli.js';
 export {
+  describePlan,
+  flagsForPlan,
   hasActionFlags,
   planFromFlags,
   selectTargets,

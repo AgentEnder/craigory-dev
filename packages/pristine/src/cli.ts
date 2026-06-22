@@ -14,6 +14,8 @@ import {
   reset as gitReset,
 } from './git.js';
 import {
+  describePlan,
+  flagsForPlan,
   hasActionFlags,
   planFromFlags,
   selectTargets,
@@ -45,6 +47,17 @@ function summarize(plan: Plan, targetCount: number): void {
   }
   lines.push(`to remove: ${targetCount} entr${targetCount === 1 ? 'y' : 'ies'}`);
   p.note(lines.join('\n'), 'Plan');
+}
+
+/** List the actions a dry run would take, then how to apply them for real. */
+function reportDryRun(plan: Plan, targets: string[], flags: RunFlags): void {
+  p.note(describePlan(plan, targets).join('\n'), 'Dry run — would run');
+  const rerun = ['pristine', ...flagsForPlan(plan)];
+  if (flags.cwd) {
+    rerun.push('--cwd', flags.cwd);
+  }
+  rerun.push('--yes');
+  p.outro(`No changes made. Re-run to apply:\n  ${rerun.join(' ')}`);
 }
 
 /**
@@ -80,14 +93,26 @@ export async function run(flags: RunFlags): Promise<void> {
   }
 
   if (flags.dryRun) {
-    p.outro('Dry run — nothing was removed.');
+    reportDryRun(plan, targets, flags);
     return;
   }
 
   if (!flags.yes) {
-    const proceed = await p.confirm({ message: 'Proceed?', initialValue: false });
-    if (p.isCancel(proceed) || !proceed) {
+    const choice = await p.select<'apply' | 'dry' | 'cancel'>({
+      message: 'Apply these changes?',
+      options: [
+        { value: 'apply', label: 'Yes, apply them' },
+        { value: 'dry', label: 'Dry run — list what would happen' },
+        { value: 'cancel', label: 'No, cancel' },
+      ],
+      initialValue: 'cancel',
+    });
+    if (p.isCancel(choice) || choice === 'cancel') {
       p.cancel('Aborted.');
+      return;
+    }
+    if (choice === 'dry') {
+      reportDryRun(plan, targets, flags);
       return;
     }
   }

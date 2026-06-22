@@ -42,6 +42,28 @@ pristine
 Vendor directories (`node_modules`) and env files (`*.env*`) are **excluded by
 default** — you opt in.
 
+At the final confirmation you can choose **Dry run** to list exactly what would
+happen without touching anything:
+
+```
+◆ Apply these changes?
+  ○ Yes, apply them
+  ○ Dry run — list what would happen
+  ○ No, cancel
+```
+
+A dry run prints each action and ends with the precise command to apply it:
+
+```
+Dry run — would run:
+  Reset tracked files (hard)
+  Remove newdir/
+  Remove node_modules/
+
+No changes made. Re-run to apply:
+  pristine --reset hard --untracked --ignored --node-modules --yes
+```
+
 ### Non-interactive
 
 Passing any action flag (`--reset`, `--untracked`, `--ignored`) skips the prompts,
@@ -67,7 +89,7 @@ pristine --reset hard --untracked --ignored --dry-run
 | `--node-modules` | Include vendor dirs within ignored removal |
 | `--env` | Include `*.env*` files within ignored removal |
 | `--yes`, `-y` | Skip the final confirmation |
-| `--dry-run` | Show the plan without removing anything |
+| `--dry-run` | List the actions that would be taken, then exit without removing anything |
 | `--cwd <dir>` | Operate on another directory |
 
 ## How it stays correct

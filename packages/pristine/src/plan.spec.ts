@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 
-import { hasActionFlags, planFromFlags, selectTargets } from './plan.js';
+import {
+  describePlan,
+  flagsForPlan,
+  hasActionFlags,
+  planFromFlags,
+  selectTargets,
+} from './plan.js';
 
 describe('hasActionFlags', () => {
   it('is true when any action flag is set', () => {
@@ -85,5 +91,63 @@ describe('selectTargets', () => {
 
   it('selects nothing when neither untracked nor ignored is set', () => {
     expect(selectTargets(planFromFlags({ reset: 'hard' }), enumeration)).toEqual([]);
+  });
+});
+
+describe('flagsForPlan', () => {
+  it('reconstructs flags from a full plan', () => {
+    const plan = planFromFlags({
+      reset: 'hard',
+      untracked: true,
+      ignored: true,
+      nodeModules: true,
+      env: true,
+    });
+    expect(flagsForPlan(plan)).toEqual([
+      '--reset',
+      'hard',
+      '--untracked',
+      '--ignored',
+      '--node-modules',
+      '--env',
+    ]);
+  });
+
+  it('reconstructs a reset-only worktree plan', () => {
+    expect(flagsForPlan(planFromFlags({ reset: 'worktree' }))).toEqual([
+      '--reset',
+      'worktree',
+    ]);
+  });
+
+  it('omits vendor/env flags when not opted in', () => {
+    expect(flagsForPlan(planFromFlags({ ignored: true }))).toEqual(['--ignored']);
+  });
+
+  it('returns an empty array for an empty plan', () => {
+    expect(flagsForPlan(planFromFlags({}))).toEqual([]);
+  });
+});
+
+describe('describePlan', () => {
+  it('lists the reset action followed by each removal', () => {
+    const plan = planFromFlags({ reset: 'hard', untracked: true });
+    expect(describePlan(plan, ['newdir/', 'a.txt'])).toEqual([
+      'Reset tracked files (hard)',
+      'Remove newdir/',
+      'Remove a.txt',
+    ]);
+  });
+
+  it('lists only removals when there is no reset', () => {
+    expect(describePlan(planFromFlags({ ignored: true }), ['dist/'])).toEqual([
+      'Remove dist/',
+    ]);
+  });
+
+  it('lists only the reset when there are no targets', () => {
+    expect(describePlan(planFromFlags({ reset: 'worktree' }), [])).toEqual([
+      'Reset tracked files (worktree)',
+    ]);
   });
 });

@@ -56,6 +56,46 @@ export function planFromFlags(flags: CliFlags): Plan {
 }
 
 /**
+ * Reconstruct the CLI flags that reproduce `plan` non-interactively. Used to
+ * tell the user how to apply a dry run (`pristine <flags> --yes`). Works
+ * regardless of whether the plan came from flags or interactive prompts.
+ */
+export function flagsForPlan(plan: Plan): string[] {
+  const flags: string[] = [];
+  if (plan.reset) {
+    flags.push('--reset', plan.reset);
+  }
+  if (plan.untracked) {
+    flags.push('--untracked');
+  }
+  if (plan.ignored) {
+    flags.push('--ignored');
+  }
+  if (plan.vendor) {
+    flags.push('--node-modules');
+  }
+  if (plan.env) {
+    flags.push('--env');
+  }
+  return flags;
+}
+
+/**
+ * Human-readable list of the actions a plan would take: the reset (if any),
+ * then one `Remove <path>` line per target. Drives the dry-run report.
+ */
+export function describePlan(plan: Plan, targets: string[]): string[] {
+  const lines: string[] = [];
+  if (plan.reset) {
+    lines.push(`Reset tracked files (${plan.reset})`);
+  }
+  for (const target of targets) {
+    lines.push(`Remove ${target}`);
+  }
+  return lines;
+}
+
+/**
  * Resolve a plan plus git's enumeration into the concrete list of paths to
  * remove. Reset is a git operation, not a removal, so it is not included here.
  * Ignored entries are filtered through the vendor/env carve-outs.
