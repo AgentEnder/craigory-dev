@@ -87,6 +87,26 @@ describe('enumerateIgnored', () => {
   });
 });
 
+describe('mixed directories (untracked + ignored, no tracked file)', () => {
+  // Regression: `git ls-files --directory` collapsed such a dir to a single
+  // entry, so removing it wiped ignored files the user chose to keep.
+  it('enumerateUntracked descends, listing the untracked file (not the whole dir)', () => {
+    const root = makeRepo({ 'root.txt': 'x', '.gitignore': 'cache.txt\n' });
+    write(root, 'mixed/keep.txt', 'u');
+    write(root, 'mixed/cache.txt', 'i'); // ignored
+
+    expect(enumerateUntracked(root)).toEqual(['mixed/keep.txt']);
+  });
+
+  it('enumerateIgnored descends, listing the ignored file (not the whole dir)', () => {
+    const root = makeRepo({ 'root.txt': 'x', '.gitignore': 'cache.txt\n' });
+    write(root, 'mixed/keep.txt', 'u'); // untracked
+    write(root, 'mixed/cache.txt', 'i');
+
+    expect(enumerateIgnored(root)).toEqual(['mixed/cache.txt']);
+  });
+});
+
 describe('hasTrackedChanges', () => {
   it('is false on a clean repo', () => {
     expect(hasTrackedChanges(makeRepo({ 'a.txt': 'v1' }))).toBe(false);

@@ -94,9 +94,9 @@ in CI still won't delete without `--yes`.
 All via `execFile` (never the shell), NUL-delimited (`-z`) for filename safety:
 
 ```
-untracked:  git ls-files -z --others --exclude-standard --directory
-ignored:    git ls-files -z --others --ignored --exclude-standard --directory
-changed:    git diff --quiet            # exit code => tracked changes present?
+untracked:  git clean -n -d            # "Would remove …" => untracked targets
+ignored:    git clean -n -d -X         # -X = ignored only
+changed:    git status --porcelain -z  # any non-`??` entry => tracked change
 guard:      git rev-parse --is-inside-work-tree
 ```
 
@@ -104,8 +104,20 @@ Reset mapping:
 - `worktree` → `git restore -- .`
 - `hard` → `git reset --hard HEAD`
 
-Untracked and ignored lists are disjoint by construction (`--others` without
-`--ignored` excludes ignored), so no double-deletion.
+Untracked and ignored lists are disjoint by construction (`-d` vs `-dX`), so no
+double-deletion.
+
+> **Correction (implementation):** the original design enumerated with
+> `git ls-files --directory`. Dogfooding revealed a data-loss bug:
+> `ls-files --others --directory` collapses a directory to `dir/` based only on the
+> absence of *tracked* files — so a mixed directory like `.nx/` (ignored cache +
+> untracked data, no tracked files) collapsed to `.nx/`, and removing untracked
+> files would also wipe the ignored cache the user chose to keep. The fix delegates
+> enumeration to `git clean -n` itself, which collapses a directory **only when
+> everything inside it is being removed** and otherwise descends — the exact
+> semantics we want, plus it skips nested git repositories. `fs.rm` still does the
+> actual (parallel) deletion. The collapse algorithm below describes the principle;
+> `git clean` is now the authoritative implementation of it.
 
 ### The `--directory` collapse algorithm
 

@@ -83,6 +83,17 @@ describe('run (non-interactive)', () => {
     expect(existsSync(join(root, 'dist'))).toBe(false);
   });
 
+  it('does not remove ignored files inside an untracked directory (untracked-only)', async () => {
+    const root = makeRepo({ 'root.txt': 'x', '.gitignore': 'cache.txt\n' });
+    write(root, 'mixed/keep.txt', 'untracked');
+    write(root, 'mixed/cache.txt', 'ignored');
+
+    await run({ untracked: true, yes: true, cwd: root });
+
+    expect(existsSync(join(root, 'mixed/keep.txt'))).toBe(false);
+    expect(existsSync(join(root, 'mixed/cache.txt'))).toBe(true);
+  });
+
   it('removes nothing on a dry run', async () => {
     const root = seed();
 

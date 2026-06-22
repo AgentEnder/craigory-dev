@@ -94,12 +94,17 @@ pristine --reset hard --untracked --ignored --dry-run
 
 ## How it stays correct
 
-Enumeration is delegated to `git ls-files --directory`, so `pristine` inherits
-`git clean`'s exact semantics — nested `.gitignore` rules, negations, and global
-excludes all behave identically. Git collapses a fully-ignored directory
-(`node_modules/`) to a single entry but never collapses a directory that contains a
-tracked file, so the remover can never reach into a half-tracked folder. Every target
-is additionally asserted to resolve inside the working directory before deletion.
+Enumeration is delegated to `git clean -n` (dry run) — `git clean -dn` for untracked
+files and `git clean -dXn` for ignored files — so `pristine` inherits `git clean`'s
+exact semantics: nested `.gitignore` rules, negations, global excludes, and the
+refusal to descend into nested git repositories all behave identically.
+
+Crucially, git collapses a directory to a single entry **only when everything inside
+it is being removed**. A directory that mixes categories — say `.nx/`, holding an
+ignored cache next to untracked workspace data — is *descended*, so removing untracked
+files never deletes the ignored ones (and vice versa). `pristine` then runs the actual
+deletion itself, in parallel, with each target additionally asserted to resolve inside
+the working directory first.
 
 ## License
 
