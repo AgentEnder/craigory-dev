@@ -23,7 +23,7 @@ import {
   type Plan,
 } from './plan.js';
 import { promptForPlan } from './prompts.js';
-import { DEFAULT_CONCURRENCY, removeAll } from './remove.js';
+import { countFiles, DEFAULT_CONCURRENCY, removeAll } from './remove.js';
 
 // Bump the libuv threadpool before any fs work so the fan-out `fs.rm` actually
 // runs in parallel — the default of 4 threads would otherwise cap it.
@@ -50,8 +50,24 @@ function summarize(plan: Plan, targetCount: number): void {
 }
 
 /** List the actions a dry run would take, then how to apply them for real. */
-function reportDryRun(plan: Plan, targets: string[], flags: RunFlags): void {
-  p.note(describePlan(plan, targets).join('\n'), 'Dry run — would run');
+async function reportDryRun(
+  plan: Plan,
+  targets: string[],
+  cwd: string,
+  flags: RunFlags
+): Promise<void> {
+  // Annotate directory entries with their recursive file count.
+  const counts = new Map<string, number>();
+  await Promise.all(
+    targets
+      .filter((target) => target.endsWith('/'))
+      .map(async (target) => {
+        counts.set(target, await countFiles(resolve(cwd, target)));
+      })
+  );
+  const lines = describePlan(plan, targets, (target) => counts.get(target));
+  p.note(lines.join('\n'), 'Dry run — would run');
+
   const rerun = ['pristine', ...flagsForPlan(plan)];
   if (flags.cwd) {
     rerun.push('--cwd', flags.cwd);
@@ -93,7 +109,7 @@ export async function run(flags: RunFlags): Promise<void> {
   }
 
   if (flags.dryRun) {
-    reportDryRun(plan, targets, flags);
+    await reportDryRun(plan, targets, cwd, flags);
     return;
   }
 
@@ -112,7 +128,7 @@ export async function run(flags: RunFlags): Promise<void> {
       return;
     }
     if (choice === 'dry') {
-      reportDryRun(plan, targets, flags);
+      await reportDryRun(plan, targets, cwd, flags);
       return;
     }
   }

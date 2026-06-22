@@ -1,6 +1,7 @@
-import { rm } from 'node:fs/promises';
+import type { Dirent } from 'node:fs';
+import { readdir, rm } from 'node:fs/promises';
 import { cpus } from 'node:os';
-import { resolve, sep } from 'node:path';
+import { join, resolve, sep } from 'node:path';
 
 /** Oversubscribe: `fs.rm` is I/O-bound (unlink/rmdir wait), so more in-flight
  * syscalls than cores means more overlap, not contention. */
@@ -23,6 +24,29 @@ export interface RemoveFailure {
 export interface RemoveResult {
   removed: number;
   failures: RemoveFailure[];
+}
+
+/**
+ * Recursively count files (anything that is not a directory) under `dir`.
+ * Symlinks count as one entry and are never followed, so cycles are impossible.
+ * A missing or unreadable path counts as 0. Used to annotate dry-run output.
+ */
+export async function countFiles(dir: string): Promise<number> {
+  let entries: Dirent[];
+  try {
+    entries = await readdir(dir, { withFileTypes: true });
+  } catch {
+    return 0;
+  }
+  let count = 0;
+  for (const entry of entries) {
+    if (entry.isDirectory()) {
+      count += await countFiles(join(dir, entry.name));
+    } else {
+      count += 1;
+    }
+  }
+  return count;
 }
 
 /** True when `target` resolves strictly inside `root` (never `root` itself). */

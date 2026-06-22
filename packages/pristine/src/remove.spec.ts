@@ -3,13 +3,14 @@ import {
   mkdirSync,
   mkdtempSync,
   rmSync,
+  symlinkSync,
   writeFileSync,
 } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, describe, expect, it } from 'vitest';
 
-import { removeAll } from './remove.js';
+import { countFiles, removeAll } from './remove.js';
 
 const dirs: string[] = [];
 
@@ -86,6 +87,39 @@ describe('removeAll', () => {
     expect(result.failures).toHaveLength(1);
   });
 
+});
+
+describe('countFiles', () => {
+  it('counts files recursively, excluding directories', async () => {
+    const dir = makeDir();
+    writeFileSync(join(dir, 'a.txt'), '');
+    mkdirSync(join(dir, 'sub/deep'), { recursive: true });
+    writeFileSync(join(dir, 'sub/b.txt'), '');
+    writeFileSync(join(dir, 'sub/deep/c.txt'), '');
+
+    expect(await countFiles(dir)).toBe(3);
+  });
+
+  it('returns 0 for an empty directory', async () => {
+    expect(await countFiles(makeDir())).toBe(0);
+  });
+
+  it('returns 0 for a nonexistent path', async () => {
+    expect(await countFiles(join(makeDir(), 'ghost'))).toBe(0);
+  });
+
+  it('counts a symlinked directory as one entry without following it', async () => {
+    const dir = makeDir();
+    const target = makeDir();
+    writeFileSync(join(target, 'x.txt'), '');
+    writeFileSync(join(target, 'y.txt'), '');
+    symlinkSync(target, join(dir, 'link'));
+
+    expect(await countFiles(dir)).toBe(1);
+  });
+});
+
+describe('progress', () => {
   it('reports progress ending at total', async () => {
     const cwd = makeDir();
     writeFileSync(join(cwd, 'a.txt'), 'x');

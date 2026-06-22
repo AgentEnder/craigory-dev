@@ -57,12 +57,15 @@ A dry run prints each action and ends with the precise command to apply it:
 ```
 Dry run — would run:
   Reset tracked files (hard)
-  Remove newdir/
-  Remove node_modules/
+  Remove newdir/ (12 files)
+  Remove node_modules/ (34201 files)
 
 No changes made. Re-run to apply:
   pristine --reset hard --untracked --ignored --node-modules --yes
 ```
+
+Directory entries are annotated with a recursive file count, so you can see the
+weight of what you're about to delete before committing to it.
 
 ### Non-interactive
 

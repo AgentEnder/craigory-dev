@@ -83,14 +83,30 @@ export function flagsForPlan(plan: Plan): string[] {
 /**
  * Human-readable list of the actions a plan would take: the reset (if any),
  * then one `Remove <path>` line per target. Drives the dry-run report.
+ *
+ * When `fileCount` is supplied, directory targets (those ending in `/`) are
+ * annotated with their recursive file count, e.g. `Remove node_modules/ (34201
+ * files)`. Counting is the caller's concern (it is filesystem I/O), keeping this
+ * function pure.
  */
-export function describePlan(plan: Plan, targets: string[]): string[] {
+export function describePlan(
+  plan: Plan,
+  targets: string[],
+  fileCount?: (target: string) => number | undefined
+): string[] {
   const lines: string[] = [];
   if (plan.reset) {
     lines.push(`Reset tracked files (${plan.reset})`);
   }
   for (const target of targets) {
-    lines.push(`Remove ${target}`);
+    let line = `Remove ${target}`;
+    if (target.endsWith('/') && fileCount) {
+      const count = fileCount(target);
+      if (count !== undefined) {
+        line += ` (${count} file${count === 1 ? '' : 's'})`;
+      }
+    }
+    lines.push(line);
   }
   return lines;
 }

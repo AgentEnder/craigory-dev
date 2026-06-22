@@ -150,4 +150,27 @@ describe('describePlan', () => {
       'Reset tracked files (worktree)',
     ]);
   });
+
+  it('annotates directory entries with a recursive file count when available', () => {
+    const lines = describePlan(
+      planFromFlags({ untracked: true }),
+      ['newdir/', 'a.txt'],
+      (target) => (target === 'newdir/' ? 42 : undefined)
+    );
+    expect(lines).toEqual(['Remove newdir/ (42 files)', 'Remove a.txt']);
+  });
+
+  it('pluralizes a single-file count', () => {
+    const lines = describePlan(planFromFlags({ untracked: true }), ['d/'], () => 1);
+    expect(lines).toEqual(['Remove d/ (1 file)']);
+  });
+
+  it('omits the count for files and when the count is unavailable', () => {
+    const lines = describePlan(
+      planFromFlags({ untracked: true }),
+      ['a.txt', 'd/'],
+      () => undefined
+    );
+    expect(lines).toEqual(['Remove a.txt', 'Remove d/']);
+  });
 });

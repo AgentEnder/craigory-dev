@@ -19,6 +19,7 @@ export {
   type ResetMode,
 } from './git.js';
 export {
+  countFiles,
   removeAll,
   DEFAULT_CONCURRENCY,
   type RemoveOptions,
