@@ -84,10 +84,11 @@ export function flagsForPlan(plan: Plan): string[] {
  * Human-readable list of the actions a plan would take: the reset (if any),
  * then one `Remove <path>` line per target. Drives the dry-run report.
  *
- * When `fileCount` is supplied, directory targets (those ending in `/`) are
- * annotated with their recursive file count, e.g. `Remove node_modules/ (34201
- * files)`. Counting is the caller's concern (it is filesystem I/O), keeping this
- * function pure.
+ * Each removal renders as the command it represents: `rm -r <dir>/` for
+ * directories, `rm <file>` for files. When `fileCount` is supplied, directory
+ * targets are annotated with their recursive file count, e.g.
+ * `rm -r node_modules/ (34201 files)`. Counting is the caller's concern (it is
+ * filesystem I/O), keeping this function pure.
  */
 export function describePlan(
   plan: Plan,
@@ -99,10 +100,13 @@ export function describePlan(
     lines.push(`Reset tracked files (${plan.reset})`);
   }
 
-  const removals = targets.map((target) => ({
-    prefix: `Remove ${target}`,
-    count: target.endsWith('/') && fileCount ? fileCount(target) : undefined,
-  }));
+  const removals = targets.map((target) => {
+    const isDir = target.endsWith('/');
+    return {
+      prefix: isDir ? `rm -r ${target}` : `rm ${target}`,
+      count: isDir && fileCount ? fileCount(target) : undefined,
+    };
+  });
 
   // Pad the path column so the `(N files)` annotations line up.
   const column = Math.max(

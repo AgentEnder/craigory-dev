@@ -130,18 +130,18 @@ describe('flagsForPlan', () => {
 });
 
 describe('describePlan', () => {
-  it('lists the reset action followed by each removal', () => {
+  it('lists the reset action, then rm/rm -r per removal', () => {
     const plan = planFromFlags({ reset: 'hard', untracked: true });
     expect(describePlan(plan, ['newdir/', 'a.txt'])).toEqual([
       'Reset tracked files (hard)',
-      'Remove newdir/',
-      'Remove a.txt',
+      'rm -r newdir/',
+      'rm a.txt',
     ]);
   });
 
-  it('lists only removals when there is no reset', () => {
+  it('uses rm -r for directories', () => {
     expect(describePlan(planFromFlags({ ignored: true }), ['dist/'])).toEqual([
-      'Remove dist/',
+      'rm -r dist/',
     ]);
   });
 
@@ -157,12 +157,12 @@ describe('describePlan', () => {
       ['newdir/', 'a.txt'],
       (target) => (target === 'newdir/' ? 42 : undefined)
     );
-    expect(lines).toEqual(['Remove newdir/ (42 files)', 'Remove a.txt']);
+    expect(lines).toEqual(['rm -r newdir/ (42 files)', 'rm a.txt']);
   });
 
   it('pluralizes a single-file count', () => {
     const lines = describePlan(planFromFlags({ untracked: true }), ['d/'], () => 1);
-    expect(lines).toEqual(['Remove d/ (1 file)']);
+    expect(lines).toEqual(['rm -r d/ (1 file)']);
   });
 
   it('omits the count for files and when the count is unavailable', () => {
@@ -171,7 +171,7 @@ describe('describePlan', () => {
       ['a.txt', 'd/'],
       () => undefined
     );
-    expect(lines).toEqual(['Remove a.txt', 'Remove d/']);
+    expect(lines).toEqual(['rm a.txt', 'rm -r d/']);
   });
 
   it('aligns file counts into a column across paths of differing lengths', () => {
@@ -182,7 +182,7 @@ describe('describePlan', () => {
     );
     // counts start at the same column; the longest path keeps a single space
     expect(lines[0].indexOf('(')).toBe(lines[1].indexOf('('));
-    expect(lines[1]).toBe('Remove a-much-longer-dir/ (5 files)');
-    expect(lines[0]).toMatch(/^Remove short\/ +\(1 file\)$/);
+    expect(lines[1]).toBe('rm -r a-much-longer-dir/ (5 files)');
+    expect(lines[0]).toMatch(/^rm -r short\/ +\(1 file\)$/);
   });
 });
