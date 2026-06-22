@@ -1,0 +1,77 @@
+{
+  "name": "@agentender/pristine",
+  "version": "0.0.1",
+  "description": "A fast, git-aware replacement for `git clean -fdx` — interactively reset, remove untracked, and remove ignored files.",
+  "keywords": [
+    "git",
+    "clean",
+    "cli",
+    "rimraf",
+    "node_modules",
+    "cleanup"
+  ],
+  "author": {
+    "name": "Craigory Coppola",
+    "url": "https://craigory.dev"
+  },
+  "bugs": {
+    "url": "https://github.com/AgentEnder/craigory-dev/issues"
+  },
+  "homepage": "https://github.com/AgentEnder/craigory-dev/tree/main/packages/pristine",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/AgentEnder/craigory-dev.git",
+    "directory": "packages/pristine"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "license": "MIT",
+  "engines": {
+    "node": ">=20"
+  },
+  "type": "module",
+  "bin": {
+    "pristine": "./dist/cli.js"
+  },
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/index.js",
+      "types": "./dist/index.d.ts",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.lib.json",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "docs": "cli-forge generate-documentation ./dist/cli.js --output ./docs/cli --llms false",
+    "cli": "node dist/cli.js"
+  },
+  "dependencies": {
+    "@clack/prompts": "^0.10.0",
+    "cli-forge": "catalog:",
+    "es-main": "catalog:",
+    "tslib": "^2.5.0"
+  },
+  "devDependencies": {
+    "@types/node": "22.18.1",
+    "@typescript-eslint/eslint-plugin": "7.16.1",
+    "@typescript-eslint/parser": "7.16.1",
+    "@vitest/coverage-v8": "4.0.9",
+    "eslint": "8.57.0",
+    "tsx": "^4.21.0",
+    "typescript": "5.9.2",
+    "vitest": "4.0.9"
+  },
+  "files": [
+    "dist",
+    "docs",
+    "README.md",
+    "LICENSE"
+  ]
+}
