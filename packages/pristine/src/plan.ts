@@ -98,15 +98,26 @@ export function describePlan(
   if (plan.reset) {
     lines.push(`Reset tracked files (${plan.reset})`);
   }
-  for (const target of targets) {
-    let line = `Remove ${target}`;
-    if (target.endsWith('/') && fileCount) {
-      const count = fileCount(target);
-      if (count !== undefined) {
-        line += ` (${count} file${count === 1 ? '' : 's'})`;
-      }
+
+  const removals = targets.map((target) => ({
+    prefix: `Remove ${target}`,
+    count: target.endsWith('/') && fileCount ? fileCount(target) : undefined,
+  }));
+
+  // Pad the path column so the `(N files)` annotations line up.
+  const column = Math.max(
+    0,
+    ...removals.filter((r) => r.count !== undefined).map((r) => r.prefix.length)
+  );
+
+  for (const { prefix, count } of removals) {
+    if (count === undefined) {
+      lines.push(prefix);
+    } else {
+      lines.push(
+        `${prefix.padEnd(column)} (${count} file${count === 1 ? '' : 's'})`
+      );
     }
-    lines.push(line);
   }
   return lines;
 }

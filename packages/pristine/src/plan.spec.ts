@@ -173,4 +173,16 @@ describe('describePlan', () => {
     );
     expect(lines).toEqual(['Remove a.txt', 'Remove d/']);
   });
+
+  it('aligns file counts into a column across paths of differing lengths', () => {
+    const lines = describePlan(
+      planFromFlags({ untracked: true }),
+      ['short/', 'a-much-longer-dir/'],
+      (target) => (target === 'short/' ? 1 : 5)
+    );
+    // counts start at the same column; the longest path keeps a single space
+    expect(lines[0].indexOf('(')).toBe(lines[1].indexOf('('));
+    expect(lines[1]).toBe('Remove a-much-longer-dir/ (5 files)');
+    expect(lines[0]).toMatch(/^Remove short\/ +\(1 file\)$/);
+  });
 });
