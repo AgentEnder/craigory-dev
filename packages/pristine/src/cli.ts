@@ -36,27 +36,50 @@ export interface RunFlags extends CliFlags {
   cwd?: string;
 }
 
-function summarize(plan: Plan, targetCount: number): void {
-  const lines = [`reset:     ${plan.reset ?? 'no'}`];
-  if (plan.ignored) {
-    const carve = [
-      plan.vendor ? 'node_modules incl.' : 'node_modules excl.',
-      plan.env ? '*.env* incl.' : '*.env* excl.',
-    ].join(', ');
-    lines.push(`ignored:   yes (${carve})`);
-  }
-  lines.push(`to remove: ${targetCount} entr${targetCount === 1 ? 'y' : 'ies'}`);
-  p.note(lines.join('\n'), 'Plan');
+function enumerate(plan: Plan, cwd: string): string[] {
+  return selectTargets(plan, {
+    untracked: plan.untracked ? enumerateUntracked(cwd) : [],
+    ignored: plan.ignored ? enumerateIgnored(cwd) : [],
+  });
 }
 
-/** List the actions a dry run would take, then how to apply them for real. */
-async function reportDryRun(
+/**
+ * Machine-readable dry run: target paths to **stdout**, one per line, and
+ * nothing else — ready to pipe into `xargs`, `fzf`, etc. Human-facing context
+ * goes to stderr. Always non-interactive (the plan comes from flags only).
+ */
+function emitDryRun(plan: Plan, cwd: string, flags: RunFlags): void {
+  const targets = enumerate(plan, cwd);
+
+  if (targets.length > 0) {
+    process.stdout.write(targets.join('\n') + '\n');
+  }
+
+  if (plan.reset) {
+    process.stderr.write(`reset ${plan.reset}: tracked files\n`);
+  }
+  if (targets.length === 0 && !plan.reset) {
+    process.stderr.write(
+      'pristine: nothing selected (pass --untracked, --ignored, and/or --reset)\n'
+    );
+    return;
+  }
+  const rerun = ['pristine', ...flagsForPlan(plan)];
+  if (flags.cwd) {
+    rerun.push('--cwd', flags.cwd);
+  }
+  rerun.push('--yes');
+  process.stderr.write(
+    `${targets.length} path(s); apply with: ${rerun.join(' ')}\n`
+  );
+}
+
+/** Render the human preview of what will be removed, with file counts. */
+async function showPreview(
   plan: Plan,
   targets: string[],
-  cwd: string,
-  flags: RunFlags
+  cwd: string
 ): Promise<void> {
-  // Annotate directory entries with their recursive file count.
   const counts = new Map<string, number>();
   await Promise.all(
     targets
@@ -66,14 +89,7 @@ async function reportDryRun(
       })
   );
   const lines = describePlan(plan, targets, (target) => counts.get(target));
-  p.note(lines.join('\n'), 'Dry run — would run');
-
-  const rerun = ['pristine', ...flagsForPlan(plan)];
-  if (flags.cwd) {
-    rerun.push('--cwd', flags.cwd);
-  }
-  rerun.push('--yes');
-  p.outro(`No changes made. Re-run to apply:\n  ${rerun.join(' ')}`);
+  p.note(lines.join('\n'), 'Would remove');
 }
 
 /**
@@ -84,8 +100,14 @@ export async function run(flags: RunFlags): Promise<void> {
   const cwd = resolve(flags.cwd ?? process.cwd());
 
   if (!isInsideWorkTree(cwd)) {
-    p.log.error(`Not inside a git work tree: ${cwd}`);
+    process.stderr.write(`pristine: not inside a git work tree: ${cwd}\n`);
     process.exitCode = 1;
+    return;
+  }
+
+  // --dry-run is always non-interactive and writes a clean path list to stdout.
+  if (flags.dryRun) {
+    emitDryRun(planFromFlags(flags), cwd, flags);
     return;
   }
 
@@ -95,40 +117,18 @@ export async function run(flags: RunFlags): Promise<void> {
     ? planFromFlags(flags)
     : await promptForPlan({ hasTrackedChanges: hasTrackedChanges(cwd) });
 
-  const enumeration = {
-    untracked: plan.untracked ? enumerateUntracked(cwd) : [],
-    ignored: plan.ignored ? enumerateIgnored(cwd) : [],
-  };
-  const targets = selectTargets(plan, enumeration);
-
-  summarize(plan, targets.length);
+  const targets = enumerate(plan, cwd);
 
   if (!plan.reset && targets.length === 0) {
     p.outro('Nothing to do.');
     return;
   }
 
-  if (flags.dryRun) {
-    await reportDryRun(plan, targets, cwd, flags);
-    return;
-  }
-
   if (!flags.yes) {
-    const choice = await p.select<'apply' | 'dry' | 'cancel'>({
-      message: 'Apply these changes?',
-      options: [
-        { value: 'apply', label: 'Yes, apply them' },
-        { value: 'dry', label: 'Dry run — list what would happen' },
-        { value: 'cancel', label: 'No, cancel' },
-      ],
-      initialValue: 'cancel',
-    });
-    if (p.isCancel(choice) || choice === 'cancel') {
+    await showPreview(plan, targets, cwd);
+    const proceed = await p.confirm({ message: 'Proceed?', initialValue: false });
+    if (p.isCancel(proceed) || !proceed) {
       p.cancel('Aborted.');
-      return;
-    }
-    if (choice === 'dry') {
-      await reportDryRun(plan, targets, cwd, flags);
       return;
     }
   }
@@ -191,7 +191,8 @@ const pristineCLI = cli('pristine', {
       })
       .option('dryRun', {
         type: 'boolean',
-        description: 'Show the plan without removing anything',
+        description:
+          'Print the paths that would be removed to stdout (one per line); never prompts',
       })
       .option('cwd', {
         type: 'string',

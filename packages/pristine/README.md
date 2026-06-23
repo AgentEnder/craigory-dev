@@ -42,31 +42,19 @@ pristine
 Vendor directories (`node_modules`) and env files (`*.env*`) are **excluded by
 default** — you opt in.
 
-At the final confirmation you can choose **Dry run** to list exactly what would
-happen without touching anything:
+Before the final confirmation, pristine always shows a preview of exactly what it
+will remove — directory entries annotated with a recursive file count, so you can
+see the weight of what you're about to delete:
 
 ```
-◆ Apply these changes?
-  ○ Yes, apply them
-  ○ Dry run — list what would happen
-  ○ No, cancel
-```
-
-A dry run prints each action and ends with the precise command to apply it:
-
-```
-Dry run — would run:
+Would remove:
   Reset tracked files (hard)
   rm -r newdir/        (12 files)
   rm -r node_modules/  (34201 files)
   rm stray.log
 
-No changes made. Re-run to apply:
-  pristine --reset hard --untracked --ignored --node-modules --yes
+◆ Proceed?  (default No)
 ```
-
-Directory entries are annotated with a recursive file count, so you can see the
-weight of what you're about to delete before committing to it.
 
 ### Non-interactive
 
@@ -80,9 +68,21 @@ pristine --untracked --ignored --yes
 
 # Nuke everything git considers disposable, including node_modules
 pristine --untracked --ignored --node-modules --env --yes
+```
 
-# Reset tracked changes and preview the rest without deleting
-pristine --reset hard --untracked --ignored --dry-run
+### `--dry-run` (scripting)
+
+`--dry-run` never prompts and writes **only the paths it would remove to stdout**,
+one per line — everything human goes to stderr. That makes it composable with other
+tools:
+
+```sh
+# List what would be removed
+pristine --untracked --ignored --node-modules --dry-run
+
+# Pipe straight into other tools (stderr is kept separate)
+pristine --untracked --ignored --dry-run | wc -l
+pristine --ignored --node-modules --dry-run | fzf
 ```
 
 | Flag | Description |
@@ -93,7 +93,7 @@ pristine --reset hard --untracked --ignored --dry-run
 | `--node-modules` | Include vendor dirs within ignored removal |
 | `--env` | Include `*.env*` files within ignored removal |
 | `--yes`, `-y` | Skip the final confirmation |
-| `--dry-run` | List the actions that would be taken, then exit without removing anything |
+| `--dry-run` | Print the paths that would be removed to stdout (one per line); never prompts |
 | `--cwd <dir>` | Operate on another directory |
 
 ## How it stays correct

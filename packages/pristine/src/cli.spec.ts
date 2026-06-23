@@ -41,6 +41,37 @@ function makeRepo(committed: Record<string, string>): string {
   return root;
 }
 
+/** A repo with one tracked file plus untracked + ignored (incl. node_modules). */
+function seed(): string {
+  const root = makeRepo({
+    'src/app.ts': 'tracked',
+    '.gitignore': 'node_modules/\ndist/\n*.log\n',
+  });
+  write(root, 'newdir/a.txt', 'untracked');
+  write(root, 'node_modules/pkg/index.js', 'vendor');
+  write(root, 'dist/out.js', 'ignored');
+  write(root, 'debug.log', 'ignored');
+  return root;
+}
+
+/** Capture everything written to a std stream for the duration of a test. */
+function capture(stream: 'stdout' | 'stderr') {
+  const original = process[stream].write.bind(process[stream]);
+  let text = '';
+  process[stream].write = ((chunk: unknown) => {
+    text += String(chunk);
+    return true;
+  }) as typeof process.stdout.write;
+  return {
+    get text() {
+      return text;
+    },
+    restore() {
+      process[stream].write = original;
+    },
+  };
+}
+
 afterEach(() => {
   for (const dir of repos.splice(0)) {
     rmSync(dir, { recursive: true, force: true });
@@ -49,18 +80,6 @@ afterEach(() => {
 });
 
 describe('run (non-interactive)', () => {
-  function seed(): string {
-    const root = makeRepo({
-      'src/app.ts': 'tracked',
-      '.gitignore': 'node_modules/\ndist/\n*.log\n',
-    });
-    write(root, 'newdir/a.txt', 'untracked');
-    write(root, 'node_modules/pkg/index.js', 'vendor');
-    write(root, 'dist/out.js', 'ignored');
-    write(root, 'debug.log', 'ignored');
-    return root;
-  }
-
   it('removes untracked and ignored (incl. node_modules) while keeping tracked files', async () => {
     const root = seed();
 
@@ -120,5 +139,46 @@ describe('run (non-interactive)', () => {
     await run({ untracked: true, yes: true, cwd: notARepo });
 
     expect(process.exitCode).toBe(1);
+  });
+});
+
+describe('run --dry-run (machine readable)', () => {
+  it('writes only the target paths to stdout, one per line', async () => {
+    const root = seed();
+    const out = capture('stdout');
+    try {
+      await run({ untracked: true, ignored: true, nodeModules: true, dryRun: true, cwd: root });
+    } finally {
+      out.restore();
+    }
+
+    const lines = out.text.split('\n').filter(Boolean).sort();
+    expect(lines).toEqual(['debug.log', 'dist/', 'newdir/', 'node_modules/'].sort());
+  });
+
+  it('is non-interactive and emits nothing when no action flags are given', async () => {
+    const root = seed();
+    const out = capture('stdout');
+    try {
+      // Would hang if it tried to prompt — dry-run must never be interactive.
+      await run({ dryRun: true, cwd: root });
+    } finally {
+      out.restore();
+    }
+
+    expect(out.text).toBe('');
+  });
+
+  it('removes nothing even without --yes', async () => {
+    const root = seed();
+    const out = capture('stdout');
+    try {
+      await run({ untracked: true, ignored: true, nodeModules: true, dryRun: true, cwd: root });
+    } finally {
+      out.restore();
+    }
+
+    expect(existsSync(join(root, 'node_modules'))).toBe(true);
+    expect(existsSync(join(root, 'newdir'))).toBe(true);
   });
 });
