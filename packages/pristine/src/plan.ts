@@ -81,52 +81,6 @@ export function flagsForPlan(plan: Plan): string[] {
 }
 
 /**
- * Human-readable list of the actions a plan would take: the reset (if any),
- * then one `Remove <path>` line per target. Drives the dry-run report.
- *
- * Each removal renders as the command it represents: `rm -r <dir>/` for
- * directories, `rm <file>` for files. When `fileCount` is supplied, directory
- * targets are annotated with their recursive file count, e.g.
- * `rm -r node_modules/ (34201 files)`. Counting is the caller's concern (it is
- * filesystem I/O), keeping this function pure.
- */
-export function describePlan(
-  plan: Plan,
-  targets: string[],
-  fileCount?: (target: string) => number | undefined
-): string[] {
-  const lines: string[] = [];
-  if (plan.reset) {
-    lines.push(`Reset tracked files (${plan.reset})`);
-  }
-
-  const removals = targets.map((target) => {
-    const isDir = target.endsWith('/');
-    return {
-      prefix: isDir ? `rm -r ${target}` : `rm ${target}`,
-      count: isDir && fileCount ? fileCount(target) : undefined,
-    };
-  });
-
-  // Pad the path column so the `(N files)` annotations line up.
-  const column = Math.max(
-    0,
-    ...removals.filter((r) => r.count !== undefined).map((r) => r.prefix.length)
-  );
-
-  for (const { prefix, count } of removals) {
-    if (count === undefined) {
-      lines.push(prefix);
-    } else {
-      lines.push(
-        `${prefix.padEnd(column)} (${count} file${count === 1 ? '' : 's'})`
-      );
-    }
-  }
-  return lines;
-}
-
-/**
  * Resolve a plan plus git's enumeration into the concrete list of paths to
  * remove. Reset is a git operation, not a removal, so it is not included here.
  * Ignored entries are filtered through the vendor/env carve-outs.

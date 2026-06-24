@@ -14,7 +14,6 @@ import {
   reset as gitReset,
 } from './git.js';
 import {
-  describePlan,
   flagsForPlan,
   hasActionFlags,
   planFromFlags,
@@ -24,6 +23,7 @@ import {
 } from './plan.js';
 import { promptForPlan } from './prompts.js';
 import { countFiles, DEFAULT_CONCURRENCY, removeAll } from './remove.js';
+import { renderTree } from './tree.js';
 
 // Bump the libuv threadpool before any fs work so the fan-out `fs.rm` actually
 // runs in parallel — the default of 4 threads would otherwise cap it.
@@ -74,7 +74,7 @@ function emitDryRun(plan: Plan, cwd: string, flags: RunFlags): void {
   );
 }
 
-/** Render the human preview of what will be removed, with file counts. */
+/** Render the human preview of what will be removed, as a tree with file counts. */
 async function showPreview(
   plan: Plan,
   targets: string[],
@@ -88,7 +88,10 @@ async function showPreview(
         counts.set(target, await countFiles(resolve(cwd, target)));
       })
   );
-  const lines = describePlan(plan, targets, (target) => counts.get(target));
+  const tree = renderTree(targets, (target) => counts.get(target));
+  const lines = plan.reset
+    ? [`Reset tracked files (${plan.reset})`, ...tree]
+    : tree;
   p.note(lines.join('\n'), 'Would remove');
 }
 

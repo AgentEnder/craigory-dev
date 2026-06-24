@@ -1,6 +1,5 @@
 export { run, type RunFlags } from './cli.js';
 export {
-  describePlan,
   flagsForPlan,
   hasActionFlags,
   planFromFlags,
@@ -9,6 +8,7 @@ export {
   type Enumeration,
   type Plan,
 } from './plan.js';
+export { renderTree } from './tree.js';
 export { categorizeIgnored, type CategorizedIgnored } from './categorize.js';
 export {
   enumerateIgnored,

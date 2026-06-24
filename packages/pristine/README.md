@@ -43,18 +43,29 @@ Vendor directories (`node_modules`) and env files (`*.env*`) are **excluded by
 default** — you opt in.
 
 Before the final confirmation, pristine always shows a preview of exactly what it
-will remove — directory entries annotated with a recursive file count, so you can
-see the weight of what you're about to delete:
+will remove — as a tree grouped by directory, with each entry annotated by its
+recursive file count, so you can see the weight of what you're about to delete:
 
 ```
 Would remove:
   Reset tracked files (hard)
-  rm -r newdir/        (12 files)
-  rm -r node_modules/  (34201 files)
-  rm stray.log
+  ├── .nx/                                   (92511 files)
+  ├── apps/
+  │   ├── alt-codes/
+  │   │   ├── dist/                          (8382 files)
+  │   │   └── node_modules/                  (45 files)
+  │   └── tiki-menu/
+  │       ├── dist/                          (17 files)
+  │       ├── firestore-debug.log
+  │       └── node_modules/                  (3566 files)
+  ├── node_modules/                          (98550 files)
+  └── tools/update-repos/report-viewer/dist/ (1 file)
 
 ◆ Proceed?  (default No)
 ```
+
+Single-child directories collapse into one segment
+(`tools/update-repos/report-viewer/dist/`) to keep the tree compact.
 
 ### Non-interactive
 

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
 import {
-  describePlan,
   flagsForPlan,
   hasActionFlags,
   planFromFlags,
@@ -126,63 +125,5 @@ describe('flagsForPlan', () => {
 
   it('returns an empty array for an empty plan', () => {
     expect(flagsForPlan(planFromFlags({}))).toEqual([]);
-  });
-});
-
-describe('describePlan', () => {
-  it('lists the reset action, then rm/rm -r per removal', () => {
-    const plan = planFromFlags({ reset: 'hard', untracked: true });
-    expect(describePlan(plan, ['newdir/', 'a.txt'])).toEqual([
-      'Reset tracked files (hard)',
-      'rm -r newdir/',
-      'rm a.txt',
-    ]);
-  });
-
-  it('uses rm -r for directories', () => {
-    expect(describePlan(planFromFlags({ ignored: true }), ['dist/'])).toEqual([
-      'rm -r dist/',
-    ]);
-  });
-
-  it('lists only the reset when there are no targets', () => {
-    expect(describePlan(planFromFlags({ reset: 'worktree' }), [])).toEqual([
-      'Reset tracked files (worktree)',
-    ]);
-  });
-
-  it('annotates directory entries with a recursive file count when available', () => {
-    const lines = describePlan(
-      planFromFlags({ untracked: true }),
-      ['newdir/', 'a.txt'],
-      (target) => (target === 'newdir/' ? 42 : undefined)
-    );
-    expect(lines).toEqual(['rm -r newdir/ (42 files)', 'rm a.txt']);
-  });
-
-  it('pluralizes a single-file count', () => {
-    const lines = describePlan(planFromFlags({ untracked: true }), ['d/'], () => 1);
-    expect(lines).toEqual(['rm -r d/ (1 file)']);
-  });
-
-  it('omits the count for files and when the count is unavailable', () => {
-    const lines = describePlan(
-      planFromFlags({ untracked: true }),
-      ['a.txt', 'd/'],
-      () => undefined
-    );
-    expect(lines).toEqual(['rm a.txt', 'rm -r d/']);
-  });
-
-  it('aligns file counts into a column across paths of differing lengths', () => {
-    const lines = describePlan(
-      planFromFlags({ untracked: true }),
-      ['short/', 'a-much-longer-dir/'],
-      (target) => (target === 'short/' ? 1 : 5)
-    );
-    // counts start at the same column; the longest path keeps a single space
-    expect(lines[0].indexOf('(')).toBe(lines[1].indexOf('('));
-    expect(lines[1]).toBe('rm -r a-much-longer-dir/ (5 files)');
-    expect(lines[0]).toMatch(/^rm -r short\/ +\(1 file\)$/);
   });
 });
