@@ -82,11 +82,34 @@ export const yarnSuffixBug = (
   </>
 );
 
-export const bunUserWidePr = (
+export const bunSystemWidePr = (
   <>
     Bun pull request{' '}
     <a href="https://github.com/oven-sh/bun/pull/28727">#28727</a>. Adds
-    user-wide <code>bunfig.toml</code> support.
+    system-wide <code>bunfig.toml</code> support (<code>/etc/bunfig.toml</code>
+    ), merged beneath the user-wide and project files.
+  </>
+);
+
+export const pnpmConfigLocations = (
+  <>
+    pnpm documentation,{' '}
+    <a href="https://pnpm.io/cli/config">
+      <code>pnpm config</code>
+    </a>
+    . Lists the per-OS locations of the global <code>config.yaml</code> and its sibling{' '}
+    <code>rc</code> file.
+  </>
+);
+
+export const bunGlobalBunfig = (
+  <>
+    Bun documentation,{' '}
+    <a href="https://bun.sh/docs/runtime/bunfig#global-vs-local">
+      Global vs. local <code>bunfig.toml</code>
+    </a>
+    . Enforcement of <code>install.minimumReleaseAge</code> from the user-wide file
+    verified against Bun <code>1.3.7</code>.
   </>
 );
 
@@ -311,7 +334,9 @@ This writes to `~/.npmrc`. Substituting `global` for `user` writes to the global
 pnpm config set minimumReleaseAge 1440 --location=user
 ```
 
-On pnpm 11 and later, non-auth settings written this way are stored in `~/.config/pnpm/config.yaml` rather than `~/.npmrc`.
+On pnpm 11 and later, non-auth settings written this way land in a global `config.yaml` whose location is platform-specific: `~/.config/pnpm/config.yaml` on Linux, `~/Library/Preferences/pnpm/config.yaml` on macOS, and `~/AppData/Local/pnpm/config/config.yaml` on Windows. Setting `$XDG_CONFIG_HOME` moves the file to `$XDG_CONFIG_HOME/pnpm/config.yaml` on every platform, macOS included.<Cite n={19} href="https://pnpm.io/cli/config">{pnpmConfigLocations}</Cite>
+
+The platform split makes hand-editing risky: a `config.yaml` written to the Linux path on a Mac sits in a file pnpm never reads, and nothing warns about it. Auth and registry settings follow the same directory rules but go to a sibling `rc` file in INI format — and on pnpm 11, that INI file is consulted _only_ for auth and registry keys, so a `minimum-release-age=` line carried over from pnpm 10 is silently ignored as well. Writing through `pnpm config set --location=user` targets the correct file on every OS, and running `pnpm config get minimumReleaseAge` from outside any project confirms the value is actually being read back.
 
 </Tab>
 <Tab label="Yarn">
@@ -325,7 +350,14 @@ yarn config set --home npmMinimalAgeGate 1440
 </Tab>
 <Tab label="Bun">
 
-Bun reads project-level `bunfig.toml` only; user-wide configuration is not yet supported. An open pull request adds the corresponding behavior.<Cite n={10} href="https://github.com/oven-sh/bun/pull/28727">{bunUserWidePr}</Cite> Once merged, the same key written in a user-wide `bunfig.toml` will apply across projects.
+The same `[install]` table written in a user-wide bunfig applies across projects. Bun reads `~/.bunfig.toml` — or `$XDG_CONFIG_HOME/.bunfig.toml` when that variable is set — and merges it with the project file, with the project file winning on conflicting keys:<Cite n={20} href="https://bun.sh/docs/runtime/bunfig#global-vs-local">{bunGlobalBunfig}</Cite>
+
+```toml filename="~/.bunfig.toml"
+[install]
+minimumReleaseAge = 86400
+```
+
+The merge is per-key, so a project `bunfig.toml` that sets an unrelated `[install]` option (for example, `install.exact`) still inherits the user-wide cooldown. A machine-wide layer below both files (`/etc/bunfig.toml`), aimed at fleet-level enforcement, is proposed in an open pull request.<Cite n={10} href="https://github.com/oven-sh/bun/pull/28727">{bunSystemWidePr}</Cite>
 
 </Tab>
 </Tabs>
@@ -427,6 +459,8 @@ A handful of conditions can quietly bypass the configured cooldown or change wha
 **A repository's pinned package manager is what actually runs the install.** A pin via the `packageManager` field, Corepack, Volta, a Docker base image, or `setup-node` with `version-file` overrides whatever is installed globally. If the pinned version predates cooldown support, every layer of configuration above it is inert. The most reliable check is to run `pnpm --version` (or the equivalent) from inside the repository, or to inspect the `setup-node` step in the CI log.
 
 **Project-level configuration takes precedence over user-level configuration in all four tools.** A user-wide cooldown of one day does not apply inside a repository whose project config sets a smaller value or none at all. A user-wide value is not a backstop for repositories that have not opted in.
+
+**The user-wide file lives at a different path per operating system for pnpm and Bun.** npm and Yarn read `~/.npmrc` and `~/.yarnrc.yml` from the home directory everywhere, but pnpm's global `config.yaml` moves between `~/.config/pnpm/` (Linux), `~/Library/Preferences/pnpm/` (macOS), and `~/AppData/Local/pnpm/config/` (Windows),<Cite n={19} href="https://pnpm.io/cli/config">{pnpmConfigLocations}</Cite> and Bun switches from `~/.bunfig.toml` to `$XDG_CONFIG_HOME/.bunfig.toml` when the variable is set. A config file hand-written to the path from another operating system's documentation is silently ignored. Writing through the tool's own CLI and then reading the value back from outside any project confirms the setting landed somewhere it will actually be read.
 
 **None of the four tools support per-registry scoping.** Internal packages from a private registry are subject to the cooldown unless explicitly listed in the per-tool exclusion option. npm does not yet expose one; an issue is open against the CLI tracking it.<Cite n={7} href="https://github.com/npm/cli/issues/8994">{npmExcludeIssue}</Cite>
 
