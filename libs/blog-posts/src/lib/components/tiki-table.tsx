@@ -153,6 +153,18 @@ const DATA: TikiRating[] = [
     visits: [new Date('2025-12-06')],
   },
   {
+    bar: 'Tiki Tiki Bang Bang',
+    blogSlug: 'tiki-tiki-bang-bang',
+    googleMapsLink: 'https://maps.app.goo.gl/stxe1rLabJDcfEmY8',
+    location: 'Cincinnati, OH',
+    description:
+      'A heavily themed tiki bar with comfortable seating, friendly staff, and a great mug program.',
+    overall: 4.0,
+    drinks: 3.0,
+    decor: 4.5,
+    visits: [new Date('2026-06-13')],
+  },
+  {
     bar: 'Paradise Lost',
     blogSlug: 'paradise-lost',
     googleMapsLink: 'https://maps.app.goo.gl/d5BQGcLvhUeMrEtW6',

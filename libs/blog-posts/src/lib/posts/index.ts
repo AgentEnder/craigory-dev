@@ -13,6 +13,7 @@ import { rumBarrelWest } from './tiki/rum-barrel/post';
 import { konTiki } from './tiki/kon-tiki/post';
 import { sunkenHarborClub } from './tiki/sunken-harbor-club/post';
 import { paradiseLost } from './tiki/paradise-lost/post';
+import { tikiTikiBangBang } from './tiki/tiki-tiki-bang-bang/post';
 
 function partition<T extends unknown[]>(arr: T, size: number): T[] {
   const result: T[] = [];
@@ -39,6 +40,7 @@ const ALL_BLOG_POSTS = [
   konTiki,
   paradiseLost,
   sunkenHarborClub,
+  tikiTikiBangBang,
 ];
 
 export const blogPosts = ALL_BLOG_POSTS.filter(
