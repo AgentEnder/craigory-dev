@@ -4,17 +4,12 @@
   "sourceRoot": "apps/craigory-dev/src",
   "projectType": "application",
   "tags": [],
-  "implicitDependencies": [
-    "apps/*"
-  ],
+  "implicitDependencies": ["apps/*"],
   "targets": {
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "commands": [
-          "vike build",
-          "node ../../tools/copy-local-projects.cjs"
-        ],
+        "commands": ["vike build", "node ../../tools/copy-local-projects.cjs"],
         "cwd": "apps/craigory-dev",
         "parallel": false
       },
@@ -26,22 +21,18 @@
           ]
         }
       },
-      "dependsOn": [
-        "^build"
-      ]
+      "dependsOn": ["^build"]
     },
     "prepare": {
       "executor": "nx:run-commands",
       "options": {
         "commands": [
           "sscli -b https://craigory.dev -r dist/apps/craigory-dev/client -c '**,weekly' 'blog/**,daily' --slash",
-          "pnpm dlx vite-node -c tools/vite.config.js tools/generate-open-graph-images.ts"
+          "bun run tools/generate-open-graph-images.ts"
         ],
         "parallel": true
       },
-      "dependsOn": [
-        "build"
-      ],
+      "dependsOn": ["build"],
       "cache": true
     },
     "serve": {
@@ -77,9 +68,7 @@
     },
     "test": {
       "executor": "@nx/vitest:test",
-      "outputs": [
-        "{workspaceRoot}/coverage/apps/craigory-dev"
-      ],
+      "outputs": ["{workspaceRoot}/coverage/apps/craigory-dev"],
       "options": {
         "passWithNoTests": true,
         "reportsDirectory": "{projectRoot}/../../coverage/apps/craigory-dev"
@@ -101,18 +90,11 @@
           "CNAME": "preview.craigory.dev",
           "syncWithBaseBranch": true,
           "syncStrategy": "merge",
-          "syncGitOptions": [
-            "--allow-unrelated-histories",
-            "-X",
-            "ours"
-          ],
+          "syncGitOptions": ["--allow-unrelated-histories", "-X", "ours"],
           "baseBranch": "gh-pages"
         }
       },
-      "dependsOn": [
-        "prepare",
-        "^deploy"
-      ]
+      "dependsOn": ["prepare", "^deploy"]
     }
   }
 }

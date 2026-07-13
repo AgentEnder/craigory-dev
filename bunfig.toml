@@ -1,0 +1,5 @@
+# bun run tools/generate-open-graph-images.ts (nx prepare) imports blog post
+# modules whose contents.mdx imports exist for the vike build; the script only
+# reads post metadata, so MDX can load as inert text.
+[loader]
+".mdx" = "text"

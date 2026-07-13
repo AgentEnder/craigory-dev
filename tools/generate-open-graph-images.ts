@@ -1,8 +1,8 @@
 import { webkit } from 'playwright';
-import { blogPosts } from '../libs/blog-posts/src';
+import { blogPosts } from '../libs/blog-posts/src/lib/posts';
 import { join } from 'path';
 import { formatDateString } from '../libs/date-utils/src';
-import { PRESENTATIONS } from '../libs/presentations/src';
+import { PRESENTATIONS } from '../libs/presentations/src/lib/presentations';
 
 const styles = `
 body {
