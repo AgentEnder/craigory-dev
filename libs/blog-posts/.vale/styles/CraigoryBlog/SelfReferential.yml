@@ -1,0 +1,22 @@
+extends: existence
+message: "Don't write about the post itself. Get to the content. Remove '%s'."
+level: warning
+ignorecase: true
+tokens:
+  - 'This post explains'
+  - 'This post describes'
+  - 'This post covers'
+  - 'This post will show'
+  - 'This article explains'
+  - 'This article describes'
+  - 'This article covers'
+  - 'In this post'
+  - 'In this article'
+  - 'In this guide'
+  - 'In this tutorial'
+  - "we'll walk through"
+  - 'we will walk through'
+  - "we'll explore"
+  - 'we will explore'
+  - "we'll cover"
+  - 'we will cover'

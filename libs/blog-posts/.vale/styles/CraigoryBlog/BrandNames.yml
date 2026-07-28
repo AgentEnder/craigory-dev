@@ -1,0 +1,19 @@
+extends: substitution
+message: "Use '%s' instead of '%s'."
+level: error
+ignorecase: false
+# Targeted wrong casings only. Tool names with a legitimate lowercase CLI form
+# (nx, yarn, bun, vite) are deliberately absent — enforcing those fights prose
+# like "run `nx build`".
+swap:
+  Github: GitHub
+  Javascript: JavaScript
+  Typescript: TypeScript
+  NodeJS: Node.js
+  Node.JS: Node.js
+  NPM: npm
+  PNPM: pnpm
+  MacOS: macOS
+  Mac OS: macOS
+  Postgres SQL: PostgreSQL
+  VSCode: VS Code

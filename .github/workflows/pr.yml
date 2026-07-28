@@ -20,6 +20,10 @@ jobs:
         with:
           fetch-depth: 0
 
+      # Provides vale for the blog-posts prose lint target (see mise.toml)
+      - name: Setup dev tools with mise
+        uses: jdx/mise-action@146a28175021df8ca24f8ee1828cc2a60f980bd5 # v3
+
       - uses: pnpm/action-setup@0ebf47130e4866e96fce0953f49152a61190b271 # v6.0.9
         name: Install pnpm
         with:

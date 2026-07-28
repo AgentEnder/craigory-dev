@@ -74,6 +74,15 @@
       "executor": "@nx/vitest:test"
     },
     {
+      "target": "lint:vale",
+      "inputs": [
+        "{projectRoot}/src/lib/posts/**/*.mdx",
+        "{projectRoot}/.vale.ini",
+        "{projectRoot}/.vale/styles/**/*"
+      ],
+      "cache": true
+    },
+    {
       "options": {
         "typecheck": {
           "targetName": "typecheck"

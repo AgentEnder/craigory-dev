@@ -6,7 +6,17 @@
   "tags": [],
   "targets": {
     "lint": {
+      "executor": "nx:noop",
+      "dependsOn": ["lint:eslint", "lint:vale"]
+    },
+    "lint:eslint": {
       "executor": "@nx/eslint:lint"
+    },
+    "lint:vale": {
+      "command": "mise exec -- vale --minAlertLevel=error src/lib/posts",
+      "options": {
+        "cwd": "{projectRoot}"
+      }
     }
   }
 }
