@@ -98,6 +98,22 @@ For emoji entries:
 - Hide "Alt" badge (not applicable)
 - Cards otherwise identical: glyph, hex of first codepoint, name
 
+**Dual presentation (added 2026-07-28).** The 371 code points in
+`emoji-variation-sequences.txt` have both a text-style (U+FE0E) and an emoji-style
+(U+FE0F) standardized sequence, and render as visibly different characters — ♥ vs ♥️.
+A bare code point is *unqualified*, so which one you get is decided by platform font
+fallback; the same card rendered differently per OS. Those cards now show both glyphs
+side by side, explicitly qualified, via `src/CharGlyph.tsx`.
+
+The predicate (`presentationBase` in `src/unicode-data.ts`) accepts both forms the two
+loader paths produce for the same character — the bare `[0x2665]` from `makeEntry()`'s
+block ranges and the fully-qualified `[0x2665, 0xFE0F]` from `buildEmojiCharacters()`.
+It rejects longer sequences, which matters because digits are variation bases: a
+first-code-point-only check would wrongly split the keycap `1️⃣`.
+
+Card geometry is unchanged — the two glyphs sit on one line at 24px, so the
+virtualizers' fixed 85px card height and `ROW_HEIGHT` estimates still hold.
+
 ## Non-Goals
 
 - Skin tone variants as separate pages (handled via detail page selector only)
