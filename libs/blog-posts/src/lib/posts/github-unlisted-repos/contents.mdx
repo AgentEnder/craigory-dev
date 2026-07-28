@@ -1,8 +1,8 @@
-# Unlisted Github Repositories
+# Unlisted GitHub Repositories
 
-Services such as YouTube provide support for unlisted videos. This allows publishing a video that is publicly accessible, but only via a direct link. This is useful for sharing content with a select group of people. It be used for getting early feedback on a video draft, or for sharing a video with a client before it goes live.
+Services such as YouTube provide support for unlisted videos. This allows publishing a video that is publicly accessible, but only via a direct link. This is useful for sharing content with a select group of people. It can be used for getting early feedback on a video draft, or for sharing a video with a client before it goes live.
 
-There is no equivalent feature for GitHub repositories, but the need still exists. Some reasons I've needed this feature include:
+GitHub repositories have no equivalent feature, but the need still exists. Some reasons I've needed this feature include:
 
 - Sharing issue reproductions
 - Sharing more complex code snippets like multifile gists
@@ -17,7 +17,7 @@ This is the key to our approach of creating unlisted repositories.
 
 ## Steps to Create an Unlisted Repository
 
-1. Create a "host" repository that will contain all of your unlisted repositories. This repository will be public, but not contain code on the main branch. It differs from other repositories in that it will contain many branches, each representing a different unlisted repository. I'd recommend adding a README to this repository that explains the purpose of the repository and how to use it.
+1. Create a "host" repository that will contain all your unlisted repositories. This repository will be public, but not contain code on the main branch. It differs from other repositories in that it will contain many branches, each representing a different unlisted repository. I'd recommend adding a README to this repository that explains the purpose of the repository and how to use it.
 
 - For example, I use https://github.com/agentender/github-issues as my host repository.
 
@@ -119,13 +119,13 @@ If you setup a script like this, you can add it as a git alias to make it easier
 
 ## Wrapping Up
 
-This isn't quite as good as native support for unlisted repositories, but it's a good workaround. Sharing reproductions will no longer clutter up your profile, and you can share more complex code snippets without needing to create a new repository for each one. Of note, this approach has limitations that native support would not.
+This isn't as good as native support for unlisted repositories, but it's a good workaround. Sharing reproductions will no longer clutter up your profile, and you can share more complex code snippets without needing to create a new repository for each one. Of note, this approach has limitations that native support would not.
 
 Repo's shared with this manner:
 
 - Can not really have more than one branch
 - Can not have issues or pull requests
-  - This also makes it hard to test things like Github Actions or similar
+  - This also makes it hard to test things like GitHub Actions or similar
 - Can be found by anyone with access to the host repository
 
 With that said, I still think this is a useful tool to have in your toolbox.

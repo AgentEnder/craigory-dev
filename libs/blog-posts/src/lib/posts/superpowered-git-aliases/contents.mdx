@@ -6,11 +6,23 @@
 
 Git aliases work similarly to regular aliases in the shell, but they are specific to Git commands. They allow you to create shortcuts for longer commands or to create new commands that are not available by default.
 
+{/* vale write-good.Weasel = NO */}
+
 Aliases run in the same shell environment as other git commands, and are mostly used to simplify common workflows.
+
+{/* vale write-good.Weasel = YES */}
+
+{/* vale alex.Condescending = NO */}
 
 ### Simple Aliases
 
+{/* vale alex.Condescending = YES */}
+
+{/* vale alex.Condescending = NO */}
+
 Simple aliases call a single Git command with a set of arguments. For example, you can create an alias to show the status of the repository by running `git status` with the `s` alias:
+
+{/* vale alex.Condescending = YES */}
 
 ```INI filename="~/.gitconfig"
 [alias]
@@ -47,16 +59,24 @@ These limits make it way more complex to create and maintain aliases that have a
 
 You can script a gitalias using any programming language you'd like. If you are familiar with bash scripting and would like to use it, you can create a bash script that runs the desired git commands. The truth is that I am much stronger with JavaScript, so that is what I will use.
 
-One other major benefit is that by using a scripting language, your aliases can take and operate on arguments **much** more easily. Git will forward any arguments you pass on the CLI to your alias by appending them to the end of your command. As such, your script should be able to read them without issue. For example, in Node JS you can access the arguments passed to the script directly on `process.argv`.
+{/* vale alex.Condescending = NO */}
 
-The basic steps to set this up do not change based on the language choosen. You'll need to:
+One other major benefit is that by using a scripting language, your aliases can take and operate on arguments **much** more easily. Git will forward any arguments you pass on the CLI to your alias by appending them to the end of your command. As such, your script should be able to read them without issue. For example, in Node.js you can access the arguments passed to the script directly on `process.argv`.
+
+{/* vale alex.Condescending = YES */}
+
+The basic steps to set this up do not change based on the language chosen. You'll need to:
 
 - Create a script that runs the desired git commands
 - Write an alias that runs the script
 
 ### Case Study: Rebase Main / master
 
+{/* vale write-good.ThereIs = NO */}
+
 In recent years the default branch name for new repositories has changed from `master` to `main`. This means that when you clone a new repository, the default branch may be `main` instead of `master`. There is no longer a super consistent name, as the ecosystem is in transition. This is overall a good thing, but it means that our alias above to rebase will not work in all cases.
+
+{/* vale write-good.ThereIs = YES */}
 
 We need to update our alias to check if the branch is `main` or `master` and then rebase the correct branch. This is a perfect use case for a script.
 
@@ -115,7 +135,7 @@ Now you can run `git rebase-main` to rebase the correct branch, regardless of if
 
 ### Case Study: Amend
 
-Another alias that I set up on all my machines is to amend the last commit. This is a super common workflow for me, and I like to have it as a single command. This is a great use case for a script, as it is a simple command that I want to run often.
+Another alias that I set up on all my machines is to amend the last commit. This is a super common workflow for me, and I like to have it as a single command. This is a great use case for a script, as it is a short command that I want to run often.
 
 ```javascript filename="~/gitaliases/git-amend.js"
 #!/usr/bin/env node
@@ -171,7 +191,7 @@ Setting up aliases as scripts can unlock a whole new level of power in your git 
 
 When setting up aliases like this, its important to remember that the cwd of the script will be the current working directory of the shell that runs the script. Any relative file paths in the script will be treated as relative to the cwd of the shell, not the location of the script. This is super useful at times, and super painful at others. For our rebase-main script its not an issue though, and the only indication that this is happening is we used `~` in the file path to reference the script location as an absolute path.
 
-Introducing scripting into your git aliases can also make it tempting to add more and more logic to your aliases. This can make them harder to maintain and understand, but also harder to remember. Its not worth maintaining a super complex alias, as you'll be less likely to use it anyways. Additionally, you should be careful to not intoduce anything that may take too long to run into your aliases. If you are running a script that takes a long time to run, you may want to consider if it is the right place for it.
+Introducing scripting into your git aliases can also make it tempting to add more and more logic to your aliases. This can make them harder to maintain and understand, but also harder to remember. Its not worth maintaining a super complex alias, as you'll be less likely to use it anyways. Additionally, you should be careful to not introduce anything that may take too long to run into your aliases. If you are running a script that takes a long time to run, you may want to consider if it is the right place for it.
 
 ## Conclusion
 

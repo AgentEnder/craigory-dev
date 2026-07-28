@@ -6,7 +6,7 @@
 
 Nx's configuration has changed dramatically over the years, and it's been a long journey to get to where we are today. I joined the Nx team in June 2021, right before we split up `workspace.json` into `workspace.json` and `project.json`. Since joining the team, I've had a pretty direct hand in many of these changes, and have worked closely on others.
 
-There are a few misconceptions about Nx that stem from its configuration and history, and I'd like to clear some of those up.
+A few misconceptions about Nx stem from its configuration and history, and I'd like to clear some of those up.
 
 - Nx is only for Angular
 - Nx is hard to configure
@@ -14,13 +14,13 @@ There are a few misconceptions about Nx that stem from its configuration and his
 
 ### The Quick Scoop (tldr)
 
-- Nx was initially built as an Angular CLI extension. It has been its own CLI for several years, and has no direct ties to angular at this point.
-- Nx's configuration has went through several iterations, and mostly configures itself these days.
+- Nx was initially built as an Angular CLI extension. It has been its own CLI for years, and has no direct ties to angular at this point.
+- Nx's configuration has gone through many iterations, and now configures itself in most cases.
 - You shouldn't have to worry when the configuration changes, as Nx will migrate your existing config for you.
 
 ### The Final Result
 
-After Nx 18, the Nx side of configuration for individual projects in a workspace can be as simple as this:
+After Nx 18, the Nx side of configuration for individual projects in a workspace can be as small as this:
 
 ```json filename="apps/myapp/project.json"
 {
@@ -28,7 +28,11 @@ After Nx 18, the Nx side of configuration for individual projects in a workspace
 }
 ```
 
+{/* vale proselint.Skunked = NO */}
+
 The rest of the configuration that one may expect (targets to run as the most common example) can be inferred from configuration files present in the project's root. This is a dramatic reduction from where we started, and hopefully makes Nx easier to adopt and learn.
+
+{/* vale proselint.Skunked = YES */}
 
 ## Nx's Angular Beginnings
 
@@ -176,7 +180,7 @@ Soon after, we renamed `targetDependencies` to `targetDefaults` + `dependsOn` an
 
 ## `project.json` and splitting `workspace.json`
 
-Nx is a monorepo focused tool. It's designed to work with many projects in a single repository. As such, the `workspace.json` file can get quite large. Every time a new project is added, an existing project is modified, or an older project is removed, the `workspace.json` file needs to be updated. This can lead to merge conflicts and other issues.
+Nx is a monorepo focused tool. It's designed to work with many projects in a single repository. As such, the `workspace.json` file can get large. Every time a new project is added, an existing project is modified, or an older project is removed, the `workspace.json` file needs to be updated. This can lead to merge conflicts and other issues.
 
 When working with customers with over 200 projects, this was no longer scalable. We needed to split the `workspace.json` file into multiple files. We also needed to make it easier to add new projects and modify existing projects.
 
@@ -189,7 +193,7 @@ Additionally, we took some time to reevaluate where existing configuration optio
 The end result of this round of changes resulted in:
 
 - `workspace.json` containing a map of project name to file path
-- `project.json` containing all of the configuration for a single project
+- `project.json` containing all the configuration for a single project
 - `nx.json` containing configuration that is global to the workspace
 
 This was a much cleaner and more scalable way to manage configuration. It meant less merge conflicts, but also made it easier to tell what projects may have been affected by a change.
@@ -248,13 +252,17 @@ At the same time, there was a push from non-angular users to simplify the config
 
 Lerna has been around a long time, and maintains a good amount of popularity within the JavaScript community. It's a tool that helps manage multiple packages in a single repository. It's a bit different from Nx, but it's similar enough that we were already looking at making it easier to use the two together. Lerna had some functionality that Nx didn't (publishing packages), and Nx had some functionality that Lerna didn't (caching and code generation).
 
-Around this time, several things surrounding lerna started to become worrisome. There was an [issue](https://github.com/lerna/lerna/issues/2703) filed stating that lerna had been unmaintained. A [PR](https://github.com/lerna/lerna/pull/3092) had been merged adding a warning that lerna wasn't being actively maintained, and that the community should consider using other tools.
+Around this time, a few things surrounding lerna started to become worrisome. There was an [issue](https://github.com/lerna/lerna/issues/2703) filed stating that lerna had been unmaintained. A [PR](https://github.com/lerna/lerna/pull/3092) had been merged adding a warning that lerna wasn't being actively maintained, and that the community should consider using other tools.
 
 These users would need to go somewhere, but any change for them would not be without difficulty. Nrwl, the company behind Nx, decided to step in and offer a solution. After talking with the maintainer, we were able to take over stewardship and step in to maintain the project. This was announced in a blog post here: [Lerna is dead, Long live Lerna](https://blog.nrwl.io/lerna-is-dead-long-live-lerna-61259f97dbd9).
 
 ## Inference API v1, and Workspaces Support
 
+{/* vale proselint.Skunked = NO */}
+
 With Lerna under our purview we wanted to be able to unify the two tools. Nx should be able to work in a lerna workspace, and hopefully the portions of Lerna that Nx could already handle would then be able to invoke Nx under the hood. This would prevent us from having to maintain two copies of the same functionality, and we were optimistic we could do this without breaking any existing workflows.
+
+{/* vale proselint.Skunked = YES */}
 
 The first step of this process was to ensure that Nx could work in a Lerna repository without changing the existing structure. This meant a few things:
 
@@ -281,13 +289,13 @@ const plugin: NxPlugin = {
 
 In this example, `projectFilePatterns` is an array of file patterns that the plugin can handle. When Nx is looking for a project's configuration, it will look for a file that matches one of these patterns. If it finds one, it will pass it to `registerProjectTargets` and expect it to return the targets a given project can run.
 
-While we didn't directly use this API, it was a very small inclusion in the core code to enable Nx running inside a repository that was only configured by `package.json` files. The published API was also used to show how Nx could one day be used in C# or Java repositories, without introducing new configuration files.
+While we didn't directly use this API, it was a small inclusion in the core code to enable Nx running inside a repository that was only configured by `package.json` files. The published API was also used to show how Nx could one day be used in C# or Java repositories, without introducing new configuration files.
 
 ## Elevating Workspaces with Inference API v2
 
-We were mostly happy with the inference apis and configuration loading, but there were a few things that we wanted to clean up within Nx's codebase and the API itself. In particular we wanted to be able to streamline our handling of `angular.json` for legacy users, and wanted to migrate the `project.json` and `package.json` configuration loading into the same API.
+We were happy with the inference apis and configuration loading overall, but there were a few things that we wanted to clean up within Nx's codebase and the API itself. In particular we wanted to be able to streamline our handling of `angular.json` for legacy users, and wanted to migrate the `project.json` and `package.json` configuration loading into the same API.
 
-In order to do this, we needed an API that:
+To do this, we needed an API that:
 
 - Could provide a full project configuration, not just the targets
 - Could read multiple projects from a single file (angular.json supports this)
@@ -305,9 +313,9 @@ const plugin: NxPlugin = {
 };
 ```
 
-`CreateNodes` is a tuple, where the first element is a glob pattern that the plugin can handle, and the second element is a function that will read the file and return the projects it contains. `createDependencies` is a function that will be called after all of the nodes have been created, and is responsible for creating the edges between the nodes.
+`CreateNodes` is a tuple, where the first element is a glob pattern that the plugin can handle, and the second element is a function that will read the file and return the projects it contains. `createDependencies` is a function that will be called after all the nodes have been created, and is responsible for creating the edges between the nodes.
 
-This API met all of the requirements we set out on, and ensured there was only one spot for plugin authors to add new nodes to the graph. It released as part of Nx 17, and was talked about at that years [Nx Conf](https://www.youtube.com/watch?v=bnjOu7iOrMg)
+This API met all the requirements we set out on, and ensured there was only one spot for plugin authors to add new nodes to the graph. It released as part of Nx 17, and was talked about at that years [Nx Conf](https://www.youtube.com/watch?v=bnjOu7iOrMg)
 
 ## Entering the Crystal Era 💎
 
@@ -329,7 +337,7 @@ The inference APIs we had just added were a perfect fit for keeping the configur
 
 With these 3 pain points addressed, we made the major decision to step away from using executors for most of our first party plugins and infer targets from configuration files where possible. As far as configuration is concerned, nothing **really** changed but things did look a bit different to users. Mainly, the `targets` section of `project.json` was no longer required to run a target.
 
-Many `project.json` files can now be as simple as this:
+Many `project.json` files can now be as small as this:
 
 ```json filename="apps/myapp/project.json"
 {
@@ -340,7 +348,7 @@ Many `project.json` files can now be as simple as this:
 
 Internally, we referred to this change as project configuration v3. It represents a major shift in how we think about configuration, and how we think about integrating with other tools. As such, we released it as Nx 18: Project Crystal 💎.
 
-There are some published resources that go into more detail about this change:
+Some published resources go into more detail about this change:
 
 - [Nx Project Crystal 💎](https://www.youtube.com/watch?v=wADNsVItnsM)
 - [Inferred Tasks documentation](https://nx.dev/concepts/inferred-tasks#inferred-tasks-project-crystal)

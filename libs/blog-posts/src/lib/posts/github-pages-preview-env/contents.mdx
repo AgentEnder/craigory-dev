@@ -1,6 +1,6 @@
-# Setting Up Preview Environments for Github Pages
+# Setting Up Preview Environments for GitHub Pages
 
-Github Pages provides free hosting for static websites. It's a great way to host your personal blog, portfolio, or documentation, and is infact used to host this website. While it serves this purpose well, it is missing a feature that many newer hosting providers offer: preview environments.
+GitHub Pages provides free hosting for static websites. It's a great way to host your personal blog, portfolio, or documentation, and is in fact used to host this website. While it serves this purpose well, it is missing a feature that many newer hosting providers offer: preview environments.
 
 ## Table of Contents
 
@@ -8,9 +8,13 @@ Github Pages provides free hosting for static websites. It's a great way to host
 
 Preview environments are temporary environments that are created for each pull request. They allow you to preview your changes before merging them into the main branch. This is especially useful for static websites, where you can't preview your changes locally. Vercel and Netlify both offer this feature, and leave a comment on the pull request with a link to the preview environment.
 
-## Prerequisite: Deploy with Github Actions
+## Prerequisite: Deploy with GitHub Actions
+
+{/* vale write-good.ThereIs = NO */}
 
 Before getting into the nitty-gritty of setting up preview environments, its important to have a good understanding of how deploying to GitHub Pages works. There are a variety of ways to deploy to GitHub Pages, and some official actions blocks that can make it easier. For this tutorial, we will **not** be using the official block or even a custom one. Instead, we will be using a different method to deploy that involves pushing the build artifacts to the `gh-pages` branch.
+
+{/* vale write-good.ThereIs = YES */}
 
 In practice, the steps will look something like this:
 
@@ -19,7 +23,7 @@ In practice, the steps will look something like this:
 - Commit the build artifacts
 - Force push the build artifacts to the `gh-pages` branch
 
-This creates a branch in the repository that has an unrelated history to the main branch, containing a single commit that represents the current build. This is the branch that Github Pages will use to serve the website. I typically set this up as a GitHub action that either runs on push or on workflow_dispatch. An example script that does this is below:
+This creates a branch in the repository that has an unrelated history to the main branch, containing a single commit that represents the current build. This is the branch that GitHub Pages will use to serve the website. I typically set this up as a GitHub action that either runs on push or on workflow_dispatch. An example script that does this is below:
 
 ```yaml filename=".github/workflows/deploy.yml"
 name: Nightly Deployment
@@ -67,7 +71,7 @@ jobs:
           node ./tools/scripts/deploy.js
 ```
 
-The `deploy.js` script is a simple script that does the following:
+The `deploy.js` script is a short script that does the following:
 
 ```javascript filename="tools/scripts/deploy.js"
 const { execSync } = require('child_process');
@@ -90,13 +94,13 @@ execSync(`git push origin --force HEAD:${GH_PAGES_BRANCH}`, { cwd: BUILD_DIR });
 
 When a push is made to the `gh-pages` branch, there is a built-in action that will deploy the website. This is how I typically setup "production" deployments to GitHub Pages.
 
-## Thinking About Preview Environments and Github Pages
+## Thinking About Preview Environments and GitHub Pages
 
-Github Pages only allows a single deployment per repository. This means that we can't strictly follow the same pattern as Vercel or Netlify, where each pull request gets its own deployment. Additionally, if we want to isolate our preview environments from the main branch we can't use the same 'gh-pages' branch for both preview environments and production.
+GitHub Pages only allows a single deployment per repository. This means that we can't strictly follow the same pattern as Vercel or Netlify, where each pull request gets its own deployment. Additionally, if we want to isolate our preview environments from the main branch we can't use the same 'gh-pages' branch for both preview environments and production.
 
 This has led me to typically deploy production build artifacts to a separate repository on GitHub. The only changes required to the above script are to change the `REMOTE_URL` to point to the new repository. This allows me to have a separate repository for the production build artifacts, and point the current `gh-pages` branch of this repository to a subdomain of the production website.
 
-GitHub pages only supports static web apps. This means that the build artifacts on disk are directly served to the user. We can use this to our advantage by pushing the build artifacts of the preview environment to a subdirectory of the `gh-pages` branch. This will surface as a url like: `${username}.github.io/${repository}/${whatever-directory-you-choose}`. By picking subdirectories based on the pull request number, we can form predictable, short urls that are human readable. This is the approach I will be outlining in this tutorial.
+GitHub pages only supports static web apps. This means that the build artifacts on disk are directly served to the user. We can use this to our advantage by pushing the build artifacts of the preview environment to a subdirectory of the `gh-pages` branch. This will surface as a url like: `${username}.github.io/${repository}/${whatever-directory-you-choose}`. By picking subdirectories based on the pull request number, we can form predictable, short urls that are human readable. This is the approach I outline below.
 
 ## Setting up Preview Environments
 
@@ -112,7 +116,13 @@ Knowing how this will be structured, we can break the problem down into a few st
 
 ### Building for the Preview Environment
 
+{/* vale write-good.Weasel = NO */}
+{/* vale proselint.Very = NO */}
+
 This should be **very** similar to your current build script. The main thing that needs to change is that the base url for your page will not be `/` on the preview environment. Depending on how your web app is built, this will require different changes. This website (craigory.dev) is built using [Vike](https://vike.dev), a framework built on top of Vite. Vike supports passing in the base url via the `base` property in the vite config, which can be overridden on the CLI. As such, I am building the preview environment with a command like:
+
+{/* vale write-good.Weasel = YES */}
+{/* vale proselint.Very = YES */}
 
     ```bash
     nx run craigory-dev:build --base /pr/${PR_NUMBER}/
@@ -171,17 +181,17 @@ execSync(`git merge origin/${GH_PAGES_BRANCH} --allow-unrelated-histories`, {
 execSync(`git push origin HEAD:${GH_PAGES_BRANCH}`, { cwd: GH_PAGES_ROOT });
 ```
 
-This script should be run on every pull request. It will create a new subdirectory in the `gh-pages-root` folder, copy the build artifacts to it, and push the changes to the `gh-pages` branch. This is enough to have functioning preview environments for your Github Pages, minus a few nice-to-haves that other hosting providers offer.
+This script should be run on every pull request. It will create a new subdirectory in the `gh-pages-root` folder, copy the build artifacts to it, and push the changes to the `gh-pages` branch. This is enough to have functioning preview environments for your GitHub Pages, minus a few nice-to-haves that other hosting providers offer.
 
 ## Commenting on Pull Requests
 
-Its helpful to leave a comment on the pull request with a link to the preview environment. This can be done with the Github API, and is a nice touch that makes it easier for reviewers to see the changes. For a full example of how to do this, I'd recommend checking the script in this repository found [here](https://github.com/agentender/craigory-dev/blob/main/tools/update-preview-comment.ts).
+Its helpful to leave a comment on the pull request with a link to the preview environment. This can be done with the GitHub API, and is a nice touch that makes it easier for reviewers to see the changes. For a full example of how to do this, I'd recommend checking the script in this repository found [here](https://github.com/agentender/craigory-dev/blob/main/tools/update-preview-comment.ts).
 
 ## Cleaning up Preview Environments
 
 Preview environments are temporary, and should be cleaned up after the pull request is closed. While its not paramount to do this, it can be helpful to keep the repository clean and avoid your GitHub Pages deployment size growing too large.
 
-This can be done with a simple script that deletes the subdirectory in the `gh-pages-root` folder. This script can be run on pull request close, or on a schedule. An example script that does this is below:
+This can be done with a short script that deletes the subdirectory in the `gh-pages-root` folder. This script can be run on pull request close, or on a schedule. An example script that does this is below:
 
 ```javascript filename="tools/scripts/cleanup-preview.js"
 const fs = require('fs');
@@ -203,7 +213,7 @@ execSync(`git commit -m "Remove preview ${PR_NUMBER}"`, { cwd: GH_PAGES_ROOT });
 execSync(`git push origin HEAD:gh-pages`, { cwd: GH_PAGES_ROOT });
 ```
 
-There are a few things to note about this script:
+A few things to note about this script:
 
 - It should be ran in a GitHub action that runs on PR close.
 - It should be passed the PR number as an environment variable.

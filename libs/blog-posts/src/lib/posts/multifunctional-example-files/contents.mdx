@@ -15,14 +15,18 @@ Projects currently using this technique:
 
 ## Limitations
 
+{/* vale alex.Condescending = NO */}
+
 This technique has a few limitations, but its also easy to extend so these could be worked around. Currently, as implemented, the technique only really works if your examples can easily be written in a single file. If you wish to have a more complex example that spans multiple files, you'd need to tweak the technique a bit.
+
+{/* vale alex.Condescending = YES */}
 
 ## How it works
 
 The technique is made up of 3 main parts:
 
 - The example files themselves
-- A simple docusaurus plugin to generate pages from the example files
+- A small docusaurus plugin to generate pages from the example files
 - A small script to run the E2E tests based on the example files
 
 ### Example Files
@@ -192,7 +196,7 @@ function collectExamples(root: string): {
 
 ### E2E Tests
 
-Running the E2E tests is a simple script, which works similarly to the docusaurus plugin. It starts by scanning the examples directory for typescript files. If you have written frontmatter that would influence the E2E test, the script would then need to read the file contents and parse out front matter. Then, using that data, it would run the files. A simple version that doesnt handle frontmatter could look like this:
+Running the E2E tests is a short script, which works similarly to the docusaurus plugin. It starts by scanning the examples directory for typescript files. If you have written frontmatter that would influence the E2E test, the script would then need to read the file contents and parse out front matter. Then, using that data, it would run the files. A minimal version that doesn't handle frontmatter could look like this:
 
 ```typescript
 import { execSync, spawnSync } from 'child_process';

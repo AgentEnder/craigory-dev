@@ -213,7 +213,11 @@ A minimum release age (or "cooldown") instructs a package manager to ignore any 
 
 ## Overview
 
+{/* vale write-good.Weasel = NO */}
+
 A cooldown delays a freshly published version from being installable. Compromised releases are usually flagged and removed from the registry within hours of publication, so even a 24-hour delay filters most of those incidents at the install layer without monitoring or scanning.
+
+{/* vale write-good.Weasel = YES */}
 
 Each tool exposes the setting under its own name and unit of time:
 
