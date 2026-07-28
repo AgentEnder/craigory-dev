@@ -9,6 +9,7 @@ import { useData } from 'vike-react/useData';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { CATEGORIES, HERO_CATEGORIES, toSymbolSlug, codePointsKey, type GridEntry } from '../src/unicode-data';
 import type { Data } from './+data.server';
+import { CharGlyph, presentationNote } from '../src/CharGlyph';
 import { withBase } from '../src/utils';
 import { SearchInput } from '../src/SearchInput';
 import '../src/style.css';
@@ -107,6 +108,7 @@ function CharCard({ entry: c }: { entry: GridEntry }) {
     ...c.aliases,
     c.hex,
     c.altCode !== null ? `Alt+${c.altCode}` : null,
+    presentationNote(c.codePoints),
     'click for details',
   ]
     .filter(Boolean)
@@ -118,7 +120,7 @@ function CharCard({ entry: c }: { entry: GridEntry }) {
       href={withBase(`/symbol/${toSymbolSlug(c)}`)}
       title={tooltip}
     >
-      <span className="char-glyph">{c.char}</span>
+      <CharGlyph char={c.char} codePoints={c.codePoints} />
       <span className="char-hex">{c.hex}</span>
       {c.name && <span className="char-name">{c.name}</span>}
       {c.altCode !== null && <span className="char-alt">Alt+{c.altCode}</span>}

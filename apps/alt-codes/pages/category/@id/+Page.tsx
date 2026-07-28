@@ -4,6 +4,7 @@ import { useVirtualizer } from '@tanstack/react-virtual';
 import type { CategoryData } from './+data.server';
 import type { CharacterEntry } from '../../../src/unicode-data';
 import { toSymbolSlug, codePointsKey } from '../../../src/unicode-data';
+import { CharGlyph, presentationNote } from '../../../src/CharGlyph';
 import { withBase } from '../../../src/utils';
 import { SearchInput } from '../../../src/SearchInput';
 import '../../../src/style.css';
@@ -60,9 +61,9 @@ function CategoryGrid({ characters }: { characters: CharacterEntry[] }) {
                     key={codePointsKey(c.codePoints)}
                     href={withBase(`/symbol/${toSymbolSlug(c)}`)}
                     className="char-card"
-                    title={[c.name, ...c.aliases, c.hex, 'click for details'].filter(Boolean).join(' · ')}
+                    title={[c.name, ...c.aliases, c.hex, presentationNote(c.codePoints), 'click for details'].filter(Boolean).join(' · ')}
                   >
-                    <span className="char-glyph">{c.char}</span>
+                    <CharGlyph char={c.char} codePoints={c.codePoints} />
                     <span className="char-hex">{c.hex}</span>
                     {c.name && <span className="char-name">{c.name}</span>}
                     {c.altCode !== null && <span className="char-alt">Alt+{c.altCode}</span>}

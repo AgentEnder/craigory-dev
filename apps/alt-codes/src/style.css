@@ -181,6 +181,30 @@ body {
   flex-shrink: 0;
 }
 
+/* Dual presentation — the code points with standardized variation sequences show their
+   text (U+FE0E) and emoji (U+FE0F) forms together. Two 24px glyphs plus the gap come to
+   ~54px, inside the card's ~88px content box, and the row stays one line tall so the
+   virtualizer's fixed 85px card height is unaffected. */
+.char-glyph--dual {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  font-size: 24px;
+}
+
+/* Redundant with the selectors already baked into the strings, but it makes the two
+   halves render correctly even in a font stack that doesn't implement the sequences.
+   Safari has the property disabled by default, which is why the selectors carry the
+   real weight — `color` above only ever reaches the text half either way. */
+.char-glyph-text {
+  font-variant-emoji: text;
+}
+
+.char-glyph-emoji {
+  font-variant-emoji: emoji;
+}
+
 .char-hex {
   font-family: var(--font-mono);
   font-size: 9px;

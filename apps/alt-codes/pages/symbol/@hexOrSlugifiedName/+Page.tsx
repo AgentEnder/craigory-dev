@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import type { SymbolData } from './+data.server';
 import type { CharacterEntry } from '../../../src/unicode-data';
 import { toSymbolSlug, codePointsKey } from '../../../src/unicode-data';
+import { CharGlyph, presentationNote } from '../../../src/CharGlyph';
 import { withBase } from '../../../src/utils';
 import { SearchInput } from '../../../src/SearchInput';
 import '../../../src/style.css';
@@ -28,9 +29,9 @@ function MiniCard({ entry }: { entry: CharacterEntry }) {
     <a
       href={withBase(`/symbol/${toSymbolSlug(entry)}`)}
       className="char-card"
-      title={entry.name || entry.hex}
+      title={[entry.name || entry.hex, presentationNote(entry.codePoints)].filter(Boolean).join(' · ')}
     >
-      <span className="char-glyph">{entry.char}</span>
+      <CharGlyph char={entry.char} codePoints={entry.codePoints} />
       <span className="char-hex">{entry.hex}</span>
       {entry.name && <span className="char-name">{entry.name}</span>}
     </a>

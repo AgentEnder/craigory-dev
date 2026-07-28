@@ -8,6 +8,7 @@ import {
   type GridEntry,
 } from '../../../src/unicode-data';
 import { getEncodingInfo } from '../../../src/encoding';
+import { CharGlyph, presentationNote } from '../../../src/CharGlyph';
 import { withBase } from '../../../src/utils';
 import { SearchInput } from '../../../src/SearchInput';
 import '../../../src/style.css';
@@ -191,9 +192,9 @@ export default function Page() {
                     key={codePointsKey(e.codePoints)}
                     href={neighborHref(e)}
                     className="char-card"
-                    title={e.name || e.hex}
+                    title={[e.name || e.hex, presentationNote(e.codePoints)].filter(Boolean).join(' · ')}
                   >
-                    <span className="char-glyph">{e.char}</span>
+                    <CharGlyph char={e.char} codePoints={e.codePoints} />
                     <span className="char-hex">{e.hex}</span>
                     {e.name && <span className="char-name">{e.name}</span>}
                   </a>

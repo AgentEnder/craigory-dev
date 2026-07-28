@@ -1,4 +1,37 @@
 import { generatedMeta } from './generated/meta';
+import { variationBases } from './generated/variation-sequences';
+
+/** U+FE0E VARIATION SELECTOR-15 — forces text (monochrome) presentation. */
+export const VS_TEXT = 0xfe0e;
+/** U+FE0F VARIATION SELECTOR-16 — forces emoji (color) presentation. */
+export const VS_EMOJI = 0xfe0f;
+
+/** Code points with BOTH a text-style and an emoji-style standardized variation sequence
+ *  (emoji-variation-sequences.txt). A selector is only meaningful after one of these —
+ *  appended anywhere else it is an unsupported sequence and may render as tofu. */
+const VARIATION_BASES = new Set(variationBases);
+
+/** The code point whose two presentations this entry stands for, or null when the entry
+ *  has only one. Handles both forms the loader produces: the bare code point from the
+ *  block ranges ([0x2665]) and the fully-qualified sequence from emoji-test.txt
+ *  ([0x2665, 0xFE0F]) — the same character reached by two different paths. */
+export function presentationBase(codePoints: number[]): number | null {
+  const [first, second] = codePoints;
+  if (!VARIATION_BASES.has(first)) return null;
+  if (codePoints.length === 1) return first;
+  if (codePoints.length === 2 && second === VS_EMOJI) return first;
+  return null;
+}
+
+/** `base` qualified to text presentation, e.g. 0x2665 → "♥︎". */
+export function textPresentation(base: number): string {
+  return String.fromCodePoint(base, VS_TEXT);
+}
+
+/** `base` qualified to emoji presentation, e.g. 0x2665 → "♥️". */
+export function emojiPresentation(base: number): string {
+  return String.fromCodePoint(base, VS_EMOJI);
+}
 
 export interface EmojiMeta {
   group: string;           // "Smileys & Emotion"

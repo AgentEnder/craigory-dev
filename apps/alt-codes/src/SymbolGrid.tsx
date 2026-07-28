@@ -1,6 +1,7 @@
 import { useRef, useEffect, useState, type RefObject } from 'react';
 import { useVirtualizer } from '@tanstack/react-virtual';
 import { toSymbolSlug, codePointsKey, type GridEntry } from './unicode-data';
+import { CharGlyph, presentationNote } from './CharGlyph';
 import { withBase } from './utils';
 
 const CARD_SLOT = 110; // card min-width (100px) + gap — keep in sync with the other grids
@@ -65,9 +66,9 @@ export function SymbolGrid({
                   key={codePointsKey(c.codePoints)}
                   href={hrefFor(c)}
                   className="char-card"
-                  title={[c.name, ...c.aliases, c.hex, 'click for details'].filter(Boolean).join(' · ')}
+                  title={[c.name, ...c.aliases, c.hex, presentationNote(c.codePoints), 'click for details'].filter(Boolean).join(' · ')}
                 >
-                  <span className="char-glyph">{c.char}</span>
+                  <CharGlyph char={c.char} codePoints={c.codePoints} />
                   <span className="char-hex">{c.hex}</span>
                   {c.name && <span className="char-name">{c.name}</span>}
                 </a>
