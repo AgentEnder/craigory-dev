@@ -18,8 +18,13 @@ allowBuilds:
   cypress: true
   esbuild: true
   nx: true
+  # @huggingface/transformers (related-content embedding step) needs the native
+  # ONNX runtime binary its install script fetches; sharp is transformers' image
+  # decoder, unused here but imported eagerly enough to matter.
+  onnxruntime-node: true
   protobufjs: true
   re2: true
+  sharp: true
   unrs-resolver: true
 catalog:
   cli-forge: ^1.9.2
