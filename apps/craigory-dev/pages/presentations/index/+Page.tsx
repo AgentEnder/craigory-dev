@@ -1,4 +1,5 @@
 import { PRESENTATIONS } from '@new-personal-monorepo/presentations';
+import { RelatedContent } from '@new-personal-monorepo/related-content';
 
 import './index.page.scss';
 import { useEffect, useState } from 'react';
@@ -83,6 +84,14 @@ export function Page() {
                   : null}
               </div>
             </div>
+            {/* Capped at two: eleven talks each listing four neighbours would
+                more than double the length of this index. */}
+            <RelatedContent
+              type="presentation"
+              slug={p.slug}
+              limit={2}
+              className="presentation-related"
+            />
           </div>
           <a
             href={'#' + p.slug}

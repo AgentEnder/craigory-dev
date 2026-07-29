@@ -9,6 +9,8 @@ import { FilterBar } from './components/filter-bar';
 import { ProjectCard } from './components/ProjectCard';
 import { ContentMarker } from '../../src/shared-components/content-marker';
 import { sortByRelevance } from './components/sort-functions';
+import { isContributorProject, projectAnchorId, projectTitle } from './anchor';
+import { RelatedContent } from '@new-personal-monorepo/related-content';
 
 export function Page() {
   const { projects } = useData<{ projects: RepoData[] }>();
@@ -57,11 +59,9 @@ export function Page() {
         style={{ maxWidth: '45rem' }}
       ></FilterBar>
       {sortedProjects.map((p, idx) => {
-        const isContributor = p.type === 'github' && p.role === 'contributor';
-        const anchor = isContributor
-          ? p.data.full_name.replace('/', '-')
-          : p.repo;
-        const title = isContributor ? p.data.full_name : p.repo;
+        const isContributor = isContributorProject(p);
+        const anchor = projectAnchorId(p);
+        const title = projectTitle(p);
         return (
           <div key={anchor} className="project-wrapper">
             <div className="project-header">
@@ -82,6 +82,12 @@ export function Page() {
               <p className="project-description">{p.description}</p>
             )}
             <ProjectCard project={p} />
+            <RelatedContent
+              type="project"
+              slug={p.repo}
+              limit={2}
+              className="project-related"
+            />
             {idx < projects.length - 1 && <hr />}
           </div>
         );

@@ -1,0 +1,103 @@
+.related {
+  margin-top: 3rem;
+  padding-top: 1.5rem;
+  border-top: 2px solid #eee;
+}
+
+.heading {
+  // The global h2 is Maiden Orange at 2.75em, which would shout louder than
+  // the post it sits under. This is a wayfinding label.
+  font-family: 'Rubik', sans-serif;
+  font-size: 0.8rem;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: #999;
+  margin: 0 0 0.75rem;
+}
+
+.list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0.5rem;
+  font-size: 1rem;
+}
+
+.item {
+  margin: 0;
+}
+
+.link {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas:
+    'kind title'
+    '.    description';
+  align-items: baseline;
+  gap: 0.15rem 0.6rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #eee;
+  border-radius: 6px;
+  color: inherit;
+  text-decoration: none;
+  transition: border-color 0.15s ease, background-color 0.15s ease;
+
+  &:hover,
+  &:focus-visible {
+    border-color: #cfd9dd;
+    background-color: #f7fafb;
+  }
+}
+
+.kind {
+  grid-area: kind;
+  font-family: 'Rubik', sans-serif;
+  font-size: 0.65rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #0b6b7d;
+  border: 1px solid #d6e5e9;
+  border-radius: 4px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+
+.title {
+  grid-area: title;
+  font-family: 'Rubik', sans-serif;
+  font-size: 1.05rem;
+  line-height: 1.35;
+  color: #1a1a1a;
+}
+
+.description {
+  grid-area: description;
+  font-family: 'Rubik', sans-serif;
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: #777;
+  // Descriptions vary from a sentence to several paragraphs (talks); this keeps
+  // the cards a uniform height.
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+@media screen and (max-width: 600px) {
+  .link {
+    grid-template-columns: 1fr;
+    grid-template-areas:
+      'kind'
+      'title'
+      'description';
+    gap: 0.3rem;
+  }
+
+  .kind {
+    justify-self: start;
+  }
+}

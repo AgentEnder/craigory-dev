@@ -1,0 +1,33 @@
+{
+  "name": "related-content",
+  "$schema": "../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "libs/related-content/src",
+  "projectType": "library",
+  "tags": [],
+  "targets": {
+    "build": {
+      "// cwd": [
+        "Runs from the workspace root on purpose: bun discovers bunfig.toml",
+        "relative to its cwd, and bunfig is what maps `.mdx` to the `text`",
+        "loader. From any other directory bun falls back to the `file` loader,",
+        "which returns each post's file PATH instead of its contents — a string,",
+        "so nothing throws and file paths get embedded as blog prose."
+      ],
+      "command": "bun run libs/related-content/build/main.ts",
+      "outputs": ["{projectRoot}/src/generated/related.json"],
+      "// cache": [
+        "Deliberately uncached. The step's own sqlite DB is already a cache, and",
+        "a correctly-grained one: it hashes each item's text and re-embeds only",
+        "what moved, so an unchanged corpus finishes in well under a second.",
+        "An Nx cache on top would key off file globs, and one input is invisible",
+        "to them: project data comes from tmp/*.json (gitignored, outside Nx's",
+        "file map) and ultimately the GitHub API. Nx would see 'nothing changed'",
+        "and restore a stale related.json whenever project data moved."
+      ],
+      "cache": false
+    },
+    "lint": {
+      "executor": "@nx/eslint:lint"
+    }
+  }
+}

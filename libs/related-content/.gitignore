@@ -1,0 +1,4 @@
+# Build artifact of the embedding pass (`nx build related-content`). Regenerated
+# from the site's content; see build/main.ts. The runtime loads it through
+# import.meta.glob so its absence is a supported state.
+src/generated/

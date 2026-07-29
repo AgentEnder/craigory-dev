@@ -8,6 +8,7 @@ import {
   Tabs,
   TikiTable,
 } from '@new-personal-monorepo/blog-posts';
+import { RelatedContent } from '@new-personal-monorepo/related-content';
 import { usePageContext } from 'vike-react/usePageContext';
 
 import './view.page.scss';
@@ -20,7 +21,9 @@ import { getPostThemeClass } from '../../../src/utils/post-theming';
 
 export function Page() {
   const pageContext = usePageContext();
-  const hookData = pageContext.data as { readingTimeMinutes?: number; slug?: string } | undefined;
+  const hookData = pageContext.data as
+    | { readingTimeMinutes?: number; slug?: string }
+    | undefined;
   const { readingTimeMinutes } = hookData || {};
 
   const blogPost = pageContext.routeParams?.slug;
@@ -40,15 +43,15 @@ export function Page() {
 
   // Get post data from slugMap and merge with reading time from data hook
   const basePost = slugMap[blogPost];
-  const postData = readingTimeMinutes ? { ...basePost, readingTimeMinutes } : basePost;
+  const postData = readingTimeMinutes
+    ? { ...basePost, readingTimeMinutes }
+    : basePost;
 
   return (
     <>
       {returnLink ? (
         <div className="return-link-top">
-          <Link href={returnLink}>
-            ← Return to previous page
-          </Link>
+          <Link href={returnLink}>← Return to previous page</Link>
         </div>
       ) : null}
       <PostContext.Provider value={postData}>
@@ -68,12 +71,13 @@ export function Page() {
             })}
           </BlogPostEnhanced>
         </div>
+        {/* Outside the themed wrapper so a tiki post's palette does not bleed
+            onto links pointing at technical content. */}
+        <RelatedContent type="blog" slug={blogPost} />
       </PostContext.Provider>
       {returnLink ? (
         <div className="return-link-bottom">
-          <Link href={returnLink}>
-            ← Return to previous page
-          </Link>
+          <Link href={returnLink}>← Return to previous page</Link>
         </div>
       ) : null}
     </>

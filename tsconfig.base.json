@@ -21,6 +21,9 @@
       "@new-personal-monorepo/presentations": [
         "libs/presentations/src/index.ts"
       ],
+      "@new-personal-monorepo/related-content": [
+        "libs/related-content/src/index.ts"
+      ],
       "@new-personal-monorepo/vike-utils": ["libs/vike-utils/src/index.ts"],
       "@new-personal-monorepo/pr-digest": ["packages/pr-digest/src/index.ts"],
       "@new-personal-monorepo/node-pagefind": ["packages/node-pagefind/src/index.ts"],
