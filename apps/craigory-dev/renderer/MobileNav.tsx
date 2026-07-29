@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { usePageContext } from 'vike-react/usePageContext';
 import { Link } from './Link';
+import { SpotlightTrigger } from '../src/shared-components/spotlight-search';
 import './MobileNav.scss';
 
 export function MobileNav({ children }: { children: React.ReactNode }) {
@@ -72,12 +73,20 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="mobile-nav-container">
+    // The whole mobile tree is a media-query duplicate of the desktop layout —
+    // same nav, same page body. Pagefind indexes static HTML and cannot tell
+    // which copy is visible, so this one is excluded wholesale and the desktop
+    // copy is treated as canonical.
+    <div className="mobile-nav-container" data-pagefind-ignore>
       <MobileHeader ref={headerRef} />
       <div className="mobile-content">{children}</div>
       <MobileDrawer ref={drawerRef} isOpen={isOpen} />
       <MobileOverlay isOpen={isOpen} onClick={closeDrawer} />
-      <MenuToggle isOpen={isOpen} onClick={toggleDrawer} scrolledDown={scrolledDown} />
+      <MenuToggle
+        isOpen={isOpen}
+        onClick={toggleDrawer}
+        scrolledDown={scrolledDown}
+      />
     </div>
   );
 }
@@ -154,6 +163,7 @@ const MobileDrawer = React.forwardRef<HTMLElement, { isOpen: boolean }>(
         onKeyDown={handleKeyDown}
       >
         <div className="mobile-drawer-nav">
+          <SpotlightTrigger className="mobile-search-trigger" />
           <Link className="mobile-navitem" href="/">
             Home
           </Link>
@@ -234,4 +244,3 @@ function HamburgerIcon() {
     </svg>
   );
 }
-

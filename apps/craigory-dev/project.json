@@ -9,7 +9,11 @@
     "build": {
       "executor": "nx:run-commands",
       "options": {
-        "commands": ["vike build", "node ../../tools/copy-local-projects.cjs"],
+        "commands": [
+          "vike build",
+          "node ../../tools/copy-local-projects.cjs",
+          "bun run ../../tools/build-search-index.ts"
+        ],
         "cwd": "apps/craigory-dev",
         "parallel": false
       },
@@ -17,7 +21,8 @@
         "development": {
           "commands": [
             "vike build --mode development",
-            "node ../../tools/copy-local-projects.cjs"
+            "node ../../tools/copy-local-projects.cjs",
+            "bun run ../../tools/build-search-index.ts"
           ]
         }
       },

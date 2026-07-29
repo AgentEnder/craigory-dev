@@ -108,6 +108,14 @@
   flex: 1;
 }
 
+// Sized to sit with the nav links rather than the sidebar's tighter trigger.
+.mobile-search-trigger {
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  border-radius: 8px;
+  font-size: 1.1rem;
+}
+
 .mobile-navitem {
   padding: 12px 16px;
   font-size: 1.25rem;
