@@ -1,13 +1,12 @@
 import React, {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
 import styles from './spotlight-search.module.scss';
+import { SpotlightContext, useSpotlight } from './spotlight-context';
 
 /**
  * Spotlight-style site search over the Pagefind index built by
@@ -138,20 +137,6 @@ function toEntries(document_: PagefindDocument): Entry[] {
   }
 
   return entries;
-}
-
-// ---------------------------------------------------------------- context
-
-interface SpotlightContextValue {
-  open: () => void;
-}
-
-const SpotlightContext = createContext<SpotlightContextValue>({
-  open: () => undefined,
-});
-
-export function useSpotlight(): SpotlightContextValue {
-  return useContext(SpotlightContext);
 }
 
 export function SpotlightProvider({ children }: { children: React.ReactNode }) {

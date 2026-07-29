@@ -184,6 +184,47 @@ Note the caches have **no TTL**: project data refreshes only when `tmp/` is
 cleared. CI checks out fresh every run so production is current, but a long-lived
 local checkout can be serving very old project data.
 
+#### The regression this caused, and the real fix
+
+Adding a second caller broke deployment links on `/tools` and `/projects`.
+
+`getLocalProjects()` derives `deployment` from whether the project's build output
+exists on disk (`projects.ts:1186`), and that verdict was being **written into the
+cache**. Previously the only caller was `onCreateGlobalContext`, which runs inside
+`vike build` — after every `^build` dependency, so `dist/apps/*` always existed.
+`related-content:build` runs *during* the `^build` phase, in parallel with the
+sibling app builds, and observed in a real build log running **before**
+`alt-codes:build`. On a fresh CI checkout (`apps/*/dist` is gitignored) it saw no
+build output, cached `deployment: undefined`, and — since the cache never
+expires — every later build rendered a linkless page.
+
+**The fix is the missing dependency edge.** This step reads project state that the
+app builds produce, so it depends on those builds — that relationship was simply
+never declared:
+
+```json
+"dependsOn": [{ "projects": ["apps/*", "!craigory-dev"], "target": "build" }]
+```
+
+`craigory-dev` is excluded because it depends on *this* target; including it would
+be a cycle. The glob is negated rather than spelled out as a list so a new app is
+covered automatically — and note the project name is `pr-digest-viewer` even
+though the directory is `apps/pr-digest`, which a hardcoded list would get wrong.
+
+Fixing the ordering is better than making the consumer defensive about one field.
+It is the honest description of the dependency, and it holds for *any* build-state
+-derived value the loader caches, not just `deployment`.
+
+Verified on a real build: `json-viewer:build` at log line 99 and `alt-codes:build`
+at 420, with `related-content:build` at **8835** — after all of them. The
+regenerated cache carries 8/12 deployments (the 4 without are packages, which
+genuinely have none), `/tools` links all five tools, and `/projects` renders 36
+Live URL entries.
+
+Remaining sharp edge: the ordering only applies through Nx. Running
+`bun run libs/related-content/build/main.ts` by hand before the apps are built will
+still write a cache with no deployments. Clear `tmp/*.json` if that happens.
+
 ### Storage and scoring
 
 `node_modules/.cache/related-content/embeddings.db` (gitignored by virtue of

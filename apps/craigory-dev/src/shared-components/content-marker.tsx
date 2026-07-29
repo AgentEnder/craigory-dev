@@ -1,4 +1,4 @@
-import { toast } from './toaster';
+import { toast } from './toast';
 
 export function ContentMarker() {
   return (

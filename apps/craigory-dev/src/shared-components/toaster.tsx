@@ -2,32 +2,7 @@ import { useEffect, useState } from 'react';
 
 import { IoClose } from 'react-icons/io5';
 
-declare global {
-  interface GlobalEventHandlersEventMap {
-    toast: CustomEvent<ToastOptions>;
-  }
-}
-
-export type ToastContent = string | JSX.Element;
-
-export type ToastOptions = {
-  content: ToastContent;
-  style?: 'success' | 'error' | 'info';
-  duration?: number;
-  ephemeral?: boolean;
-};
-
-export type Toast = ToastOptions & {
-  id: string;
-};
-
-export function toast(options: ToastOptions) {
-  window.dispatchEvent(
-    new CustomEvent('toast', {
-      detail: options,
-    })
-  );
-}
+import type { Toast, ToastOptions } from './toast';
 
 export function Toaster() {
   const [toasts, setToasts] = useState<Toast[]>([]);

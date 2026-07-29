@@ -14,6 +14,21 @@
         "so nothing throws and file paths get embedded as blog prose."
       ],
       "command": "bun run libs/related-content/build/main.ts",
+      "// dependsOn": [
+        "Every app except craigory-dev must be built first.",
+        "This step calls the site's own loadAllProjects(), which decides whether",
+        "a project has a deployment URL by checking that its build output exists",
+        "on disk — and persists that verdict to tmp/local-projects-cache.json,",
+        "which never expires. Running before the apps are built therefore caches",
+        "'no deployment' for all of them and leaves /tools and /projects without",
+        "links until someone clears tmp/ by hand.",
+        "craigory-dev is excluded because it depends on THIS target; including it",
+        "would be a cycle. The glob is negated rather than a hardcoded list so a",
+        "new app is covered automatically."
+      ],
+      "dependsOn": [
+        { "projects": ["apps/*", "!craigory-dev"], "target": "build" }
+      ],
       "outputs": ["{projectRoot}/src/generated/related.json"],
       "// cache": [
         "Deliberately uncached. The step's own sqlite DB is already a cache, and",
