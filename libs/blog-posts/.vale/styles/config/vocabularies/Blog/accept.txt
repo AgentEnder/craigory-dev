@@ -96,6 +96,3 @@ Tollner
 Uber
 maintainer
 maintainers
-# Bar name as written in the pineapple-parlor post. The New Orleans bar spells
-# itself "Daiquiri Time Out" — confirm before treating this as correct.
-Daquiri
