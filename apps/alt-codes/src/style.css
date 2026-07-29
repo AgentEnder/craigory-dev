@@ -14,6 +14,12 @@
   --font-mono: 'Space Mono', 'Courier New', monospace;
   --font-glyph: 'Noto Sans', 'Segoe UI Symbol', 'Apple Symbols', 'Arial Unicode MS',
     system-ui, sans-serif;
+  /* The text (U+FE0E) half of a dual glyph. Same stack, with monochrome Noto Emoji appended
+     as a last resort BEFORE the generic family — the declared list is tried ahead of the
+     system fallback, so this wins over the color emoji font without displacing a local mono
+     glyph (♥ still comes from the system font; only gaps like 🕔 reach Noto Emoji). */
+  --font-glyph-text: 'Noto Sans', 'Segoe UI Symbol', 'Apple Symbols', 'Arial Unicode MS',
+    system-ui, 'Noto Emoji', sans-serif;
 }
 
 /* ── Reset / base ─────────────────────────────── */
@@ -198,6 +204,7 @@ body {
    Safari has the property disabled by default, which is why the selectors carry the
    real weight — `color` above only ever reaches the text half either way. */
 .char-glyph-text {
+  font-family: var(--font-glyph-text);
   font-variant-emoji: text;
 }
 
@@ -504,6 +511,93 @@ body {
   color: #e8e2d4;
   user-select: none;
   flex-shrink: 0;
+  /* Replays whenever the presentation or skin tone changes — +Page.tsx keys this element on
+     the glyph, so React remounts it and the animation restarts. Swapping ♥︎ for ♥️ is a small
+     change in a large glyph and reads as a flicker without it. */
+  animation: glyph-swap 200ms cubic-bezier(0.2, 0, 0.2, 1);
+}
+
+@keyframes glyph-swap {
+  from {
+    opacity: 0;
+    transform: scale(0.9);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+/* Segmented control under the hero glyph. Circular swatches read as decorative here — the
+   unselected one had no border at all, so it looked like a stray glyph rather than a choice.
+   A bordered group with visible dividers and labels reads as interactive at a glance. */
+.symbol-hero-glyph-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+  flex-shrink: 0;
+}
+
+.presentation-toggle {
+  display: inline-flex;
+  border: 1px solid var(--color-border);
+  border-radius: 5px;
+  overflow: hidden;
+  background: var(--color-surface);
+}
+
+.presentation-toggle-btn {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  padding: 7px 13px;
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--color-border);
+  color: var(--color-muted);
+  font-family: var(--font-mono);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition:
+    background 0.12s,
+    color 0.12s;
+}
+
+.presentation-toggle-btn:last-child {
+  border-right: 0;
+}
+
+.presentation-toggle-btn:hover {
+  background: var(--color-surface-hover);
+  color: var(--color-text);
+}
+
+.presentation-toggle-btn--active {
+  background: var(--color-amber);
+  color: var(--color-ink);
+}
+
+/* Two classes deep so it beats .char-glyph-text regardless of source order. */
+.presentation-toggle-glyph {
+  font-family: var(--font-glyph);
+  font-size: 17px;
+  line-height: 1;
+}
+
+.presentation-toggle-glyph.char-glyph-text {
+  font-family: var(--font-glyph-text);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .symbol-hero-glyph {
+    animation: none;
+  }
+
+  .presentation-toggle-btn {
+    transition: none;
+  }
 }
 
 .symbol-hero-info {
@@ -692,6 +786,18 @@ body {
   justify-content: center;
   transition: border-color 0.1s;
   padding: 0;
+}
+
+/* The presentation swatches render the real glyph they select, so they need the glyph stack
+   rather than the mono UI font a <button> inherits from body. Declared after .char-glyph-text
+   would lose to it, so both are scoped to the picker to keep the cascade unambiguous. */
+.presentation-picker .skin-tone-swatch {
+  font-family: var(--font-glyph);
+  font-size: 1.25rem;
+}
+
+.presentation-picker .char-glyph-text {
+  font-family: var(--font-glyph-text);
 }
 
 .skin-tone-swatch:hover {

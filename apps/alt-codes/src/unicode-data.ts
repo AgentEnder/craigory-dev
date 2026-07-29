@@ -1,5 +1,5 @@
 import { generatedMeta } from './generated/meta';
-import { variationBases } from './generated/variation-sequences';
+import { variationSequences } from './generated/variation-sequences';
 
 /** U+FE0E VARIATION SELECTOR-15 — forces text (monochrome) presentation. */
 export const VS_TEXT = 0xfe0e;
@@ -9,7 +9,17 @@ export const VS_EMOJI = 0xfe0f;
 /** Code points with BOTH a text-style and an emoji-style standardized variation sequence
  *  (emoji-variation-sequences.txt). A selector is only meaningful after one of these —
  *  appended anywhere else it is an unsupported sequence and may render as tofu. */
-const VARIATION_BASES = new Set(variationBases);
+const VARIATION_BASES = new Set(variationSequences.bases);
+
+/** Of those, the ones that render as emoji when unqualified (Emoji_Presentation=Yes). */
+const EMOJI_DEFAULT_BASES = new Set(variationSequences.emojiDefault);
+
+/** Which presentation a bare `base` renders as. The unqualified form is always identical to
+ *  one of the two qualified ones, so a picker that also offered "default" would show the same
+ *  glyph twice — instead the native side is preselected. */
+export function defaultPresentation(base: number): 'text' | 'emoji' {
+  return EMOJI_DEFAULT_BASES.has(base) ? 'emoji' : 'text';
+}
 
 /** The code point whose two presentations this entry stands for, or null when the entry
  *  has only one. Handles both forms the loader produces: the bare code point from the

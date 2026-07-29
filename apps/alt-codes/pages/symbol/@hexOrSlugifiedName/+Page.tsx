@@ -2,7 +2,14 @@ import { useData } from 'vike-react/useData';
 import { useState, useEffect } from 'react';
 import type { SymbolData } from './+data.server';
 import type { CharacterEntry } from '../../../src/unicode-data';
-import { toSymbolSlug, codePointsKey } from '../../../src/unicode-data';
+import {
+  toSymbolSlug,
+  codePointsKey,
+  presentationBase,
+  textPresentation,
+  emojiPresentation,
+  defaultPresentation,
+} from '../../../src/unicode-data';
 import { CharGlyph, presentationNote } from '../../../src/CharGlyph';
 import { withBase } from '../../../src/utils';
 import { SearchInput } from '../../../src/SearchInput';
@@ -35,6 +42,59 @@ function MiniCard({ entry }: { entry: CharacterEntry }) {
       <span className="char-hex">{entry.hex}</span>
       {entry.name && <span className="char-name">{entry.name}</span>}
     </a>
+  );
+}
+
+export type Presentation = 'text' | 'emoji';
+
+/** Segmented control beneath the hero glyph, swapping it between the two standardized
+ *  variation sequences. Each segment previews the variant it selects and names it, so the
+ *  control reads as interactive and shows the difference rather than describing it.
+ *
+ *  There is deliberately no "default" segment. The unqualified form always renders as one of
+ *  these two — whichever Emoji_Presentation says — so offering it as a third option just
+ *  draws the same glyph twice. The native side is preselected instead, and flagged in the
+ *  tooltip, so the page opens on the character's real appearance. */
+function PresentationToggle({
+  base,
+  value,
+  onChange,
+}: {
+  base: number;
+  value: Presentation;
+  onChange: (p: Presentation) => void;
+}) {
+  const native = defaultPresentation(base);
+  const options: Array<{
+    id: Presentation;
+    label: string;
+    hint: string;
+    char: string;
+    glyphClass: string;
+  }> = [
+    { id: 'text', label: 'Text', hint: 'U+FE0E', char: textPresentation(base), glyphClass: 'char-glyph-text' },
+    { id: 'emoji', label: 'Emoji', hint: 'U+FE0F', char: emojiPresentation(base), glyphClass: 'char-glyph-emoji' },
+  ];
+  return (
+    <div className="presentation-toggle" role="group" aria-label="Presentation">
+      {options.map(({ id, label, hint, char, glyphClass }) => (
+        <button
+          key={id}
+          type="button"
+          className={`presentation-toggle-btn${
+            value === id ? ' presentation-toggle-btn--active' : ''
+          }`}
+          title={`${label} presentation — ${hint}${
+            id === native ? " — this character's default" : ''
+          }`}
+          onClick={() => onChange(id)}
+          aria-pressed={value === id}
+        >
+          <span className={`presentation-toggle-glyph ${glyphClass}`}>{char}</span>
+          <span>{label}</span>
+        </button>
+      ))}
+    </div>
   );
 }
 
@@ -146,10 +206,30 @@ function SkinTonePicker({
 
 export default function Page() {
   const { entry, categoryName, encoding, blockNeighbors, relatedByName, relatedByTag } = useData<SymbolData>();
-  const [displayChar, setDisplayChar] = useState(entry.char);
+  const variantBase = presentationBase(entry.codePoints);
+  // Start on the character's native presentation, so the hero opens looking like the bare
+  // code point does rather than silently retyping it.
+  const nativePresentation = variantBase === null ? 'text' : defaultPresentation(variantBase);
+  const [presentation, setPresentation] = useState<Presentation>(nativePresentation);
+  const [tonedChar, setTonedChar] = useState<string | null>(null);
 
-  // Reset variant when navigating to a new symbol
-  useEffect(() => { setDisplayChar(entry.char); }, [entry.char]);
+  // Reset both pickers when navigating to a new symbol
+  useEffect(() => {
+    setPresentation(nativePresentation);
+    setTonedChar(null);
+  }, [entry.char, nativePresentation]);
+
+  // Derived rather than stored, so the two pickers can't disagree about what's on screen.
+  // A skin-toned sequence is inherently emoji presentation, so a tone wins outright — and
+  // 22 characters (👍 ✊ ✋ …) are both variation bases and skin-tone bases, so this is a
+  // real case, not a hypothetical. Picking a presentation clears the tone (see below).
+  const displayChar =
+    tonedChar ??
+    (variantBase === null
+      ? entry.char
+      : presentation === 'text'
+        ? textPresentation(variantBase)
+        : emojiPresentation(variantBase));
 
   const unicodeDisplay = entry.codePoints
     .map(cp => `U+${cp.toString(16).toUpperCase().padStart(4, '0')}`)
@@ -186,7 +266,26 @@ export default function Page() {
           {/* Hero: [glyph + details] … [copy button] */}
           <section className="symbol-hero">
             <div className="symbol-hero-details">
-              <div className="symbol-hero-glyph">{displayChar}</div>
+              <div className="symbol-hero-glyph-col">
+                {/* Keyed on the glyph so React remounts it and the swap animation replays. */}
+                <div
+                  key={displayChar}
+                  className={`symbol-hero-glyph${
+                    variantBase !== null && tonedChar === null ? ` char-glyph-${presentation}` : ''
+                  }`}
+                >
+                  {displayChar}
+                </div>
+                {variantBase !== null && (
+                  <PresentationToggle
+                    base={variantBase}
+                    value={presentation}
+                    // Clearing the tone here, plus the key on SkinTonePicker below, keeps its
+                    // swatches from claiming a tone that is no longer applied.
+                    onChange={(p) => { setPresentation(p); setTonedChar(null); }}
+                  />
+                )}
+              </div>
               <div className="symbol-hero-info">
                 <h1 className="symbol-name">{entry.name || entry.hex}</h1>
                 {entry.unicodeVersion && (
@@ -205,7 +304,11 @@ export default function Page() {
                   </ul>
                 )}
                 {entry.emoji !== null && entry.emoji.skinToneSlots > 0 && (
-                  <SkinTonePicker key={entry.char} entry={entry} onVariantChange={setDisplayChar} />
+                  <SkinTonePicker
+                    key={`${entry.char}-${presentation}`}
+                    entry={entry}
+                    onVariantChange={(char) => setTonedChar(char === entry.char ? null : char)}
+                  />
                 )}
               </div>
             </div>

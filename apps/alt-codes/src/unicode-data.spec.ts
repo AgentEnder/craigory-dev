@@ -6,6 +6,7 @@ import {
   presentationBase,
   textPresentation,
   emojiPresentation,
+  defaultPresentation,
 } from './unicode-data';
 
 describe('presentationBase', () => {
@@ -36,12 +37,38 @@ describe('presentationBase', () => {
   it('rejects ZWJ sequences', () => {
     expect(presentationBase([0x1f468, 0x200d, 0x1f4bb])).toBeNull(); // 👨‍💻
   });
+
+  it('rejects emoji components, whose two presentations are the same glyph', () => {
+    // #, * and 0-9 carry variation sequences only because they compose into keycaps.
+    // No font ships a standalone emoji-style digit, so showing both would be noise.
+    for (const cp of [0x23, 0x2a, ...Array.from({ length: 10 }, (_, i) => 0x30 + i)]) {
+      expect(presentationBase([cp])).toBeNull();
+    }
+  });
+
+  it('keeps characters that do have two distinct designs', () => {
+    expect(presentationBase([0x2708])).toBe(0x2708); // ✈ airplane, text-default
+    expect(presentationBase([0x231a])).toBe(0x231a); // ⌚ watch, emoji-default
+  });
 });
 
 describe('presentation variants', () => {
   it('appends the matching selector', () => {
     expect([...textPresentation(0x2665)].map((c) => c.codePointAt(0))).toEqual([0x2665, VS_TEXT]);
     expect([...emojiPresentation(0x2665)].map((c) => c.codePointAt(0))).toEqual([0x2665, VS_EMOJI]);
+  });
+});
+
+describe('defaultPresentation', () => {
+  it('reports which side the unqualified form already renders as', () => {
+    // Text-default: ♥ ☁ ✈ draw as monochrome text glyphs with no selector.
+    expect(defaultPresentation(0x2665)).toBe('text');
+    expect(defaultPresentation(0x2601)).toBe('text');
+    expect(defaultPresentation(0x2708)).toBe('text');
+    // Emoji-default: ⌚ 🕔 👍 draw as color emoji with no selector.
+    expect(defaultPresentation(0x231a)).toBe('emoji');
+    expect(defaultPresentation(0x1f554)).toBe('emoji');
+    expect(defaultPresentation(0x1f44d)).toBe('emoji');
   });
 });
 

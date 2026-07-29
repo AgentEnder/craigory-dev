@@ -16,8 +16,16 @@ export function Head() {
       />
       <link rel="preconnect" href="https://fonts.googleapis.com" />
       <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+      {/*
+        Noto Emoji is the MONOCHROME sibling of Noto Color Emoji. It backstops the text
+        (U+FE0E) half of a dual glyph: emoji-default characters like the clock faces have no
+        mono form in a normal macOS/Linux stack, so without it both halves fall back to the
+        color emoji font and render identically. Served in unicode-range subsets, so only the
+        ranges actually used get fetched. Families must stay alphabetical — the css2 API
+        rejects the request otherwise.
+      */}
       <link
-        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+        href="https://fonts.googleapis.com/css2?family=Noto+Emoji&family=Playfair+Display:wght@600&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
         rel="stylesheet"
       />
     </>

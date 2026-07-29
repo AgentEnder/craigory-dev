@@ -17,8 +17,10 @@
 //   src/generated/emoji.ts         — emojiData: ordered base emoji with group/subgroup/
 //                                     emojiVersion/skinToneSupport (replaces unicode-emoji-json)
 //   src/generated/variation-sequences.ts
-//                                  — variationBases: code points with BOTH a text-style
-//                                    (U+FE0E) and emoji-style (U+FE0F) standardized sequence
+//                                  — variationSequences: { bases, emojiDefault } — code points
+//                                    with BOTH a text-style (U+FE0E) and emoji-style (U+FE0F)
+//                                    standardized sequence, minus emoji components, plus which
+//                                    of them render as emoji when unqualified
 //
 // Data is embedded via JSON.parse(<string literal>) rather than a JSON import, so tsc never
 // has to infer a 13k-property literal type.
@@ -57,14 +59,14 @@ async function fetchUrl(url) {
 
 const fetchText = (file) => fetchUrl(`${BASE}/${file}`);
 
-/** Parse emoji-data.txt → set of Emoji_Modifier_Base code points (skin-tone bases). */
-function parseModifierBases(text) {
+/** Parse emoji-data.txt → set of code points carrying the named binary property
+ *  (e.g. Emoji_Modifier_Base, Emoji_Component). Lines read "<cp>[..<cp>] ; <Property> #…". */
+function parseEmojiProperty(text, property) {
   const set = new Set();
   for (const raw of text.split('\n')) {
     const line = raw.split('#')[0];
-    if (!line.includes('Emoji_Modifier_Base')) continue;
-    const m = line.match(/^([0-9A-Fa-f]+)(?:\.\.([0-9A-Fa-f]+))?/);
-    if (!m) continue;
+    const m = line.match(/^([0-9A-Fa-f]+)(?:\.\.([0-9A-Fa-f]+))?\s*;\s*(\S+)/);
+    if (!m || m[3] !== property) continue;
     const start = parseInt(m[1], 16);
     const end = m[2] ? parseInt(m[2], 16) : start;
     for (let cp = start; cp <= end; cp++) set.add(cp);
@@ -108,8 +110,12 @@ function parseEmojiTest(text, modifierBases) {
  * (U+FE0E) and an emoji-style (U+FE0F) standardized variation sequence. These are the only
  * code points a presentation selector may legally follow; appending one anywhere else
  * produces an unsupported sequence that can render as tofu.
+ *
+ * Emoji components (#, *, 0–9) are dropped. They carry variation sequences because they
+ * compose into keycaps — 5️⃣ is 0035 FE0F 20E3 — but no font ships a standalone emoji-style
+ * digit, so their two "presentations" are the same glyph. Showing both is pure noise.
  */
-function parseVariationBases(text) {
+function parseVariationBases(text, components, emojiPresentation) {
   const textStyle = new Set();
   const emojiStyle = new Set();
   for (const raw of text.split('\n')) {
@@ -118,7 +124,12 @@ function parseVariationBases(text) {
     const set = m[2].toUpperCase() === 'E' ? textStyle : emojiStyle;
     set.add(parseInt(m[1], 16));
   }
-  return [...textStyle].filter((cp) => emojiStyle.has(cp)).sort((a, b) => a - b);
+  const bases = [...textStyle]
+    .filter((cp) => emojiStyle.has(cp) && !components.has(cp))
+    .sort((a, b) => a - b);
+  // Which of the two a bare code point renders as, per Emoji_Presentation. The UI preselects
+  // this so the page opens on the character's native look rather than silently retyping it.
+  return { bases, emojiDefault: bases.filter((cp) => emojiPresentation.has(cp)) };
 }
 
 /** Parse DerivedAge.txt → sorted array of [startCp, endCp, version]. */
@@ -192,11 +203,22 @@ async function main() {
   const { ranges, ucdVersion } = parseAge(ageText);
   console.log(`Parsed ${ranges.length} age ranges (UCD ${ucdVersion}).`);
 
-  const emoji = parseEmojiTest(emojiTestText, parseModifierBases(emojiDataText));
+  const emoji = parseEmojiTest(
+    emojiTestText,
+    parseEmojiProperty(emojiDataText, 'Emoji_Modifier_Base'),
+  );
   console.log(`Parsed ${emoji.length} base emoji.`);
 
-  const variationBases = parseVariationBases(variationText);
-  console.log(`Parsed ${variationBases.length} dual-presentation code points.`);
+  const variation = parseVariationBases(
+    variationText,
+    parseEmojiProperty(emojiDataText, 'Emoji_Component'),
+    parseEmojiProperty(emojiDataText, 'Emoji_Presentation'),
+  );
+  console.log(
+    `Parsed ${variation.bases.length} dual-presentation code points ` +
+      `(${variation.emojiDefault.length} emoji-default, ` +
+      `${variation.bases.length - variation.emojiDefault.length} text-default).`,
+  );
 
   // The supplement only needs names the installed package can't provide. In practice
   // that's everything introduced in the draft version (and any later additions).
@@ -230,10 +252,15 @@ async function main() {
     emoji,
     'Array<{ cp: number[]; name: string; group: string; subgroup: string; emojiVersion: string; skinToneSupport: boolean }>',
   );
-  emitModule('variation-sequences.ts', 'variationBases', variationBases, 'number[]');
+  emitModule(
+    'variation-sequences.ts',
+    'variationSequences',
+    variation,
+    '{ bases: number[]; emojiDefault: number[] }',
+  );
 
   console.log(
-    `Wrote ${ranges.length} ranges, ${Object.keys(draftNames).length} supplement names, ${emoji.length} emoji, and ${variationBases.length} variation bases to src/generated/.`,
+    `Wrote ${ranges.length} ranges, ${Object.keys(draftNames).length} supplement names, ${emoji.length} emoji, and ${variation.bases.length} variation bases to src/generated/.`,
   );
 }
 
