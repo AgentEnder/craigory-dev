@@ -1,0 +1,16 @@
+extends: existence
+message: "'%s' is wordy. Tighten it."
+level: suggestion
+ignorecase: true
+# Replaces write-good.TooWordy, which flagged precise single words as verbose
+# ("multiple", "minimum", "equivalent", "however") and wanted shorter words that
+# mean something different. These are phrases that are genuinely padding.
+tokens:
+  - 'In order to'
+  - 'all of the'
+  - 'all of your'
+  - 'is responsible for'
+  - 'due to the fact that'
+  - 'at this point in time'
+  - 'a large number of'
+  - 'in the event that'

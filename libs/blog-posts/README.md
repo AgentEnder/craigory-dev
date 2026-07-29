@@ -34,10 +34,14 @@ opinions (weasel words, "there is" openings, over-promising ease) are
 Rules that flagged correct writing were switched off, each with its reasoning in
 `.vale.ini`. Read those comments before re-enabling anything.
 
-`write-good.Passive` and `write-good.TooWordy` are deliberately left **on** as
-suggestions for technical posts (and off for tiki). They are noisy — on the
-current posts roughly 0% of Passive hits and 10% of TooWordy hits were worth
-acting on — but they are visible so they can be triaged rather than hidden.
+The tree is clean at **every** level, not just the gating one, so anything Vale
+reports is new.
+
+`write-good.Passive` and `write-good.TooWordy` are off, but only after every one
+of their 139 hits was read. Passive yielded 7 real fixes out of 93; TooWordy
+yielded 8 out of 46, and its genuinely useful phrases now live in
+`CraigoryBlog.Wordiness` so those keep being caught. Both decisions are recorded
+in `.vale.ini` with what the triage found.
 
 ### Silencing one instance
 

@@ -70,7 +70,7 @@ As Nx grew and added more features, we needed to add more configuration. We adde
 
 After a bit, Nx grew apart from Angular CLI. It became a standalone tool that could be used with any framework. This meant that we needed to create our own configuration file. We created `workspace.json` to replace `angular.json`. The configuration was extraordinarily similar, but it was a different file and a few properties had a different name. The names changed to more closely match the names that Nx uses. For example, `builder` became `executor` and `architect` became `targets`.
 
-These changes included some differences in `nx.json` as well. The `schematics` property was renamed as `generators`.
+These changes included some differences in `nx.json` as well. We renamed the `schematics` property to `generators`.
 
 At this point, the files looked like this:
 
@@ -111,7 +111,7 @@ At this point, the files looked like this:
 }
 ```
 
-Additionally, nx added the capability to run dependant targets before a target. This was initially done by adding a `targetDependencies` section within `nx.json`. The property was scoped to all targets with a given name, and looked like this:
+Additionally, nx added the capability to run dependant targets before a target. This was initially done by adding a `targetDependencies` section within `nx.json`. We scoped the property to all targets with a given name, and it looked like this:
 
 ```json filename='nx.json'
 {
@@ -246,7 +246,7 @@ After the last round of changes, we noticed that the `workspace.json` file was n
 
 This change required Nx to be able to locate the configuration of projects without a central file. Adding this support was not a major task, but while doing so we also decided to open up the possibility of dynamically building configuration.
 
-At the same time, there was a push from non-angular users to simplify the configuration. Npm/yarn/pnpm workspaces had gained a bit of popularity and it was much easier to define targets as a `package.json` script for a segment of users. We wanted to make it easier for these users to use Nx, while also helping Nx make sense when compared to other tools. The decision was made that if there was a package.json file inside a project, Nx would be able to run its scripts as a target.
+At the same time, there was a push from non-angular users to simplify the configuration. Npm/yarn/pnpm workspaces had gained a bit of popularity and it was much easier to define targets as a `package.json` script for a segment of users. We wanted to make it easier for these users to use Nx, while also helping Nx make sense when compared to other tools. We decided that if there was a package.json file inside a project, Nx would be able to run its scripts as a target.
 
 ## Enter Lerna
 
@@ -302,7 +302,7 @@ To do this, we needed an API that:
 
 Additionally, there were other plugin APIs to extend the project graph that were a bit confusing when deciding if a plugin should be an inference plugin or a project graph plugin. Project graph plugins exported a single function, that received the current project graph and returned a new one. As part of this, they could add new nodes and edges to the graph. Most nodes on the graph were projects, but adding a project via these APIs resulted in odd behavior as targets couldn't be ran because they weren't present when Nx initially loaded project configurations.
 
-As such, we decided to merge the two APIs into a single one. This API is responsible for creating nodes on the project graph, and creating edges between those nodes. The API looks something like this:
+As such, we decided to merge the two APIs into a single one. This API creates nodes on the project graph, and edges between those nodes. The API looks something like this:
 
 ```typescript
 import { NxPlugin } from '@nx/devkit';
@@ -313,9 +313,9 @@ const plugin: NxPlugin = {
 };
 ```
 
-`CreateNodes` is a tuple, where the first element is a glob pattern that the plugin can handle, and the second element is a function that will read the file and return the projects it contains. `createDependencies` is a function that will be called after all the nodes have been created, and is responsible for creating the edges between the nodes.
+`CreateNodes` is a tuple, where the first element is a glob pattern that the plugin can handle, and the second element is a function that will read the file and return the projects it contains. `createDependencies` is a function that will be called after all the nodes have been created, and creates the edges between the nodes.
 
-This API met all the requirements we set out on, and ensured there was only one spot for plugin authors to add new nodes to the graph. It released as part of Nx 17, and was talked about at that years [Nx Conf](https://www.youtube.com/watch?v=bnjOu7iOrMg)
+This API met all the requirements we set out on, and ensured there was only one spot for plugin authors to add new nodes to the graph. It released as part of Nx 17, and we talked about it at that year's [Nx Conf](https://www.youtube.com/watch?v=bnjOu7iOrMg)
 
 ## Entering the Crystal Era 💎
 

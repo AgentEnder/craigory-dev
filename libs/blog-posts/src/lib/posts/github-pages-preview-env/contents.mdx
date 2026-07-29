@@ -181,7 +181,7 @@ execSync(`git merge origin/${GH_PAGES_BRANCH} --allow-unrelated-histories`, {
 execSync(`git push origin HEAD:${GH_PAGES_BRANCH}`, { cwd: GH_PAGES_ROOT });
 ```
 
-This script should be run on every pull request. It will create a new subdirectory in the `gh-pages-root` folder, copy the build artifacts to it, and push the changes to the `gh-pages` branch. This is enough to have functioning preview environments for your GitHub Pages, minus a few nice-to-haves that other hosting providers offer.
+Run this script on every pull request. It will create a new subdirectory in the `gh-pages-root` folder, copy the build artifacts to it, and push the changes to the `gh-pages` branch. This is enough to have functioning preview environments for your GitHub Pages, minus a few nice-to-haves that other hosting providers offer.
 
 ## Commenting on Pull Requests
 
@@ -189,7 +189,7 @@ Its helpful to leave a comment on the pull request with a link to the preview en
 
 ## Cleaning up Preview Environments
 
-Preview environments are temporary, and should be cleaned up after the pull request is closed. While its not paramount to do this, it can be helpful to keep the repository clean and avoid your GitHub Pages deployment size growing too large.
+Preview environments are temporary, so clean them up after the pull request is closed. While its not paramount to do this, it can be helpful to keep the repository clean and avoid your GitHub Pages deployment size growing too large.
 
 This can be done with a short script that deletes the subdirectory in the `gh-pages-root` folder. This script can be run on pull request close, or on a schedule. An example script that does this is below:
 
@@ -216,7 +216,7 @@ execSync(`git push origin HEAD:gh-pages`, { cwd: GH_PAGES_ROOT });
 A few things to note about this script:
 
 - It should be ran in a GitHub action that runs on PR close.
-- It should be passed the PR number as an environment variable.
+- Pass it the PR number as an environment variable.
 - It should checkout the `gh-pages` branch before running the script.
 
 Alternatively, if you are running the job on a schedule you could remove any PR directories that are older than a certain age. This would be a bit more involved, but is a good way to keep the repository clean but give preview environments a bit more longevity. This is the path this repository has taken, and the script can be found [here](https://github.com/agentender/craigory-dev/blob/main/tools/cleanup-old-deployments.ts).
