@@ -33,6 +33,17 @@ describe('shared stylesheet', () => {
     expect(declarations).toContain('cursor: pointer');
   });
 
+  it('leaves the focus ring to Tailwind', () => {
+    // Hand-written copies of these were inherited from the apps and written
+    // against v3, where preflight defined --tw-ring-inset and
+    // --tw-ring-offset-color on every element. v4 does not, so the unresolved
+    // var() invalidated the whole box-shadow and the ring stopped rendering --
+    // while still shadowing v4's own working utilities.
+    expect(declarations).not.toMatch(/\.focus\\:ring-2:focus/);
+    expect(declarations).not.toMatch(/--tw-ring-inset/);
+    expect(declarations).not.toMatch(/--tw-ring-offset-color/);
+  });
+
   it('carries the shared animation and base treatment', () => {
     expect(styles).toContain('@keyframes fade-in');
     expect(styles).toContain('.animate-fade-in');

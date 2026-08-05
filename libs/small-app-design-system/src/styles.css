@@ -65,22 +65,20 @@
   }
 }
 
-@layer utilities {
-  .focus\:ring-2:focus {
-    --tw-ring-offset-shadow: var(--tw-ring-inset) 0 0 0
-      var(--tw-ring-offset-width) var(--tw-ring-offset-color);
-    --tw-ring-shadow: var(--tw-ring-inset) 0 0 0
-      calc(2px + var(--tw-ring-offset-width)) var(--tw-ring-color);
-    box-shadow: var(--tw-ring-offset-shadow), var(--tw-ring-shadow),
-      var(--tw-shadow, 0 0 #0000);
-  }
-
-  .focus\:ring-blue-500:focus {
-    --tw-ring-opacity: 1;
-    --tw-ring-color: rgb(59 130 246 / var(--tw-ring-opacity));
-  }
-
-  .focus\:border-transparent:focus {
-    border-color: transparent;
-  }
-}
+/*
+ * There are deliberately no hand-written focus-ring utilities here.
+ *
+ * The apps this was extracted from each carried their own copies of
+ * `.focus\:ring-2` and `.focus\:ring-blue-500`, written against Tailwind v3.
+ * Those built box-shadow out of `--tw-ring-inset` and `--tw-ring-offset-color`,
+ * variables v3's preflight defined on every element and v4 does not. Under v4
+ * the unresolved var() made the whole shorthand invalid, so the computed
+ * box-shadow was `none` -- the ring silently stopped rendering everywhere,
+ * while `focus:border-transparent` kept working and faded the border out. The
+ * result was a field whose outline vanished on focus.
+ *
+ * They also shadowed v4's own working `ring-*` utilities, which is what made
+ * the breakage survive the upgrade. Deleting them is the fix: `focus:ring-2`
+ * and `focus:ring-blue-500` resolve to Tailwind's implementation, whose ring
+ * variables are @property-registered with real defaults.
+ */
