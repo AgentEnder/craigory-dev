@@ -1,0 +1,16 @@
+{
+  "name": "@new-personal-monorepo/small-app-design-system",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./src/styles.css"
+  },
+  "peerDependencies": {
+    "react": "*"
+  },
+  "devDependencies": {
+    "@types/react": "^19.1.10"
+  }
+}

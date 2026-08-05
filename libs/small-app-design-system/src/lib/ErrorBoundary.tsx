@@ -9,7 +9,10 @@ interface ErrorBoundaryState {
   error: Error | null;
 }
 
-export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+export class ErrorBoundary extends Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
   state: ErrorBoundaryState = { error: null };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
@@ -31,7 +34,13 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
   }
 }
 
-function DefaultFallback({ error, onReset }: { error: Error; onReset: () => void }) {
+function DefaultFallback({
+  error,
+  onReset,
+}: {
+  error: Error;
+  onReset: () => void;
+}) {
   return (
     <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-sm">
       <p className="font-medium text-red-700 mb-1">Something went wrong</p>

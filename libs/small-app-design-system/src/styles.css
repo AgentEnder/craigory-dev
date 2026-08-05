@@ -1,0 +1,84 @@
+/*
+ * Shared visual core for the small tool apps under apps/.
+ *
+ * Usage — a consuming app's src/style.css is just:
+ *
+ *   @import 'tailwindcss' source('..');
+ *   @import '@new-personal-monorepo/small-app-design-system/styles.css';
+ *
+ * The app keeps its own `@import 'tailwindcss' source('..')` line. Tailwind 4
+ * resolves the class-scanning root relative to the file holding that import, so
+ * moving it in here would re-root scanning at this library and silently drop
+ * every app-specific class from the built CSS.
+ *
+ * The @source below is why apps need no path knowledge. Tailwind's automatic
+ * content detection skips node_modules entirely, so the components' classes are
+ * never found by the app's own scan even though pnpm symlinks this package into
+ * apps/<app>/node_modules. An explicit @source is required — and because it is
+ * declared here, it resolves relative to THIS file and follows the package
+ * wherever it is linked from.
+ */
+
+@source './lib';
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.4s ease-out;
+}
+
+@layer utilities {
+  .active\:scale-\[0\.98\]:active {
+    transform: scale(0.98);
+  }
+}
+
+@layer base {
+  * {
+    border-color: #e5e7eb;
+  }
+
+  body {
+    font-feature-settings: 'cv01', 'cv02', 'cv03', 'cv04';
+  }
+
+  /*
+   * Tailwind v3's preflight put `cursor: pointer` on buttons; v4 dropped it to
+   * match the browser default. Every app here wants the pointer, and without
+   * this they drift into patching `cursor-pointer` onto individual elements.
+   * Disabled controls keep the default cursor, since they are not clickable.
+   */
+  button:not(:disabled),
+  [role='button']:not(:disabled),
+  label:has(> input[type='checkbox']:not(:disabled)),
+  summary {
+    cursor: pointer;
+  }
+}
+
+/*
+ * There are deliberately no hand-written focus-ring utilities here.
+ *
+ * The apps this was extracted from each carried their own copies of
+ * `.focus\:ring-2` and `.focus\:ring-blue-500`, written against Tailwind v3.
+ * Those built box-shadow out of `--tw-ring-inset` and `--tw-ring-offset-color`,
+ * variables v3's preflight defined on every element and v4 does not. Under v4
+ * the unresolved var() made the whole shorthand invalid, so the computed
+ * box-shadow was `none` -- the ring silently stopped rendering everywhere,
+ * while `focus:border-transparent` kept working and faded the border out. The
+ * result was a field whose outline vanished on focus.
+ *
+ * They also shadowed v4's own working `ring-*` utilities, which is what made
+ * the breakage survive the upgrade. Deleting them is the fix: `focus:ring-2`
+ * and `focus:ring-blue-500` resolve to Tailwind's implementation, whose ring
+ * variables are @property-registered with real defaults.
+ */
