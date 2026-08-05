@@ -56,24 +56,34 @@ export default function Page() {
       end: el.selectionEnd,
     };
 
-    const arrow =
-      e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+    const arrow = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
 
     // Alt+Arrow moves lines, Shift+Alt+Arrow copies them -- the bindings
     // editors already use, so the muscle memory carries over.
-    const next =
-      e.key === 'Tab'
-        ? shiftIndent(selection, e.shiftKey)
-        : e.altKey && arrow
-          ? e.shiftKey
-            ? duplicateLines(selection, arrow)
-            : moveLines(selection, arrow)
-          : null;
+    const isLineMove = e.altKey && arrow !== 0;
+    if (e.key !== 'Tab' && !isLineMove) return;
 
-    if (!next) return;
+    // Claim the key even if the edit turns out to be impossible, so the caret
+    // does not also jump the way an unhandled arrow would.
     e.preventDefault();
-    // moveLines is a no-op at either end of the document.
-    if (next.value === source) return;
+
+    const next = isLineMove
+      ? e.shiftKey
+        ? duplicateLines(selection, arrow)
+        : moveLines(selection, arrow)
+      : shiftIndent(selection, e.shiftKey);
+
+    // Only moveLines returns null, at the ends of the document.
+    if (!next) return;
+
+    if (next.value === source) {
+      // The text can be identical while the selection still has to move --
+      // swapping two identical lines, or outdenting a line with no indent.
+      // React would skip the re-render, so the pending-selection effect would
+      // never fire; apply it now instead.
+      el.setSelectionRange(next.start, next.end);
+      return;
+    }
 
     pendingSelection.current = { el, start: next.start, end: next.end };
     setSource(next.value);

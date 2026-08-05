@@ -79,19 +79,21 @@ describe('wrapText', () => {
 describe('renderTree guides', () => {
   it('marks last children differently from siblings', () => {
     expect(render('root\n  a\n  b')).toBe(
-      ['root', '├── a', '└── b'].join('\n')
+      ['root/', '├── a', '└── b'].join('\n')
     );
   });
 
   it('continues a guide past a parent that has siblings', () => {
     expect(render('root\n  a\n    x\n  b')).toBe(
-      ['root', '├── a', '│   └── x', '└── b'].join('\n')
+      ['root/', '├── a/', '│   └── x', '└── b'].join('\n')
     );
   });
 
   it('drops the guide under a last child', () => {
-    expect(render('root\n  a\n  b\n    x')).toBe(
-      ['root', '├── a', '└── b', '    └── x'].join('\n')
+    // Both children are directories, so hoisting leaves their order alone and
+    // the last one is still the one carrying a child.
+    expect(render('root\n  a\n    x\n  b\n    y')).toBe(
+      ['root/', '├── a/', '│   └── x', '└── b/', '    └── y'].join('\n')
     );
   });
 
@@ -197,5 +199,51 @@ describe('annotation wrapping', () => {
     const continuation = out.split('\n').find((l) => l.includes('already'))!;
     // Words stay whole even though 40 leaves only 3 columns after the marker.
     expect(continuation).toMatch(/\balready\b/);
+  });
+});
+
+describe('directories', () => {
+  it('appends a slash to anything with children', () => {
+    expect(render('src\n  a.ts')).toBe(['src/', '└── a.ts'].join('\n'));
+  });
+
+  it('does not double a slash that was already written', () => {
+    expect(render('src/\n  a.ts')).toBe(['src/', '└── a.ts'].join('\n'));
+  });
+
+  it('treats a childless node written with a slash as an empty directory', () => {
+    expect(render('empty/')).toBe('empty/');
+  });
+
+  it('leaves files alone', () => {
+    expect(render('a.ts')).toBe('a.ts');
+  });
+
+  it('hoists directories above files within a group', () => {
+    expect(render('root\n  b.ts\n  dir\n    x.ts\n  a.ts')).toBe(
+      ['root/', '├── dir/', '│   └── x.ts', '├── b.ts', '└── a.ts'].join('\n')
+    );
+  });
+
+  it('keeps the written order inside each group', () => {
+    // Neither the directories nor the files are alphabetised -- only split.
+    expect(render('root\n  z.ts\n  zdir/\n  a.ts\n  adir/')).toBe(
+      ['root/', '├── zdir/', '├── adir/', '├── z.ts', '└── a.ts'].join('\n')
+    );
+  });
+
+  it('orders roots the same way', () => {
+    expect(render('README.md\nsrc/')).toBe(['src/', 'README.md'].join('\n'));
+  });
+
+  it('counts the added slash in the annotation column', () => {
+    const out = render('src -- the code lives here and keeps going\n  a.ts', {
+      width: 24,
+    });
+    const [first, second] = out.split('\n');
+    // "src/ -- " is 8 columns, one more than the bare "src" label would give,
+    // and the continuation has to follow it.
+    expect(first.startsWith('src/ -- ')).toBe(true);
+    expect(second.indexOf(second.trim())).toBe(8);
   });
 });

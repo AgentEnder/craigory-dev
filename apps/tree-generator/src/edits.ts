@@ -82,18 +82,22 @@ export type Direction = -1 | 1;
 
 /**
  * Swap the lines the selection touches with the line above or below, carrying
- * the selection along. A no-op at the ends of the document.
+ * the selection along.
+ *
+ * Returns null at the ends of the document, where there is nothing to swap
+ * with. That has to be a distinct signal rather than "the text came back
+ * unchanged": swapping two identical lines produces identical text, and
+ * treating that as a no-op would strand the caret and stop it walking further.
  */
 export function moveLines(
   { value, start, end }: Selection,
   direction: Direction
-): Selection {
+): Selection | null {
   const { blockStart, blockEnd } = blockBounds(value, start, end);
   const block = value.slice(blockStart, blockEnd);
-  const unchanged = { value, start, end };
 
   if (direction === -1) {
-    if (blockStart === 0) return unchanged;
+    if (blockStart === 0) return null;
     const aboveStart = value.lastIndexOf('\n', blockStart - 2) + 1;
     const above = value.slice(aboveStart, blockStart - 1);
     const shift = -(above.length + 1);
@@ -109,7 +113,7 @@ export function moveLines(
     };
   }
 
-  if (blockEnd >= value.length) return unchanged;
+  if (blockEnd >= value.length) return null;
   const belowBreak = value.indexOf('\n', blockEnd + 1);
   const belowEnd = belowBreak === -1 ? value.length : belowBreak;
   const below = value.slice(blockEnd + 1, belowEnd);

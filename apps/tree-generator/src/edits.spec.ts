@@ -27,8 +27,14 @@ function show({ value, start, end }: ReturnType<typeof sel>) {
 
 const indent = (marked: string) => show(shiftIndent(sel(marked)));
 const outdent = (marked: string) => show(shiftIndent(sel(marked), true));
-const moveUp = (marked: string) => show(moveLines(sel(marked), -1));
-const moveDown = (marked: string) => show(moveLines(sel(marked), 1));
+const moveUp = (marked: string) => {
+  const moved = moveLines(sel(marked), -1);
+  return moved && show(moved);
+};
+const moveDown = (marked: string) => {
+  const moved = moveLines(sel(marked), 1);
+  return moved && show(moved);
+};
 const dupUp = (marked: string) => show(duplicateLines(sel(marked), -1));
 const dupDown = (marked: string) => show(duplicateLines(sel(marked), 1));
 
@@ -108,12 +114,26 @@ describe('moveLines', () => {
     expect(moveDown('a|\nb')).toBe('b\na|');
   });
 
-  it('does nothing at the top', () => {
-    expect(moveUp('a|\nb')).toBe('a|\nb');
+  it('reports nothing to do at the top', () => {
+    expect(moveUp('a|\nb')).toBeNull();
   });
 
-  it('does nothing at the bottom', () => {
-    expect(moveDown('a\nb|')).toBe('a\nb|');
+  it('reports nothing to do at the bottom', () => {
+    expect(moveDown('a\nb|')).toBeNull();
+  });
+
+  it('still moves the caret when the swapped lines are identical', () => {
+    // The text comes back identical here, so the caller cannot use text
+    // equality to detect a no-op -- doing so strands the caret on the bottom
+    // line and stops it walking any further up.
+    expect(moveUp('src\n  test\n  test|')).toBe('src\n  test|\n  test');
+  });
+
+  it('walks a line up past an identical twin on successive moves', () => {
+    let state = moveLines(sel('src\n  test\n  test|'), -1)!;
+    expect(state.start).toBe(10);
+    state = moveLines(state, -1)!;
+    expect(state.value).toBe('  test\nsrc\n  test');
   });
 
   it('moves a whole selected block as one unit', () => {
@@ -130,8 +150,8 @@ describe('moveLines', () => {
 
   it('round-trips back to where it started', () => {
     const start = 'a\nb\nc';
-    const down = moveLines({ value: start, start: 0, end: 0 }, 1);
-    const back = moveLines(down, -1);
+    const down = moveLines({ value: start, start: 0, end: 0 }, 1)!;
+    const back = moveLines(down, -1)!;
     expect(back.value).toBe(start);
     expect(back.start).toBe(0);
   });

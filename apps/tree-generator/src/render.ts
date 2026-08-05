@@ -22,6 +22,30 @@ const GUIDE = '│   ';
 const GAP = '    ';
 
 /**
+ * A node is a directory if it contains anything, or if it was written with a
+ * trailing slash -- which is the only way to express an empty one.
+ */
+function isDirectory(node: TreeNode): boolean {
+  return node.children.length > 0 || node.label.endsWith('/');
+}
+
+/** Directory labels always render with exactly one trailing slash. */
+function labelOf(node: TreeNode): string {
+  if (!isDirectory(node)) return node.label;
+  return node.label.endsWith('/') ? node.label : `${node.label}/`;
+}
+
+/**
+ * Directories first, files after, each group keeping the order it was written
+ * in. Sorting the whole group alphabetically would fight the author, who often
+ * has a reason for the order; hoisting directories is the part that makes a
+ * tree scannable.
+ */
+function ordered(nodes: TreeNode[]): TreeNode[] {
+  return [...nodes.filter(isDirectory), ...nodes.filter((n) => !isDirectory(n))];
+}
+
+/**
  * Greedy word wrap. Breaks on spaces, and only splits a word when that single
  * word cannot fit the available room on a line of its own.
  */
@@ -72,10 +96,12 @@ export function renderTree(
     const prefix = guides + marker;
     const isRoot = marker === '';
 
+    const label = labelOf(node);
+
     if (node.annotation === undefined) {
-      out.push(prefix + node.label);
+      out.push(prefix + label);
     } else {
-      const head = `${prefix}${node.label}${ANNOTATION_DELIMITER}`;
+      const head = `${prefix}${label}${ANNOTATION_DELIMITER}`;
       const column = head.length;
 
       if (!wrap) {
@@ -97,14 +123,15 @@ export function renderTree(
     }
 
     const childGuides = isRoot ? '' : guides + (last ? GAP : GUIDE);
-    node.children.forEach((child, i) => {
-      const childLast = i === node.children.length - 1;
+    const children = ordered(node.children);
+    children.forEach((child, i) => {
+      const childLast = i === children.length - 1;
       emit(child, childGuides, childLast ? LAST_BRANCH : BRANCH, childLast);
     });
   };
 
-  // Roots render bare -- no guides, no marker.
-  for (const root of roots) emit(root, '', '', true);
+  // Roots render bare -- no guides, no marker -- but order like any other group.
+  for (const root of ordered(roots)) emit(root, '', '', true);
 
   return out.join('\n');
 }
