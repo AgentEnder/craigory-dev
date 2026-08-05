@@ -1,0 +1,4 @@
+//#region ../../libs/presentations/src/presentation-data/kcdc-2025-monorepo-nx/slides.scss?inline
+var slides_default = ".remark-slide-content{background:#6b7594;background:linear-gradient(315deg,#043035,#271432);color:#f5f5f5}.remark-slide-content a{color:beige}.remark-slide-content.title-image-slide h1{margin:40px 40px 20px}.remark-slide-content.title-image-slide img{position:absolute;inset:120px 40px;width:calc(100% - 80px);height:calc(100% - 240px);object-fit:contain}.remark-slide-content.two-column-slide h1{margin:40px 40px 20px}.remark-slide-content.two-column-slide .slide-content{position:absolute;inset:120px 40px;display:grid;grid-template-columns:1fr 1fr;gap:2rem;align-items:center}.remark-slide-content.two-column-slide .slide-content img{max-width:100%;max-height:100%;object-fit:contain}";
+//#endregion
+export { slides_default as default };
