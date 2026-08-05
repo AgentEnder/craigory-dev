@@ -1,0 +1,11 @@
+{
+  "name": "tree-generator",
+  "targets": {
+    "test": {
+      "command": "vitest run -c apps/tree-generator/vitest.config.ts",
+      "cache": true,
+      "inputs": ["{projectRoot}/**/*"],
+      "outputs": []
+    }
+  }
+}

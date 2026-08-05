@@ -1,0 +1,6 @@
+{
+  "name": "Tree Generator",
+  "description": "Turn indented text into a copyable ASCII directory tree, with annotations that wrap as aligned hanging blocks instead of reflowing to the margin.",
+  "technologies": ["TypeScript", "React", "Tailwind CSS"],
+  "category": "tool"
+}
