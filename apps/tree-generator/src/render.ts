@@ -46,22 +46,28 @@ function ordered(nodes: TreeNode[]): TreeNode[] {
 }
 
 /**
- * Greedy word wrap. Breaks on spaces, and only splits a word when that single
- * word cannot fit the available room on a line of its own.
+ * Greedy word wrap. Breaks on whitespace, and only splits a word when that
+ * single word cannot fit the available room on a line of its own.
+ *
+ * Whitespace between words is carried through exactly as written rather than
+ * normalised. A run of spaces inside an annotation is the author's -- they may
+ * be lining something up -- and collapsing it would rewrite their text even on
+ * lines that never needed breaking.
  */
 export function wrapText(text: string, width: number): string[] {
   const room = Math.max(1, width);
   const lines: string[] = [];
   let current = '';
 
-  for (const word of text.split(/\s+/).filter(Boolean)) {
+  for (const [, gap, word] of text.matchAll(/(\s*)(\S+)/g)) {
     if (!current) {
       current = word;
-    } else if (current.length + 1 + word.length <= room) {
-      current = `${current} ${word}`;
+    } else if (current.length + gap.length + word.length <= room) {
+      current += gap + word;
       continue;
     } else {
       lines.push(current);
+      // The break stands in for the gap, so that one run is not carried over.
       current = word;
     }
 

@@ -297,3 +297,34 @@ describe('annotations on nodes that have children', () => {
     );
   });
 });
+
+describe('whitespace inside annotations', () => {
+  it('keeps a run of spaces that fits on one line', () => {
+    expect(wrapText('a  b', 10)).toEqual(['a  b']);
+  });
+
+  it('keeps runs on a line even when a later one wraps', () => {
+    expect(wrapText('aa  bb cccccc', 8)).toEqual(['aa  bb', 'cccccc']);
+  });
+
+  it('consumes only the gap it breaks at', () => {
+    expect(wrapText('aaaa  bbbb', 5)).toEqual(['aaaa', 'bbbb']);
+  });
+
+  it('preserves a tab between words', () => {
+    expect(wrapText('a\tb', 10)).toEqual(['a\tb']);
+  });
+
+  it('renders an unwrapped annotation exactly as written', () => {
+    expect(render('a.ts -- two  spaces  here')).toBe(
+      'a.ts -- two  spaces  here'
+    );
+  });
+
+  it('does not reflow spacing just because wrapping is enabled', () => {
+    // The line fits, so nothing should have been touched.
+    const spaced = render('a.ts -- keep  the   gaps', { width: 80 });
+    const raw = render('a.ts -- keep  the   gaps', { wrap: false });
+    expect(spaced).toBe(raw);
+  });
+});
