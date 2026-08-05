@@ -3,6 +3,7 @@ export { Card } from './lib/Card';
 export { ErrorBoundary } from './lib/ErrorBoundary';
 export { ErrorPill } from './lib/ErrorPill';
 export { PageShell, type PageWidth } from './lib/PageShell';
+export { Tab, Tabs, type TabProps } from './lib/Tabs';
 export {
   TextArea,
   TextInput,

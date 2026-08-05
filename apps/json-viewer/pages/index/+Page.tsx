@@ -5,12 +5,13 @@ import {
   ErrorBoundary,
   ErrorPill,
   PageShell,
+  Tab,
+  Tabs,
 } from '@new-personal-monorepo/small-app-design-system';
 import '../../src/style.css';
 import { useJsonViewerStore } from '../../src/store';
 import { decodeShare, readShareFromHash } from '../../src/share-url';
 import { JsonInput } from '../../components/JsonInput';
-import { TabBar } from '../../components/TabBar';
 import { JsonOutput } from '../../components/JsonOutput';
 import { VisibilityTree } from '../../components/VisibilityTree';
 import { JqEditor } from '../../components/JqEditor';
@@ -78,22 +79,27 @@ export default function Page() {
       {jsonData !== null && (
         <>
           <Card className="mb-6">
-            <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
-            <div className="min-h-[200px]">
-              <ErrorBoundary key={activeTab}>
-                {activeTab === 'jq' ? (
-                  <JqEditor />
-                ) : activeTab === 'typescript' ? (
-                  <TypeScriptEditor />
-                ) : activeTab === 'visibility' ? (
-                  <VisibilityTree
-                    data={jsonData}
-                    hiddenPaths={hiddenPaths}
-                    onTogglePath={togglePath}
-                  />
-                ) : null}
-              </ErrorBoundary>
-            </div>
+            {/* Controlled: activeTab also drives the share link and the error
+                filter below, so the store stays the single source of truth. */}
+            <Tabs
+              value={activeTab}
+              onChange={setActiveTab}
+              panelClassName="min-h-[200px]"
+            >
+              <Tab id="jq" label="JQ">
+                <JqEditor />
+              </Tab>
+              <Tab id="typescript" label="TypeScript">
+                <TypeScriptEditor />
+              </Tab>
+              <Tab id="visibility" label="Visibility">
+                <VisibilityTree
+                  data={jsonData}
+                  hiddenPaths={hiddenPaths}
+                  onTogglePath={togglePath}
+                />
+              </Tab>
+            </Tabs>
           </Card>
           {errors.map((err) => (
             <ErrorPill key={err.location} className="mb-6">
