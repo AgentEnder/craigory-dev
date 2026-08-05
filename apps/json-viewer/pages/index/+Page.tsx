@@ -1,9 +1,14 @@
 import { useEffect, useMemo, useState } from 'react';
+import {
+  AppHeader,
+  Card,
+  ErrorBoundary,
+  ErrorPill,
+  PageShell,
+} from '@new-personal-monorepo/small-app-design-system';
 import '../../src/style.css';
 import { useJsonViewerStore } from '../../src/store';
 import { decodeShare, readShareFromHash } from '../../src/share-url';
-import { AppHeader } from '../../components/AppHeader';
-import { ErrorBoundary } from '../../components/ErrorBoundary';
 import { JsonInput } from '../../components/JsonInput';
 import { TabBar } from '../../components/TabBar';
 import { JsonOutput } from '../../components/JsonOutput';
@@ -62,49 +67,44 @@ export default function Page() {
   }, [restoreShare]);
 
   return (
-    <div className="min-h-screen bg-slate-50 py-8 px-4">
-      <div className="max-w-4xl mx-auto">
-        <AppHeader actions={jsonData !== null && <ShareButton />} />
-        {shareError && (
-          <div className="mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 animate-fade-in">
-            {shareError}
-          </div>
-        )}
-        <JsonInput />
-        {jsonData !== null && (
-          <>
-            <div className="bg-white rounded-3xl p-6 border border-gray-100 mb-6 animate-fade-in">
-              <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
-              <div className="min-h-[200px]">
-                <ErrorBoundary key={activeTab}>
-                  {activeTab === 'jq' ? (
-                    <JqEditor />
-                  ) : activeTab === 'typescript' ? (
-                    <TypeScriptEditor />
-                  ) : activeTab === 'visibility' ? (
-                    <VisibilityTree
-                      data={jsonData}
-                      hiddenPaths={hiddenPaths}
-                      onTogglePath={togglePath}
-                    />
-                  ) : null}
-                </ErrorBoundary>
-              </div>
+    <PageShell width="wide">
+      <AppHeader
+        title="JSON Viewer"
+        tagline="Explore, filter, and transform JSON data"
+        actions={jsonData !== null && <ShareButton />}
+      />
+      {shareError && <ErrorPill className="mb-6">{shareError}</ErrorPill>}
+      <JsonInput />
+      {jsonData !== null && (
+        <>
+          <Card className="mb-6">
+            <TabBar activeTab={activeTab} onTabChange={setActiveTab} />
+            <div className="min-h-[200px]">
+              <ErrorBoundary key={activeTab}>
+                {activeTab === 'jq' ? (
+                  <JqEditor />
+                ) : activeTab === 'typescript' ? (
+                  <TypeScriptEditor />
+                ) : activeTab === 'visibility' ? (
+                  <VisibilityTree
+                    data={jsonData}
+                    hiddenPaths={hiddenPaths}
+                    onTogglePath={togglePath}
+                  />
+                ) : null}
+              </ErrorBoundary>
             </div>
-            {errors.map((err) => (
-              <div
-                key={err.location}
-                className="mb-6 px-4 py-3 bg-red-50 border border-red-200 rounded-xl text-sm text-red-600 animate-fade-in"
-              >
-                {err.message}
-              </div>
-            ))}
-            <ErrorBoundary>
-              <JsonOutput data={output} />
-            </ErrorBoundary>
-          </>
-        )}
-      </div>
-    </div>
+          </Card>
+          {errors.map((err) => (
+            <ErrorPill key={err.location} className="mb-6">
+              {err.message}
+            </ErrorPill>
+          ))}
+          <ErrorBoundary>
+            <JsonOutput data={output} />
+          </ErrorBoundary>
+        </>
+      )}
+    </PageShell>
   );
 }
