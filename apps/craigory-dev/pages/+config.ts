@@ -10,5 +10,6 @@ export default {
   redirects: {
     '/projects/qbcheck-simulator': '/qbcheck-simulator',
     '/projects/qr-generator': '/qr-generator',
+    '/projects/tree-generator': '/tree-generator',
   },
 } satisfies Config;
