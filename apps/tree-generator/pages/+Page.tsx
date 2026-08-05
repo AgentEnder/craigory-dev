@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import {
   AppHeader,
   Card,
@@ -8,6 +8,7 @@ import {
 import '../src/style.css';
 import { parseTree } from '../src/tree';
 import { renderTree } from '../src/render';
+import { shiftIndent } from '../src/indent';
 import { useSettings } from '../src/settings';
 import { WrapControls } from '../components/WrapControls';
 import { TreeOutput } from '../components/TreeOutput';
@@ -27,6 +28,42 @@ const PLACEHOLDER = [
 export default function Page() {
   const [source, setSource] = useState('');
   const [settings, setSettings] = useSettings();
+
+  // Where the selection should land once React has committed a Tab-driven
+  // edit. Holding the element here avoids guessing at commit timing.
+  const pendingSelection = useRef<{
+    el: HTMLTextAreaElement;
+    start: number;
+    end: number;
+  } | null>(null);
+
+  useEffect(() => {
+    const pending = pendingSelection.current;
+    if (!pending) return;
+    pending.el.setSelectionRange(pending.start, pending.end);
+    pendingSelection.current = null;
+  }, [source]);
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Escape releases focus. Tab is indentation here, so it can no longer be
+    // the way out of the field, and keyboard users need one.
+    if (e.key === 'Escape') {
+      e.currentTarget.blur();
+      return;
+    }
+    if (e.key !== 'Tab') return;
+
+    e.preventDefault();
+    const el = e.currentTarget;
+    const next = shiftIndent(
+      { value: source, start: el.selectionStart, end: el.selectionEnd },
+      e.shiftKey
+    );
+    if (next.value === source) return;
+
+    pendingSelection.current = { el, start: next.start, end: next.end };
+    setSource(next.value);
+  };
 
   const tree = useMemo(
     () =>
@@ -51,14 +88,27 @@ export default function Page() {
             mono
             value={source}
             onChange={(e) => setSource(e.target.value)}
+            onKeyDown={handleKeyDown}
             placeholder={PLACEHOLDER}
             spellCheck={false}
             rows={16}
             className="text-sm"
             aria-label="Tree source"
+            aria-describedby="source-hint"
           />
-          <p className="mt-3 text-xs text-gray-500">
-            Indent to nest. Annotate a node with{' '}
+          <p id="source-hint" className="mt-3 text-xs text-gray-500">
+            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-700">
+              Tab
+            </kbd>{' '}
+            /{' '}
+            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-700">
+              Shift&nbsp;+&nbsp;Tab
+            </kbd>{' '}
+            indent,{' '}
+            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-700">
+              Esc
+            </kbd>{' '}
+            leaves the field. Annotate a node with{' '}
             <code className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-700">
               --
             </code>{' '}
