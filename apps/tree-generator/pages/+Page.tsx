@@ -81,8 +81,10 @@ export default function Page() {
         tagline="Turn indented text into a copyable ASCII tree"
         actions={<WrapControls settings={settings} onChange={setSettings} />}
       />
-      <div className="grid gap-6 md:grid-cols-2 items-start">
-        <Card>
+      {/* No items-start: the panes stretch to a shared height, and each one
+          hands the slack to its field rather than leaving a ragged edge. */}
+      <div className="grid gap-6 md:grid-cols-2">
+        <Card className="flex flex-col">
           <h2 className="text-sm font-medium text-gray-700 mb-4">Source</h2>
           <TextArea
             mono
@@ -92,7 +94,7 @@ export default function Page() {
             placeholder={PLACEHOLDER}
             spellCheck={false}
             rows={16}
-            className="text-sm"
+            className="flex-1 min-h-0 text-sm"
             aria-label="Tree source"
             aria-describedby="source-hint"
           />
@@ -115,7 +117,7 @@ export default function Page() {
             — long annotations wrap into an aligned block.
           </p>
         </Card>
-        <Card>
+        <Card className="flex flex-col">
           <TreeOutput tree={tree} />
         </Card>
       </div>

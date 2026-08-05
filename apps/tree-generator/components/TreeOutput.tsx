@@ -31,8 +31,10 @@ export function TreeOutput({ tree }: TreeOutputProps) {
         </button>
       </div>
       {/* Horizontal scroll rather than wrapping: with wrap off, or a width above
-          the pane, reflowing here would misrepresent the output the user copies. */}
-      <pre className="text-sm font-mono text-gray-900 bg-gray-50 rounded-2xl p-4 overflow-x-auto min-h-[12rem] whitespace-pre">
+          the pane, reflowing here would misrepresent the output the user copies.
+          flex-1 lets the block take up whatever height the paired input pane
+          sets, so the two cards end level. */}
+      <pre className="flex-1 min-h-[12rem] text-sm font-mono text-gray-900 bg-gray-50 rounded-2xl p-4 overflow-auto whitespace-pre">
         {tree}
       </pre>
     </>
