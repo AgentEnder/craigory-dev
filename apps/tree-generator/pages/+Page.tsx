@@ -14,15 +14,13 @@ import { WrapControls } from '../components/WrapControls';
 import { TreeOutput } from '../components/TreeOutput';
 
 const PLACEHOLDER = [
-  'packages/',
-  '  three-js-pipeline/',
-  '    src/',
-  '      components/',
-  '        malagan-statue-1/',
-  '          REFERENCES/',
-  '            readme.md -- contains links to the cultural docs we have already created, textures, materials, etc',
-  '            specific-real-artifact.png',
-  '          mesh.scad',
+  'src/',
+  '  components/',
+  '    Button.tsx -- every variant lives here, so restyling is one file',
+  '    Card.tsx',
+  '  utils/',
+  '    format.ts',
+  'README.md',
 ].join('\n');
 
 export default function Page() {
@@ -85,7 +83,11 @@ export default function Page() {
           hands the slack to its field rather than leaving a ragged edge. */}
       <div className="grid gap-6 md:grid-cols-2">
         <Card className="flex flex-col">
-          <h2 className="text-sm font-medium text-gray-700 mb-4">Source</h2>
+          {/* h-9 matches the output pane's header, whose height is set by the
+              Copy button -- otherwise the two titles sit 8px apart. */}
+          <div className="flex items-center h-9 mb-4">
+            <h2 className="text-sm font-medium text-gray-700">Source</h2>
+          </div>
           <TextArea
             mono
             value={source}
@@ -94,33 +96,40 @@ export default function Page() {
             placeholder={PLACEHOLDER}
             spellCheck={false}
             rows={16}
-            className="flex-1 min-h-0 text-sm"
+            // border-gray-300 over the shared field's gray-200: a 1px hairline
+            // lands on a single device pixel at fractional DPR, where the
+            // lighter grey all but disappears against the white card.
+            className="flex-1 min-h-0 text-sm border-gray-300"
             aria-label="Tree source"
             aria-describedby="source-hint"
           />
-          <p id="source-hint" className="mt-3 text-xs text-gray-500">
-            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-700">
-              Tab
-            </kbd>{' '}
-            /{' '}
-            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-700">
-              Shift&nbsp;+&nbsp;Tab
-            </kbd>{' '}
-            indent,{' '}
-            <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-700">
-              Esc
-            </kbd>{' '}
-            leaves the field. Annotate a node with{' '}
-            <code className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-700">
-              --
-            </code>{' '}
-            — long annotations wrap into an aligned block.
-          </p>
         </Card>
         <Card className="flex flex-col">
           <TreeOutput tree={tree} />
         </Card>
       </div>
+      <p
+        id="source-hint"
+        className="mt-6 text-center text-xs text-gray-400 text-balance"
+      >
+        Indent to nest a node. Annotate one with{' '}
+        <code className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">
+          --
+        </code>
+        .{' '}
+        <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">
+          Tab
+        </kbd>{' '}
+        and{' '}
+        <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">
+          Shift&nbsp;+&nbsp;Tab
+        </kbd>{' '}
+        indent,{' '}
+        <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">
+          Esc
+        </kbd>{' '}
+        leaves the field.
+      </p>
     </PageShell>
   );
 }

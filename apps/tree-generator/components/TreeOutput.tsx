@@ -20,7 +20,9 @@ export function TreeOutput({ tree }: TreeOutputProps) {
 
   return (
     <>
-      <div className="flex items-center justify-between mb-4">
+      {/* h-9 is the Copy button's own height, pinned here so the source pane's
+          header can match it and the two titles sit on the same line. */}
+      <div className="flex items-center justify-between h-9 mb-4">
         <h2 className="text-sm font-medium text-gray-700">Rendered tree</h2>
         <button
           onClick={handleCopy}
