@@ -241,9 +241,59 @@ describe('directories', () => {
       width: 24,
     });
     const [first, second] = out.split('\n');
-    // "src/ -- " is 8 columns, one more than the bare "src" label would give,
-    // and the continuation has to follow it.
+    // "src/ -- " is 8 columns, one more than the bare "src" label would give.
     expect(first.startsWith('src/ -- ')).toBe(true);
-    expect(second.indexOf(second.trim())).toBe(8);
+    // src/ has a child, so the continuation opens with the connector down to
+    // it; the wrapped text still resumes at the annotation column.
+    expect(second.startsWith('│')).toBe(true);
+    expect(second.slice(1, 8)).toBe(' '.repeat(7));
+    expect(second[8]).not.toBe(' ');
+  });
+});
+
+describe('annotations on nodes that have children', () => {
+  it('keeps the connector running down to the first child', () => {
+    // Without this the branch line stops at the annotation and reappears a row
+    // later, leaving the directory looking detached from its contents.
+    expect(
+      render('root\n  dir -- alpha beta gamma delta\n    kid\n  other', {
+        width: 30,
+      })
+    ).toBe(
+      [
+        'root/',
+        '├── dir/ -- alpha beta gamma',
+        '│   │       delta',
+        '│   └── kid',
+        '└── other',
+      ].join('\n')
+    );
+  });
+
+  it('does the same for a last child, where the sibling guide is blank', () => {
+    expect(
+      render('root\n  only -- alpha beta gamma delta\n    kid', { width: 30 })
+    ).toBe(
+      [
+        'root/',
+        '└── only/ -- alpha beta gamma',
+        '    │        delta',
+        '    └── kid',
+      ].join('\n')
+    );
+  });
+
+  it('leaves a childless node continuing only its own sibling guide', () => {
+    expect(render('root\n  a -- alpha beta gamma delta\n  b', { width: 26 })).toBe(
+      ['root/', '├── a -- alpha beta gamma', '│        delta', '└── b'].join(
+        '\n'
+      )
+    );
+  });
+
+  it('draws a connector under an annotated root that has children', () => {
+    expect(render('root -- alpha beta gamma delta\n  kid', { width: 26 })).toBe(
+      ['root/ -- alpha beta gamma', '│        delta', '└── kid'].join('\n')
+    );
   });
 });

@@ -97,6 +97,8 @@ export function renderTree(
     const isRoot = marker === '';
 
     const label = labelOf(node);
+    const childGuides = isRoot ? '' : guides + (last ? GAP : GUIDE);
+    const children = ordered(node.children);
 
     if (node.annotation === undefined) {
       out.push(prefix + label);
@@ -112,18 +114,25 @@ export function renderTree(
         out.push(head + chunks[0]);
 
         if (chunks.length > 1) {
-          // The node's own child-level guide: a root has none, and a last child
-          // has nothing below it to connect to.
-          const ownGuide = isRoot ? '' : last ? ' ' : '│';
-          const continuation =
-            guides + ownGuide + ' '.repeat(column - guides.length - ownGuide.length);
+          // What the continuation rows have to keep drawing, so the tree stays
+          // connected while the annotation runs on.
+          //
+          // A node with children owes a connector down to the first of them:
+          // childGuides already carries the sibling guide, and one more bar
+          // sits in the column its children's markers start at. Without it the
+          // branch line stops dead and reappears a row later.
+          //
+          // A childless node only continues its own sibling guide -- a root has
+          // none, and a last child has nothing below it to connect to.
+          const stem = children.length
+            ? childGuides + '│'
+            : guides + (isRoot ? '' : last ? ' ' : '│');
+          const continuation = stem + ' '.repeat(column - stem.length);
           for (const chunk of chunks.slice(1)) out.push(continuation + chunk);
         }
       }
     }
 
-    const childGuides = isRoot ? '' : guides + (last ? GAP : GUIDE);
-    const children = ordered(node.children);
     children.forEach((child, i) => {
       const childLast = i === children.length - 1;
       emit(child, childGuides, childLast ? LAST_BRANCH : BRANCH, childLast);
