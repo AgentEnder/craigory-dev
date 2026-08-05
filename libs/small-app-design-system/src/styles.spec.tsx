@@ -26,6 +26,13 @@ describe('shared stylesheet', () => {
     expect(declarations).not.toMatch(/@import\s+['"]tailwindcss['"]/);
   });
 
+  it('restores the pointer cursor Tailwind v4 dropped from buttons', () => {
+    // v3 preflight set this and v4 does not, so without it every app ends up
+    // patching cursor-pointer onto individual elements.
+    expect(declarations).toMatch(/button:not\(:disabled\)/);
+    expect(declarations).toContain('cursor: pointer');
+  });
+
   it('carries the shared animation and base treatment', () => {
     expect(styles).toContain('@keyframes fade-in');
     expect(styles).toContain('.animate-fade-in');

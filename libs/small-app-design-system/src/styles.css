@@ -50,6 +50,19 @@
   body {
     font-feature-settings: 'cv01', 'cv02', 'cv03', 'cv04';
   }
+
+  /*
+   * Tailwind v3's preflight put `cursor: pointer` on buttons; v4 dropped it to
+   * match the browser default. Every app here wants the pointer, and without
+   * this they drift into patching `cursor-pointer` onto individual elements.
+   * Disabled controls keep the default cursor, since they are not clickable.
+   */
+  button:not(:disabled),
+  [role='button']:not(:disabled),
+  label:has(> input[type='checkbox']:not(:disabled)),
+  summary {
+    cursor: pointer;
+  }
 }
 
 @layer utilities {
