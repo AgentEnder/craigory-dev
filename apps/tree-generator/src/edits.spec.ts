@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { shiftIndent } from './indent';
+import { duplicateLines, moveLines, shiftIndent } from './edits';
 
 /**
  * Writes a fixture as text with the selection marked by pipes, so the
@@ -27,6 +27,10 @@ function show({ value, start, end }: ReturnType<typeof sel>) {
 
 const indent = (marked: string) => show(shiftIndent(sel(marked)));
 const outdent = (marked: string) => show(shiftIndent(sel(marked), true));
+const moveUp = (marked: string) => show(moveLines(sel(marked), -1));
+const moveDown = (marked: string) => show(moveLines(sel(marked), 1));
+const dupUp = (marked: string) => show(duplicateLines(sel(marked), -1));
+const dupDown = (marked: string) => show(duplicateLines(sel(marked), 1));
 
 describe('indent', () => {
   it('indents the caret line and carries the caret along', () => {
@@ -92,5 +96,72 @@ describe('outdent', () => {
     const there = shiftIndent(marked);
     const back = shiftIndent(there, true);
     expect(back.value).toBe(original);
+  });
+});
+
+describe('moveLines', () => {
+  it('swaps the caret line with the one above', () => {
+    expect(moveUp('a\nb|')).toBe('b|\na');
+  });
+
+  it('swaps the caret line with the one below', () => {
+    expect(moveDown('a|\nb')).toBe('b\na|');
+  });
+
+  it('does nothing at the top', () => {
+    expect(moveUp('a|\nb')).toBe('a|\nb');
+  });
+
+  it('does nothing at the bottom', () => {
+    expect(moveDown('a\nb|')).toBe('a\nb|');
+  });
+
+  it('moves a whole selected block as one unit', () => {
+    expect(moveUp('a\n|b\nc|')).toBe('|b\nc|\na');
+  });
+
+  it('carries the selection with the block moving down', () => {
+    expect(moveDown('|a\nb|\nc')).toBe('c\n|a\nb|');
+  });
+
+  it('preserves indentation on the lines it moves', () => {
+    expect(moveUp('a\n    b|')).toBe('    b|\na');
+  });
+
+  it('round-trips back to where it started', () => {
+    const start = 'a\nb\nc';
+    const down = moveLines({ value: start, start: 0, end: 0 }, 1);
+    const back = moveLines(down, -1);
+    expect(back.value).toBe(start);
+    expect(back.start).toBe(0);
+  });
+});
+
+describe('duplicateLines', () => {
+  it('copies the caret line downward and follows the copy', () => {
+    expect(dupDown('a|')).toBe('a\na|');
+  });
+
+  it('copies the caret line upward and stays on top', () => {
+    expect(dupUp('a|')).toBe('a|\na');
+  });
+
+  it('copies a whole selected block', () => {
+    expect(dupDown('|a\nb|')).toBe('a\nb\n|a\nb|');
+  });
+
+  it('produces the same text in both directions', () => {
+    const input = { value: 'a\nb', start: 0, end: 0 };
+    expect(duplicateLines(input, 1).value).toBe(
+      duplicateLines(input, -1).value
+    );
+  });
+
+  it('keeps indentation in the copy', () => {
+    expect(dupDown('    a|')).toBe('    a\n    a|');
+  });
+
+  it('copies the last line without needing a trailing newline', () => {
+    expect(dupDown('a\nb|')).toBe('a\nb\nb|');
   });
 });

@@ -8,7 +8,7 @@ import {
 import '../src/style.css';
 import { parseTree } from '../src/tree';
 import { renderTree } from '../src/render';
-import { shiftIndent } from '../src/indent';
+import { duplicateLines, moveLines, shiftIndent } from '../src/edits';
 import { useSettings } from '../src/settings';
 import { WrapControls } from '../components/WrapControls';
 import { TreeOutput } from '../components/TreeOutput';
@@ -49,27 +49,48 @@ export default function Page() {
       e.currentTarget.blur();
       return;
     }
-    if (e.key !== 'Tab') return;
-
-    e.preventDefault();
     const el = e.currentTarget;
-    const next = shiftIndent(
-      { value: source, start: el.selectionStart, end: el.selectionEnd },
-      e.shiftKey
-    );
+    const selection = {
+      value: source,
+      start: el.selectionStart,
+      end: el.selectionEnd,
+    };
+
+    const arrow =
+      e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
+
+    // Alt+Arrow moves lines, Shift+Alt+Arrow copies them -- the bindings
+    // editors already use, so the muscle memory carries over.
+    const next =
+      e.key === 'Tab'
+        ? shiftIndent(selection, e.shiftKey)
+        : e.altKey && arrow
+          ? e.shiftKey
+            ? duplicateLines(selection, arrow)
+            : moveLines(selection, arrow)
+          : null;
+
+    if (!next) return;
+    e.preventDefault();
+    // moveLines is a no-op at either end of the document.
     if (next.value === source) return;
 
     pendingSelection.current = { el, start: next.start, end: next.end };
     setSource(next.value);
   };
 
+  const options = { width: settings.width, wrap: settings.wrap };
+
   const tree = useMemo(
-    () =>
-      renderTree(parseTree(source), {
-        width: settings.width,
-        wrap: settings.wrap,
-      }),
+    () => renderTree(parseTree(source), options),
     [source, settings.width, settings.wrap]
+  );
+
+  // Rendered with the live wrap settings, so changing them while the field is
+  // empty still demonstrates what they do.
+  const placeholderTree = useMemo(
+    () => renderTree(parseTree(PLACEHOLDER), options),
+    [settings.width, settings.wrap]
   );
 
   return (
@@ -105,7 +126,7 @@ export default function Page() {
           />
         </Card>
         <Card className="flex flex-col">
-          <TreeOutput tree={tree} />
+          <TreeOutput tree={tree} placeholder={placeholderTree} />
         </Card>
       </div>
       <p
@@ -125,6 +146,14 @@ export default function Page() {
           Shift&nbsp;+&nbsp;Tab
         </kbd>{' '}
         indent,{' '}
+        <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">
+          Alt&nbsp;+&nbsp;↑/↓
+        </kbd>{' '}
+        moves lines,{' '}
+        <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">
+          Shift&nbsp;+&nbsp;Alt&nbsp;+&nbsp;↑/↓
+        </kbd>{' '}
+        copies them,{' '}
         <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">
           Esc
         </kbd>{' '}
