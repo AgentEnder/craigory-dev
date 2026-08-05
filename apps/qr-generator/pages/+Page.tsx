@@ -1,7 +1,8 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
 import QRCode from 'qrcode';
+import { AppHeader } from '@new-personal-monorepo/small-app-design-system';
 import '../src/style.css';
-import { AppHeader } from '../components/AppHeader';
+import { SettingsToggle } from '../components/SettingsToggle';
 import { QRInput } from '../components/QRInput';
 import { QRDisplay } from '../components/QRDisplay';
 import { QRActions } from '../components/QRActions';
@@ -277,8 +278,14 @@ export default function Page() {
     <div className="min-h-screen bg-slate-50 py-8 px-4">
       <div className="max-w-md mx-auto">
         <AppHeader
-          onSettingsToggle={() => setSettingsOpen((prev) => !prev)}
-          settingsOpen={settingsOpen}
+          title="QR Generator"
+          tagline="Generate, decode, and verify QR codes instantly"
+          actions={
+            <SettingsToggle
+              onToggle={() => setSettingsOpen((prev) => !prev)}
+              open={settingsOpen}
+            />
+          }
         />
       </div>
 
