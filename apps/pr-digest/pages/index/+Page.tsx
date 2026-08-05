@@ -1,4 +1,5 @@
 import { useState, useCallback } from 'react';
+import { Card } from '@new-personal-monorepo/small-app-design-system';
 import '../../src/style.css';
 import { generateDigest } from '../../src/generate-digest';
 
@@ -73,7 +74,7 @@ export default function Page() {
         </div>
 
         {/* Input Form */}
-        <div className="bg-white rounded-3xl p-6 border border-gray-100 mb-6 animate-fade-in">
+        <Card className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
             Pull Request URL
           </label>
@@ -107,7 +108,7 @@ export default function Page() {
           >
             {loading ? 'Generating...' : 'Generate Digest'}
           </button>
-        </div>
+        </Card>
 
         {/* CLI Usage */}
         {!digest && !loading && (
@@ -144,7 +145,7 @@ export default function Page() {
 
         {/* Output */}
         {digest && (
-          <div className="bg-white rounded-3xl p-6 border border-gray-100 animate-fade-in">
+          <Card>
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-sm font-medium text-gray-700">
                 Digest Output
@@ -169,7 +170,7 @@ export default function Page() {
               value={digest}
               className="w-full h-96 px-4 py-3 rounded-xl border border-gray-200 text-sm font-mono bg-gray-50 resize-y focus:outline-none"
             />
-          </div>
+          </Card>
         )}
       </div>
     </div>
