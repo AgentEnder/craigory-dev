@@ -56,8 +56,8 @@ export function Page() {
               key={p.title + p.presentedAt + 'DESCRIPTION'}
               className="description"
             >
-              {p.description.split('\n').map((line) => (
-                <p key={line}>{line}</p>
+              {p.description.split('\n').map((line, lineIdx) => (
+                <p key={lineIdx}>{line}</p>
               ))}
               <div className="links">
                 {p.mdUrl || p.htmlUrl ? (

@@ -10,6 +10,10 @@ import {
 } from 'react-icons/si';
 import { BsTerminalFill } from 'react-icons/bs';
 
+// This runs in render, once per language per project card, on both the SSR and
+// hydration passes. Without deduping, one unmapped language floods the console.
+const reportedMissingLogos = new Set<string>();
+
 export function getLanguageLogo(language: string) {
   switch (language) {
     case 'TypeScript':
@@ -139,7 +143,10 @@ export function getLanguageLogo(language: string) {
       );
 
     default:
-      console.log(`No icon for language: ${language}`);
+      if (import.meta.env.DEV && !reportedMissingLogos.has(language)) {
+        reportedMissingLogos.add(language);
+        console.log(`No icon for language: ${language}`);
+      }
       return null;
   }
 }
