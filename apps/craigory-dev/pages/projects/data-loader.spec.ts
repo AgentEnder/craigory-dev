@@ -11,7 +11,7 @@ const LOCAL_CACHE_PATH = `${WORKSPACE_ROOT}/tmp/local-projects-cache.json`;
 
 function createOctokitMock() {
   const request = vi.fn(async () => ({ data: {} }));
-  return class OctokitMock {
+  class OctokitMock {
     request = request;
     rest = {
       repos: {
@@ -26,7 +26,15 @@ function createOctokitMock() {
     paginate = {
       iterator: vi.fn(),
     };
-  };
+
+    // The loader composes its clients with `Octokit.plugin(throttling, retry)`.
+    // Both plugins only add waiting and replaying around a live API, so the
+    // double stands in for the composed constructor and skips them.
+    static plugin() {
+      return OctokitMock;
+    }
+  }
+  return OctokitMock;
 }
 
 type TestProject = {

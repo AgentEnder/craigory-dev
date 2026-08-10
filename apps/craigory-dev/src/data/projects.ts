@@ -1,4 +1,6 @@
 import { Octokit } from '@octokit/rest';
+import { retry } from '@octokit/plugin-retry';
+import { throttling } from '@octokit/plugin-throttling';
 import {
   GithubRepo,
   RepoData,
@@ -19,16 +21,61 @@ import {
 import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import linguist from 'linguist-js';
+import { RequestSlots } from './request-slots';
 
-const client = new Octokit({
+// GitHub answers a rate limit with a 403 and a `retry-after`, which a bare
+// client turns straight into a thrown request. Both plugins are what make that
+// survivable: `throttling` waits out the window and replays the call,
+// `retry` covers transient 5xx/network faults.
+const ResilientOctokit = Octokit.plugin(throttling, retry);
+
+// Retrying forever would hide a genuinely exhausted budget behind a build that
+// never finishes, so give up after a few attempts and let the error surface.
+const MAX_RATE_LIMIT_RETRIES = 3;
+
+function throttleOptions(label: string) {
+  return {
+    onRateLimit(retryAfter: number, _o: unknown, _k: unknown, count: number) {
+      console.warn(
+        `[github:${label}] primary rate limit hit; retrying in ${retryAfter}s (attempt ${count})`
+      );
+      return count < MAX_RATE_LIMIT_RETRIES;
+    },
+    onSecondaryRateLimit(
+      retryAfter: number,
+      _o: unknown,
+      _k: unknown,
+      count: number
+    ) {
+      console.warn(
+        `[github:${label}] secondary rate limit hit; retrying in ${retryAfter}s (attempt ${count})`
+      );
+      return count < MAX_RATE_LIMIT_RETRIES;
+    },
+  };
+}
+
+const client = new ResilientOctokit({
   auth: process.env.GITHUB_TOKEN ?? process.env.GH_TOKEN,
+  throttle: throttleOptions('auth'),
 });
 
 // Some orgs (e.g. 'nrwl') block fine-grained PATs by policy — even for reads
 // of public data. Since the data we're fetching is all public, fall back to
 // an unauthenticated client for any owner that rejects our token.
-const publicClient = new Octokit();
+//
+// This client is the scarcest resource we have: unauthenticated GitHub allows
+// 60 requests/hour *per IP*, and CI runners share outbound IPs, so its budget
+// may already be spent by strangers before the build starts.
+const publicClient = new ResilientOctokit({
+  throttle: throttleOptions('public'),
+});
 const authBlockedOwners = new Set<string>();
+
+// Chosen to stay well clear of the concurrency GitHub punishes while keeping
+// the cold-cache fetch to a couple of minutes. See RequestSlots for why a
+// ceiling is needed on top of the throttling plugin.
+const requestSlots = new RequestSlots(8);
 
 let githubRequestCount = 0;
 function trackRequestCount(octokit: Octokit) {
@@ -50,29 +97,36 @@ trackRequestCount(publicClient);
  * unauthenticated client if the owner's org rejects our fine-grained PAT.
  * Replaces the previous request-hook approach so each call site explicitly
  * declares which owner it's talking to.
+ *
+ * Every GitHub call except the repo paginator (which is sequential by nature)
+ * goes through here, which makes it the one place that can bound how many are
+ * in flight at once. Callers must pass a single request: a `fn` that itself
+ * called back into this helper would wait on a slot it is already holding.
  */
 async function withAuthFallback<T>(
   owner: string | undefined,
   fn: (octokit: Octokit) => Promise<T>
 ): Promise<T> {
-  if (owner && authBlockedOwners.has(owner)) {
-    return fn(publicClient);
-  }
-  try {
-    return await fn(client);
-  } catch (err) {
-    const message = (err as { message?: string })?.message ?? '';
-    if (message.includes('organization forbids access via a fine-grained')) {
-      if (owner) {
-        authBlockedOwners.add(owner);
-        console.warn(
-          `'${owner}' rejects fine-grained PAT; falling back to unauthenticated API for this and future requests to that owner.`
-        );
-      }
+  return requestSlots.run(async () => {
+    if (owner && authBlockedOwners.has(owner)) {
       return fn(publicClient);
     }
-    throw err;
-  }
+    try {
+      return await fn(client);
+    } catch (err) {
+      const message = (err as { message?: string })?.message ?? '';
+      if (message.includes('organization forbids access via a fine-grained')) {
+        if (owner) {
+          authBlockedOwners.add(owner);
+          console.warn(
+            `'${owner}' rejects fine-grained PAT; falling back to unauthenticated API for this and future requests to that owner.`
+          );
+        }
+        return fn(publicClient);
+      }
+      throw err;
+    }
+  });
 }
 
 // ============================================================================
