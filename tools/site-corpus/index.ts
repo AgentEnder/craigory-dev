@@ -163,17 +163,39 @@ export function collectPresentations(
  * a cold one (a fresh CI checkout — `tmp/` is gitignored) fetches exactly once
  * and the build that follows reuses it.
  *
- * Failures are swallowed rather than fatal: the loader needs a token when the
- * cache is cold, and a missing "Related" strip on project cards is not worth
- * failing a build over.
+ * A failure here is tolerated only when it is the one we chose to tolerate: no
+ * token configured, which is the ordinary state of a local checkout with a cold
+ * cache. A missing "Related" strip on project cards is not worth failing a
+ * developer's build over.
+ *
+ * With a token configured — which is to say, in CI — the same failure is fatal.
+ * Swallowing it there costs far more than a missing strip: `loadAllProjects()`
+ * writes `tmp/github-projects-cache.json` only on success, so a caught error
+ * silently leaves the cache cold, and the *next* consumer (the vike prerender)
+ * re-runs the whole fetch against an API that has already started refusing us.
+ * That is how a rate limit here surfaced as `projects is not iterable` on the
+ * /projects page two tasks later, with this warning buried 200 lines up.
  */
 export async function collectProjects(): Promise<CorpusItem[]> {
+  // `||`, not `??`: an empty-string token is a misconfigured CI secret, not a
+  // deliberately unauthenticated local build, and it must not buy the soft path.
+  const hasToken = Boolean(process.env.GITHUB_TOKEN || process.env.GH_TOKEN);
+
   let projects: RepoData[];
   try {
     projects = await loadAllProjects();
   } catch (error) {
+    if (hasToken) {
+      throw new Error(
+        `[site-corpus] could not load projects, and a GitHub token is configured — ` +
+          `refusing to build a corpus that silently omits every project. ` +
+          `Cause: ${error instanceof Error ? error.message : error}`,
+        { cause: error }
+      );
+    }
     console.warn(
-      '[site-corpus] could not load projects; continuing without them:',
+      '[site-corpus] could not load projects; continuing without them ' +
+        '(no GitHub token configured):',
       error instanceof Error ? error.message : error
     );
     return [];
