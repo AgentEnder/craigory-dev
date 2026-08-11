@@ -1,0 +1,1 @@
+import{o as e}from"./chunk-BPx_VbXB.js";function t(){return e()?.data}export{t};
