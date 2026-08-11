@@ -22,6 +22,8 @@ import { execSync } from 'child_process';
 import { fileURLToPath } from 'url';
 import linguist from 'linguist-js';
 import { RequestSlots } from './request-slots';
+import { decideRateLimitRetry, type RateLimitKind } from './rate-limit-policy';
+import { type Identity, runWithFallback } from './identity-fallback';
 
 // GitHub answers a rate limit with a 403 and a `retry-after`, which a bare
 // client turns straight into a thrown request. Both plugins are what make that
@@ -29,29 +31,20 @@ import { RequestSlots } from './request-slots';
 // `retry` covers transient 5xx/network faults.
 const ResilientOctokit = Octokit.plugin(throttling, retry);
 
-// Retrying forever would hide a genuinely exhausted budget behind a build that
-// never finishes, so give up after a few attempts and let the error surface.
-const MAX_RATE_LIMIT_RETRIES = 3;
-
+// With an authenticated publicClient these should never fire. They exist so a
+// genuinely exhausted budget surfaces as a loud 60s error instead of the silent
+// 22-minute hang PR #48 hit. See rate-limit-policy.ts for the reasoning.
 function throttleOptions(label: string) {
+  const decide =
+    (kind: RateLimitKind) =>
+    (retryAfter: number, _o: unknown, _k: unknown, attempt: number) => {
+      const { retry, reason } = decideRateLimitRetry(kind, retryAfter, attempt);
+      console.warn(`[github:${label}] ${reason}`);
+      return retry;
+    };
   return {
-    onRateLimit(retryAfter: number, _o: unknown, _k: unknown, count: number) {
-      console.warn(
-        `[github:${label}] primary rate limit hit; retrying in ${retryAfter}s (attempt ${count})`
-      );
-      return count < MAX_RATE_LIMIT_RETRIES;
-    },
-    onSecondaryRateLimit(
-      retryAfter: number,
-      _o: unknown,
-      _k: unknown,
-      count: number
-    ) {
-      console.warn(
-        `[github:${label}] secondary rate limit hit; retrying in ${retryAfter}s (attempt ${count})`
-      );
-      return count < MAX_RATE_LIMIT_RETRIES;
-    },
+    onRateLimit: decide('primary'),
+    onSecondaryRateLimit: decide('secondary'),
   };
 }
 
@@ -60,17 +53,54 @@ const client = new ResilientOctokit({
   throttle: throttleOptions('auth'),
 });
 
-// Some orgs (e.g. 'nrwl') block fine-grained PATs by policy — even for reads
-// of public data. Since the data we're fetching is all public, fall back to
-// an unauthenticated client for any owner that rejects our token.
+// Some orgs (e.g. 'nrwl') block fine-grained PATs by policy — even for reads of
+// public data. The policy rejects that *kind of credential*, not authentication
+// itself: `gh api repos/nrwl/nx` with a classic token reads it fine. So this is
+// a second identity rather than no identity.
 //
-// This client is the scarcest resource we have: unauthenticated GitHub allows
-// 60 requests/hour *per IP*, and CI runners share outbound IPs, so its budget
-// may already be spent by strangers before the build starts.
+// That distinction is the whole point. Unauthenticated GitHub allows 60
+// requests/hour *per IP*, and CI runners share outbound IPs, so the budget is
+// routinely spent by strangers before the build starts — PR #48 lost 22 minutes
+// sleeping off exactly that. Any authenticated identity moves us to a per-account
+// budget 16-80x larger.
+//
+// GITHUB_PUBLIC_TOKEN is deliberately its own variable, not GITHUB_TOKEN/GH_TOKEN
+// (those select the *primary* client and must keep pointing at the deploy PAT).
+// In CI it is `secrets.GITHUB_TOKEN` — minted per run, so it never needs
+// rotating, which matters because nrwl's policy would otherwise force a
+// 30-day fine-grained PAT rotation just to keep deploys green.
+const publicToken = process.env.GITHUB_PUBLIC_TOKEN || undefined;
 const publicClient = new ResilientOctokit({
+  auth: publicToken,
   throttle: throttleOptions('public'),
 });
-const authBlockedOwners = new Set<string>();
+
+// The floor: no identity at all. This is what the fallback used to be, and it
+// still works for public data — it is only *slow*, because unauthenticated
+// GitHub bills 60 requests/hour against the runner's shared IP.
+//
+// It stays in the chain because we cannot assume `publicToken` is acceptable
+// everywhere. An org that rejects fine-grained PATs for public reads may well
+// reject a GitHub App installation token too, and `secrets.GITHUB_TOKEN` is an
+// app token. If it is refused we must land back on the behaviour that works
+// today rather than failing the build — the whole point of this change is to
+// make the nightly faster, and it must not be able to make it worse.
+const anonClient = new ResilientOctokit({ throttle: throttleOptions('anon') });
+
+// Identities in descending order of capability. The public token is skipped
+// entirely when unset, so a local checkout keeps exactly the two-tier behaviour
+// it had before this variable existed.
+const identities: Identity<Octokit>[] = [
+  { name: 'auth', client: client },
+  ...(publicToken ? [{ name: 'public', client: publicClient }] : []),
+  { name: 'anon', client: anonClient },
+];
+
+// owner -> index of the first identity still worth trying for it.
+const blockedThrough = new Map<string, number>();
+
+const isForbidden = (err: unknown) =>
+  (err as { status?: number })?.status === 403;
 
 // Chosen to stay well clear of the concurrency GitHub punishes while keeping
 // the cold-cache fetch to a couple of minutes. See RequestSlots for why a
@@ -91,6 +121,7 @@ function trackRequestCount(octokit: Octokit) {
 }
 trackRequestCount(client);
 trackRequestCount(publicClient);
+trackRequestCount(anonClient);
 
 /**
  * Runs a GitHub call with the authenticated client, falling back to the
@@ -107,26 +138,29 @@ async function withAuthFallback<T>(
   owner: string | undefined,
   fn: (octokit: Octokit) => Promise<T>
 ): Promise<T> {
-  return requestSlots.run(async () => {
-    if (owner && authBlockedOwners.has(owner)) {
-      return fn(publicClient);
-    }
-    try {
-      return await fn(client);
-    } catch (err) {
-      const message = (err as { message?: string })?.message ?? '';
-      if (message.includes('organization forbids access via a fine-grained')) {
+  return requestSlots.run(() =>
+    runWithFallback(identities, fn, {
+      // Start past any identity this owner has already refused, so one 403
+      // teaches the rest of the build instead of every call rediscovering it.
+      startAt: owner ? blockedThrough.get(owner) ?? 0 : 0,
+      // A 403 is a refusal of the *credential*, not of the data: a policy block
+      // reads `forbids access via a fine-grained…`, an app token refused by
+      // that same policy reads `Resource not accessible by integration`. Both
+      // mean "try a different identity".
+      isRefusal: isForbidden,
+      onFallback: (from, to, err) => {
         if (owner) {
-          authBlockedOwners.add(owner);
-          console.warn(
-            `'${owner}' rejects fine-grained PAT; falling back to unauthenticated API for this and future requests to that owner.`
-          );
+          blockedThrough.set(owner, identities.indexOf(to));
         }
-        return fn(publicClient);
-      }
-      throw err;
-    }
-  });
+        const reason = (err as { message?: string })?.message ?? 'forbidden';
+        console.warn(
+          `'${owner ?? 'unknown'}' rejected the ${from.name} identity ` +
+            `(${reason}); using ${to.name} for this and future requests ` +
+            `to that owner.`
+        );
+      },
+    })
+  );
 }
 
 // ============================================================================

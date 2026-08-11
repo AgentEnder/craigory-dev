@@ -88,6 +88,11 @@ jobs:
           npx nx deploy craigory-dev -c $ENV
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          # Reads for orgs that reject our fine-grained PAT (nrwl). Authenticated
+          # but public-only, so those calls leave the unauthenticated 60/hr-per-IP
+          # budget that CI runners share with other tenants. Minted per run, so
+          # unlike a fine-grained PAT it never needs rotating.
+          GITHUB_PUBLIC_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
           ENV: ${{ github.event.inputs.environment || github.ref_name }}
 
