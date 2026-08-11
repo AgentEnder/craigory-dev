@@ -53,10 +53,15 @@ const client = new ResilientOctokit({
   throttle: throttleOptions('auth'),
 });
 
-// Some orgs (e.g. 'nrwl') block fine-grained PATs by policy — even for reads of
-// public data. The policy rejects that *kind of credential*, not authentication
-// itself: `gh api repos/nrwl/nx` with a classic token reads it fine. So this is
-// a second identity rather than no identity.
+// Some orgs refuse our primary token for reads of public data. The refusal is
+// narrower than it first appears — nrwl's, in full, is:
+//
+//   The 'nrwl' organization forbids access via a fine-grained personal access
+//   tokens if the token's lifetime is greater than 90 days.
+//
+// So it is a *lifetime* rule, not a blanket ban on fine-grained PATs, and the
+// way past it is a credential that is not a long-lived fine-grained PAT — not
+// the absence of a credential.
 //
 // That distinction is the whole point. Unauthenticated GitHub allows 60
 // requests/hour *per IP*, and CI runners share outbound IPs, so the budget is
@@ -66,9 +71,10 @@ const client = new ResilientOctokit({
 //
 // GITHUB_PUBLIC_TOKEN is deliberately its own variable, not GITHUB_TOKEN/GH_TOKEN
 // (those select the *primary* client and must keep pointing at the deploy PAT).
-// In CI it is `secrets.GITHUB_TOKEN` — minted per run, so it never needs
-// rotating, which matters because nrwl's policy would otherwise force a
-// 30-day fine-grained PAT rotation just to keep deploys green.
+// In CI it is `secrets.GITHUB_TOKEN`, minted per run: its lifetime is a single
+// job, so it satisfies the 90-day rule permanently and nothing ever needs
+// rotating. Confirmed in PR #49 — nrwl accepted it, the anon tier was never
+// reached, and the run came in at 6 minutes with zero rate limits.
 const publicToken = process.env.GITHUB_PUBLIC_TOKEN || undefined;
 const publicClient = new ResilientOctokit({
   auth: publicToken,
