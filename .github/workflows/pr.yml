@@ -80,6 +80,9 @@ jobs:
           npx nx run-many -t build,test,lint --exclude=tiki-menu
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          # See deploy.yml: authenticated public-only reads for orgs that reject
+          # the fine-grained PAT, off the shared-IP 60/hr budget.
+          GITHUB_PUBLIC_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       # Add your deployment steps here
       - name: Deploy to preview environment
@@ -92,6 +95,7 @@ jobs:
           npx nx deploy craigory-dev -c preview --directory ./dist/gh-pages-root
         env:
           GH_TOKEN: ${{ secrets.DEPLOY_TOKEN }}
+          GITHUB_PUBLIC_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           PR_NUMBER: ${{ github.event.number }}
           PATH_PREFIX: /pr/${{ github.event.number || github.sha }}
           SKIP_FIREBASE_DEPLOY: 'true'
