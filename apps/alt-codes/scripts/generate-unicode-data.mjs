@@ -21,11 +21,17 @@
 //                                    with BOTH a text-style (U+FE0E) and emoji-style (U+FE0F)
 //                                    standardized sequence, minus emoji components, plus which
 //                                    of them render as emoji when unqualified
+//   src/generated/script-ranges.ts — scriptRanges: sorted [startCp, endCp, "Script_Name"], the
+//                                    whole Script property. Read by src/og/ to pick which Noto
+//                                    family to fetch for a code point, since Satori has no
+//                                    system font fallback. Sourced from the installed names
+//                                    package rather than the UCD download, so it does not move
+//                                    when this script is pointed at a draft UCD.
 //
 // Data is embedded via JSON.parse(<string literal>) rather than a JSON import, so tsc never
 // has to infer a 13k-property literal type.
 
-import { writeFileSync, mkdirSync } from 'node:fs';
+import { writeFileSync, mkdirSync, readdirSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { createRequire } from 'node:module';
@@ -58,6 +64,34 @@ async function fetchUrl(url) {
 }
 
 const fetchText = (file) => fetchUrl(`${BASE}/${file}`);
+
+/**
+ * Collect the whole Script property as sorted [start, end, scriptName] ranges.
+ *
+ * Read from the installed @unicode package's per-script `ranges.js` rather than parsing
+ * Scripts.txt off the UCD mirror, because this is font-selection data: it should describe
+ * the Unicode the *fonts* know about, and must not shift to a draft version when the rest
+ * of this script is pointed at the beta UCD. Code points with no range fall through to
+ * "Unknown", which src/og/ treats as no-coverage.
+ */
+function collectScriptRanges() {
+  const scriptDir = join(
+    dirname(requireJson.resolve('@unicode/unicode-17.0.0/package.json')),
+    'Script',
+  );
+  const ranges = [];
+  for (const entry of readdirSync(scriptDir, { withFileTypes: true })) {
+    if (!entry.isDirectory()) continue;
+    const script = entry.name;
+    for (const { begin, end } of requireJson(
+      `@unicode/unicode-17.0.0/Script/${script}/ranges.js`,
+    )) {
+      // The package's ranges are half-open [begin, end); ours are inclusive, like ageRanges.
+      ranges.push([begin, end - 1, script]);
+    }
+  }
+  return ranges.sort((a, b) => a[0] - b[0]);
+}
 
 /** Parse emoji-data.txt → set of code points carrying the named binary property
  *  (e.g. Emoji_Modifier_Base, Emoji_Component). Lines read "<cp>[..<cp>] ; <Property> #…". */
@@ -189,7 +223,23 @@ function parseNames(text, wantedCps) {
   return out;
 }
 
+/** Emit the one output that needs no UCD download, so it can be refreshed on its own. */
+function emitScriptRanges() {
+  mkdirSync(OUT_DIR, { recursive: true });
+  const scriptRanges = collectScriptRanges();
+  emitModule('script-ranges.ts', 'scriptRanges', scriptRanges, 'Array<[number, number, string]>');
+  return scriptRanges;
+}
+
 async function main() {
+  // --scripts-only skips the download entirely. Useful because the script ranges come from the
+  // installed package, so regenerating them must not drag the rest of src/generated/ to a
+  // newer draft UCD as a side effect.
+  if (process.argv.includes('--scripts-only')) {
+    console.log(`Wrote ${emitScriptRanges().length} script ranges to src/generated/.`);
+    return;
+  }
+
   console.log(`Fetching UCD from ${BASE} …`);
   const [ageText, unicodeDataText, emojiTestText, emojiDataText, variationText] =
     await Promise.all([
@@ -258,9 +308,10 @@ async function main() {
     variation,
     '{ bases: number[]; emojiDefault: number[] }',
   );
+  const scriptRanges = emitScriptRanges();
 
   console.log(
-    `Wrote ${ranges.length} ranges, ${Object.keys(draftNames).length} supplement names, ${emoji.length} emoji, and ${variation.bases.length} variation bases to src/generated/.`,
+    `Wrote ${ranges.length} ranges, ${Object.keys(draftNames).length} supplement names, ${emoji.length} emoji, ${variation.bases.length} variation bases, and ${scriptRanges.length} script ranges to src/generated/.`,
   );
 }
 
