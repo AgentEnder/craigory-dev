@@ -28,6 +28,30 @@
   border-bottom: 1px solid #e5e5e5;
   transition: all 0.3s ease;
 
+  // Thumbnail for posts that ship a cover. Full-width above the row rather
+  // than floated beside it: the rows are already a single narrow column, and a
+  // side thumbnail would leave the description too cramped to read.
+  & > .post-thumbnail {
+    display: block;
+    margin-bottom: 1.25rem;
+    border-radius: 10px;
+    overflow: hidden;
+    aspect-ratio: 1.91 / 1;
+    background: #f4f4f5;
+
+    img {
+      display: block;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+  }
+
+  &:hover > .post-thumbnail img {
+    transform: scale(1.02);
+  }
+
   &:last-child {
     border-bottom: none;
   }

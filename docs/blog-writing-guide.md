@@ -52,6 +52,33 @@ Available tags are the `BlogTag` union in `libs/blog-posts/src/lib/blog-post.ts`
 Technical posts lead with `technical`; tiki reviews use
 `['non-technical', 'tiki', 'review']`.
 
+### Optional: cover and social images
+
+A post may ship images alongside `contents.mdx`. Import them; vite emits the
+asset and hands back its URL.
+
+```ts
+import mdx from './contents.mdx';
+import cover from './cover.png';
+
+export const myPost: BlogPost = {
+  // ...
+  cover: { src: cover, alt: 'What the image shows' },
+};
+```
+
+- **`cover`** is the post's hero. It renders above the title on the post page,
+  as the thumbnail in the blog index, and behind the text of the generated
+  social card. `alt` is required — it is a real `<img>` with real readers.
+  Crop for **1.91:1**; both the page and the index frame it at that ratio.
+- **`ogImage`** replaces the generated social card outright, for a post whose
+  preview is hand-designed. Setting it opts the post out of card generation.
+  Size it **1200x630**.
+
+Supply neither and the post still gets a card: `tools/open-graph` renders the
+title, description, date, and tags over a gradient themed by the post's primary
+tag. There is nothing to do to opt in.
+
 ### 3. Register it in `posts/index.ts`
 
 Import the post and add it to `ALL_BLOG_POSTS`. Order there does not matter —
