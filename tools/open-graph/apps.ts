@@ -4,8 +4,8 @@
  * These are ordinary Vite apps, not vike pages, so nothing in the site's
  * renderer ever sees them — `copy-local-projects.cjs` just drops their built
  * output into the client directory. Left alone they ship a bare `<title>` and
- * nothing else, so sharing a link to the QR generator or Glyph Index produced a
- * naked URL.
+ * nothing else, so sharing a link to the QR generator or the JSON viewer
+ * produced a naked URL.
  *
  * The tags are written here, into the aggregated output, rather than into each
  * app's own `index.html`. An app's source has no business knowing it is
