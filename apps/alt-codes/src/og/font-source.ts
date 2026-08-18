@@ -60,6 +60,14 @@ const COMMON_FAMILIES = [
   'Noto Sans Symbols 2',
   'Noto Sans Math',
   'Noto Music',
+  // Last, and deliberately so. Noto Sans Mono is the only Google Fonts family carrying Box
+  // Drawing (U+2500–257F) and Block Elements (U+2580–259F) — measured 2026-08-18, and it is
+  // not a gap in Google's hosted cut: the upstream Noto Sans Symbols 2 release binary has
+  // 0/128 of Box Drawing too, so self-hosting it would not have helped. Those two blocks are
+  // whole categories here and cover CP437 alt-176 through alt-223, so without this entry a
+  // large slice of the flagship alt-codes table would render as "no glyph available".
+  // It sits at the end because it is monospace: everything above should win first.
+  'Noto Sans Mono',
 ];
 
 /**
@@ -87,7 +95,6 @@ const FAMILY_OVERRIDES: Record<string, string[]> = {
   // Intercapped family names the convention would get wrong.
   Nko: ['Noto Sans NKo'],
   SignWriting: ['Noto Sans SignWriting'],
-  Signwriting: ['Noto Sans SignWriting'],
 };
 
 /** `Canadian_Aboriginal` → `Noto Sans Canadian Aboriginal`. */
@@ -136,27 +143,77 @@ export interface LoadedFont {
 const legacyUaHeaders = { 'User-Agent': GOOGLE_FONT_LEGACY_UA };
 
 /**
- * Fetch the subset of `family` covering exactly `text`, or null when the family does not cover
- * it.
+ * The font provider could not be reached or misbehaved — as distinct from it answering
+ * clearly that a family does not cover a code point.
  *
- * The null case is the useful one and it is decided at the BINARY fetch, not the CSS: gstatic
- * answers `400 text/html` for a subset it cannot build, while the CSS layer above it happily
- * echoes a `unicode-range` for a family with no such glyph. Measured 2026-08-18 — asking
- * `Noto Sans SC` for U+0627 yields CSS claiming `unicode-range: U+627` and a 400 on the font.
+ * The distinction is the whole point of this class. A card that says NO GLYPH AVAILABLE is
+ * served `immutable` for a year, so writing one because Google happened to return a 503 would
+ * cache a lie for a very long time. Callers must let this propagate and fail the request.
+ */
+export class FontSourceUnavailableError extends Error {
+  // A plain field rather than a constructor parameter property: the app builds with
+  // `erasableSyntaxOnly`, which rejects the shorthand.
+  status: number | undefined;
+
+  constructor(message: string, status?: number) {
+    super(message);
+    this.name = 'FontSourceUnavailableError';
+    this.status = status;
+  }
+}
+
+/**
+ * The only statuses that mean "asked and answered: no such glyph here".
+ *
+ * Measured 2026-08-18 against gstatic: a subset it cannot build returns `400 text/html`.
+ * 404 is included because a missing resource is equally a definite no. Everything else —
+ * 429, 5xx, a proxy error — is a fault, not an answer.
+ */
+const NON_COVERAGE_STATUSES = new Set([400, 404]);
+
+/** True when the response is a definite "no". Throws when it is a fault rather than an answer. */
+function isDefiniteMiss(res: Response, what: string): boolean {
+  if (res.ok) return false;
+  if (NON_COVERAGE_STATUSES.has(res.status)) return true;
+  throw new FontSourceUnavailableError(`${what} failed with HTTP ${res.status}`, res.status);
+}
+
+/**
+ * Fetch the subset of `family` covering exactly `text`. Null means the family definitively does
+ * not cover it; a `FontSourceUnavailableError` means we could not find out.
+ *
+ * The null case is decided at the BINARY fetch, not the CSS: gstatic answers `400 text/html`
+ * for a subset it cannot build, while the CSS layer above it happily echoes a `unicode-range`
+ * for a family with no such glyph. Measured 2026-08-18 — asking `Noto Sans SC` for U+0627
+ * yields CSS claiming `unicode-range: U+627` and a 400 on the font.
+ *
+ * Only 400/404 become null. A 429 or 5xx throws, because the caller turns null into a
+ * permanent "no glyph available" card.
  */
 export async function fetchGoogleFontSubset(
   family: string,
   text: string,
 ): Promise<ArrayBuffer | null> {
   const cssRes = await fetch(googleFontCssUrl(family, text), { headers: legacyUaHeaders });
-  if (!cssRes.ok) return null;
+  if (isDefiniteMiss(cssRes, `Google Fonts CSS for ${family}`)) return null;
 
+  // An unknown family is served as an HTML error page with a 200, so a missing @font-face is
+  // also a definite no rather than a fault.
   const fontUrl = parseGoogleFontCss(await cssRes.text());
   if (!fontUrl) return null;
 
   const fontRes = await fetch(fontUrl, { headers: legacyUaHeaders });
-  if (!fontRes.ok) return null;
-  if (!(fontRes.headers.get('content-type') ?? '').includes('font')) return null;
+  if (isDefiniteMiss(fontRes, `Google Fonts subset for ${family}`)) return null;
+
+  // A 2xx that is not a font means something rewrote the response — a captive portal or a
+  // proxy. Treating that as "no glyph" would bake it into a year-long cache entry.
+  const contentType = fontRes.headers.get('content-type') ?? '';
+  if (!contentType.includes('font')) {
+    throw new FontSourceUnavailableError(
+      `Google Fonts subset for ${family} returned ${fontRes.status} as '${contentType}', not a font`,
+      fontRes.status,
+    );
+  }
 
   return fontRes.arrayBuffer();
 }

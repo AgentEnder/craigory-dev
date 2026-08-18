@@ -27,10 +27,28 @@ import {
   type GlyphCardContent,
   cardChromeText,
 } from './card';
-import { fetchGoogleFontSubset, loadGlyphFont } from './font-source';
+import { FontSourceUnavailableError, fetchGoogleFontSubset, loadGlyphFont } from './font-source';
 
-/** Maintained fork of Twitter's emoji set; the upstream repo is archived. */
-const TWEMOJI_BASE = 'https://cdn.jsdelivr.net/gh/jdecked/twemoji@latest/assets/svg';
+/**
+ * Maintained fork of Twitter's emoji set; the upstream repo is archived.
+ *
+ * PINNED ON PURPOSE. These SVGs are embedded verbatim into published cards, and jsDelivr
+ * documents `@latest` as unsuitable for production — an upstream retag would silently change
+ * or break every emoji card already referenced from the web. Bump this deliberately, the same
+ * way the card path is versioned.
+ */
+const TWEMOJI_VERSION = '17.0.3';
+const TWEMOJI_BASE = `https://cdn.jsdelivr.net/gh/jdecked/twemoji@${TWEMOJI_VERSION}/assets/svg`;
+
+/**
+ * Monochrome fallback when the Twemoji CDN is unreachable.
+ *
+ * Noto Color Emoji is not an option: it ignores `&text=` and returns all 6 MB of itself, and
+ * Satori cannot render colour bitmap glyphs anyway. Noto Emoji subsets correctly — 1,476 bytes
+ * for U+1F600 — so a CDN outage costs colour, not the glyph. It is kept out of the Common
+ * candidate list so it can never preempt Twemoji on the happy path.
+ */
+const MONO_EMOJI_FAMILY = 'Noto Emoji';
 
 /** The app's own display and mono faces, so a card matches the page it links to. */
 const UI_FAMILY = 'Playfair Display';
@@ -43,23 +61,46 @@ let resvgReady: Promise<void> | undefined;
 let satoriReady: Promise<void> | undefined;
 
 /**
- * Initialise resvg's wasm once per isolate.
+ * Run `start` once per isolate, but **forget a failure** so the next request can retry.
  *
- * Re-initialising throws "Already initialized"; caching the promise is also what stops a warm
- * isolate paying for this on every request.
+ * Caching the promise is what stops a warm isolate re-initialising on every request. Caching a
+ * REJECTED promise would wedge the isolate permanently: every later request would re-throw the
+ * original error with no way back, and a Worker isolate serves many requests.
  */
-export function initResvg(wasm: WasmInput): Promise<void> {
-  resvgReady ??= initWasm(wasm as WebAssembly.Module).catch((err: unknown) => {
+function initOnce(
+  read: () => Promise<void> | undefined,
+  write: (p: Promise<void> | undefined) => void,
+  start: () => Promise<void>,
+): Promise<void> {
+  const existing = read();
+  if (existing) return existing;
+
+  const pending = start().catch((err: unknown) => {
+    // resvg throws this when the module is already live — a success, not a failure.
     if (err instanceof Error && err.message.includes('Already initialized')) return;
+    write(undefined);
     throw err;
   });
-  return resvgReady;
+  write(pending);
+  return pending;
+}
+
+/** Initialise resvg's wasm once per isolate. */
+export function initResvg(wasm: WasmInput): Promise<void> {
+  return initOnce(
+    () => resvgReady,
+    (p) => (resvgReady = p),
+    () => initWasm(wasm as WebAssembly.Module),
+  );
 }
 
 /** Initialise Satori's yoga layout engine once per isolate. Pass satori's own `yoga.wasm`. */
 export function initSatori(wasm: WasmInput): Promise<void> {
-  satoriReady ??= initSatoriWasm(wasm as WebAssembly.Module);
-  return satoriReady;
+  return initOnce(
+    () => satoriReady,
+    (p) => (satoriReady = p),
+    () => initSatoriWasm(wasm as WebAssembly.Module),
+  );
 }
 
 /**
@@ -77,14 +118,23 @@ export function twemojiFilename(codePoints: number[]): string {
 }
 
 /**
- * Fetch a Twemoji SVG as a data URL, or null when there is no such emoji.
+ * Fetch a Twemoji SVG as a data URL. Null means "not an emoji"; a thrown
+ * `FontSourceUnavailableError` means the CDN could not be reached.
  *
- * Doubles as the emoji test: the CDN 404s for anything that is not an emoji, so no separate
- * "is this a code point emoji" predicate is needed. U+2192 → and U+4E2D 中 both 404.
+ * The 404 doubles as the emoji test: the CDN has nothing for anything that is not an emoji, so
+ * no separate "is this code point an emoji" predicate is needed. U+2192 → and U+4E2D 中 both
+ * 404. Anything other than 404 is a fault, and must not be read as "not an emoji" — that would
+ * put a permanent no-glyph card in a year-long cache because jsDelivr had a bad minute.
  */
 export async function loadTwemoji(codePoints: number[]): Promise<string | null> {
   const res = await fetch(`${TWEMOJI_BASE}/${twemojiFilename(codePoints)}.svg`);
-  if (!res.ok) return null;
+  if (res.status === 404) return null;
+  if (!res.ok) {
+    throw new FontSourceUnavailableError(
+      `Twemoji CDN returned HTTP ${res.status}`,
+      res.status,
+    );
+  }
   const svg = await res.text();
   // Satori accepts a data URL here and embeds it as an <image>; resvg then rasterises the
   // nested SVG. base64 rather than percent-encoding because the SVGs contain '#' freely.
@@ -112,8 +162,19 @@ export async function resolveGlyphAsset(codePoints: number[]): Promise<GlyphAsse
   const font = await loadGlyphFont(codePoints[0]);
   if (font) return { kind: 'font', family: font.family, data: font.data };
 
-  const dataUrl = await loadTwemoji(codePoints);
-  if (dataUrl) return { kind: 'image', dataUrl };
+  try {
+    const dataUrl = await loadTwemoji(codePoints);
+    if (dataUrl) return { kind: 'image', dataUrl };
+  } catch (err) {
+    if (!(err instanceof FontSourceUnavailableError)) throw err;
+    // The CDN is down, not the emoji missing. Degrade to the monochrome face rather than
+    // failing the card or — worse — claiming no glyph exists. If that is unavailable too, the
+    // error propagates and the request fails, which is the correct outcome: better a retryable
+    // 5xx than a wrong card cached as immutable for a year.
+    const mono = await fetchGoogleFontSubset(MONO_EMOJI_FAMILY, String.fromCodePoint(...codePoints));
+    if (mono) return { kind: 'font', family: MONO_EMOJI_FAMILY, data: mono };
+    throw err;
+  }
 
   return { kind: 'none' };
 }
