@@ -33,12 +33,27 @@
       "options": {
         "commands": [
           "sscli -b https://craigory.dev -r dist/apps/craigory-dev/client -c '**,weekly' 'blog/**,daily' --slash",
-          "bun run tools/generate-open-graph-images.ts"
+          "bun run tools/open-graph/index.ts"
         ],
         "parallel": true
       },
       "dependsOn": ["build"],
+      "inputs": [
+        "production",
+        "^production",
+        "{workspaceRoot}/tools/open-graph/**/*",
+        {
+          "env": "PUBLIC_ENV__BASE_URL"
+        }
+      ],
       "cache": true
+    },
+    "og-preview": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "bun run tools/open-graph/preview.ts"
+      },
+      "dependsOn": ["prepare"]
     },
     "serve": {
       "executor": "nx:run-commands",
