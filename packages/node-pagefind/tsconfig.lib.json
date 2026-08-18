@@ -6,7 +6,15 @@
     "declaration": true,
     "declarationMap": true,
     "composite": true,
-    "tsBuildInfoFile": "../../dist/tsc/node-pagefind.lib.tsbuildinfo"
+    "tsBuildInfoFile": "../../dist/tsc/node-pagefind.lib.tsbuildinfo",
+    // Pin the ambient types. Without this, tsc walks every ANCESTOR directory looking for
+    // types to auto-include, so the build's result depends on where the checkout happens to
+    // sit on disk. Checked out under ~/repos/brain (as brain task sandboxes are), it picks up
+    // that repo's bun-types, whose globals.d.ts declares a `fetch` carrying Bun's
+    // non-standard `preconnect` — and the fetch interceptor in pagefind.ts then fails to
+    // satisfy `typeof fetch`. Same source, same lockfile, different directory, different
+    // answer. This package targets Node, so "node" is the whole list.
+    "types": ["node"]
   },
   "include": ["src/**/*.ts"],
   "exclude": ["src/**/*.spec.ts", "src/**/*.test.ts"],
