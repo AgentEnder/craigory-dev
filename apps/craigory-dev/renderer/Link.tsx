@@ -1,28 +1,26 @@
 import { usePageContext } from 'vike-react/usePageContext';
 
-export function Link(p: {
-  href?: string;
-  className?: string;
-  children: React.ReactNode;
-}) {
+/**
+ * An `<a>` that prefixes the deploy's base path and marks itself active on the
+ * current route. Remaining anchor attributes pass straight through, so callers
+ * can set things like `aria-hidden` on a decorative link.
+ */
+export function Link({
+  href,
+  className,
+  children,
+  ...rest
+}: React.AnchorHTMLAttributes<HTMLAnchorElement>) {
   const pageContext = usePageContext();
-  const { children, href, ...props } = p;
-  const className = [
-    props.className,
-    pageContext.urlPathname === href && 'is-active',
-  ]
+  const classes = [className, pageContext.urlPathname === href && 'is-active']
     .filter(Boolean)
     .join(' ');
+  const base = import.meta.env.PUBLIC_ENV__BASE_URL;
   return (
     <a
-      href={
-        import.meta.env.PUBLIC_ENV__BASE_URL === '/' ||
-        !import.meta.env.PUBLIC_ENV__BASE_URL
-          ? href
-          : import.meta.env.PUBLIC_ENV__BASE_URL + href
-      }
-      {...props}
-      className={className}
+      href={!base || base === '/' ? href : base + href}
+      {...rest}
+      className={classes}
     >
       {children}
     </a>
