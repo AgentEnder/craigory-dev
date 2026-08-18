@@ -8,6 +8,7 @@ import type { RepoData } from '../projects/types';
  */
 const EXTERNAL_TOOLS: { repo: string; deployment?: string }[] = [
   { repo: 'npm-burst' },
+  { repo: 'alt-codes' },
 ];
 
 const externalToolRepos = new Set(EXTERNAL_TOOLS.map((t) => t.repo));
