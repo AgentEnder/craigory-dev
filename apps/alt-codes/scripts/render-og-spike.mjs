@@ -24,6 +24,7 @@ const CASES = [
   { codePoints: [0x1f600], char: '😀', name: 'GRINNING FACE', hex: 'U+1F600', altCode: null, categoryName: 'Smileys & Emotion' },
   { codePoints: [0x2554], char: '╔', name: 'BOX DRAWINGS DOUBLE DOWN AND RIGHT', hex: 'U+2554', altCode: 201, categoryName: 'Box Drawing' },
   { codePoints: [0x2665], char: '♥', name: 'BLACK HEART SUIT', hex: 'U+2665', altCode: 3, categoryName: 'Alt Codes 1–255' },
+  { codePoints: [0x1cc00], char: '\u{1CC00}', name: 'OUTLINED LATIN CAPITAL LETTER A', hex: 'U+1CC00', altCode: null, categoryName: 'Misc Symbols' },
 ];
 
 await initSatori(readFileSync(require.resolve('satori/yoga.wasm')));

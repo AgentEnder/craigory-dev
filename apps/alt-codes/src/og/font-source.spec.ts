@@ -1,7 +1,9 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  FontSourceUnavailableError,
   GOOGLE_FONT_LEGACY_UA,
+  fetchGoogleFontSubset,
   fontFamiliesForCodePoint,
   googleFontCssUrl,
   parseGoogleFontCss,
@@ -72,6 +74,18 @@ describe('fontFamiliesForCodePoint', () => {
     expect(fontFamiliesForCodePoint(0x2554)).toEqual(families);
   });
 
+  it('includes Noto Sans Mono, the only family carrying Box Drawing', () => {
+    // Measured: every other candidate 400s on U+2554, and the upstream Noto Sans Symbols 2
+    // binary has 0/128 of the block. Without this entry the whole Box Drawing and Block
+    // Elements categories — CP437 alt-176 to alt-223 — would render as "no glyph available".
+    expect(fontFamiliesForCodePoint(0x2554)).toContain('Noto Sans Mono');
+  });
+
+  it('puts the monospace family last so proportional faces win first', () => {
+    const families = fontFamiliesForCodePoint(0x2192);
+    expect(families[families.length - 1]).toBe('Noto Sans Mono');
+  });
+
   it('gives Inherited the same candidates as Common', () => {
     expect(fontFamiliesForCodePoint(0x0301)).toEqual(fontFamiliesForCodePoint(0x0020));
   });
@@ -129,5 +143,98 @@ describe('GOOGLE_FONT_LEGACY_UA', () => {
     // Google decides the format from the UA. Anything modern gets woff2, which Satori's
     // opentype fork cannot parse — so this string is load-bearing, not cosmetic.
     expect(GOOGLE_FONT_LEGACY_UA).toContain('AppleWebKit/534.30');
+  });
+});
+
+
+describe('fetchGoogleFontSubset', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  /** Minimal stand-in for the two-step CSS-then-binary fetch. */
+  function stubFetch(steps: Array<{ status: number; body?: string; contentType?: string }>) {
+    const calls = [...steps];
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async () => {
+        const step = calls.shift();
+        if (!step) throw new Error('unexpected extra fetch');
+        return new Response(step.body ?? '', {
+          status: step.status,
+          headers: { 'content-type': step.contentType ?? 'text/html' },
+        });
+      }),
+    );
+  }
+
+  const okCss = `@font-face { src: url(https://fonts.gstatic.com/l/font?kit=a) format('woff'); }`;
+
+  it('returns the bytes when the family covers the text', async () => {
+    stubFetch([
+      { status: 200, body: okCss, contentType: 'text/css' },
+      { status: 200, body: 'wOFF', contentType: 'font/woff' },
+    ]);
+    const data = await fetchGoogleFontSubset('Noto Sans', 'A');
+    expect(data).not.toBeNull();
+  });
+
+  it('returns null on a 400, which is how gstatic says the glyph is not there', async () => {
+    stubFetch([
+      { status: 200, body: okCss, contentType: 'text/css' },
+      { status: 400, body: '<html>' },
+    ]);
+    await expect(fetchGoogleFontSubset('Noto Sans SC', 'ا')).resolves.toBeNull();
+  });
+
+  it('returns null on a 404', async () => {
+    stubFetch([
+      { status: 200, body: okCss, contentType: 'text/css' },
+      { status: 404 },
+    ]);
+    await expect(fetchGoogleFontSubset('Noto Sans', 'A')).resolves.toBeNull();
+  });
+
+  // The important ones. A null here becomes a permanent "NO GLYPH AVAILABLE" card served
+  // immutable for a year, so a transient upstream fault must never be mistaken for an answer.
+  it.each([429, 500, 502, 503])('throws rather than returning null on HTTP %i', async (status) => {
+    stubFetch([
+      { status: 200, body: okCss, contentType: 'text/css' },
+      { status },
+    ]);
+    await expect(fetchGoogleFontSubset('Noto Sans', 'A')).rejects.toBeInstanceOf(
+      FontSourceUnavailableError,
+    );
+  });
+
+  it('throws when the CSS step itself faults', async () => {
+    stubFetch([{ status: 503 }]);
+    await expect(fetchGoogleFontSubset('Noto Sans', 'A')).rejects.toBeInstanceOf(
+      FontSourceUnavailableError,
+    );
+  });
+
+  it('throws when a 200 comes back as something other than a font', async () => {
+    // A captive portal or proxy rewriting the body. Not an answer about coverage.
+    stubFetch([
+      { status: 200, body: okCss, contentType: 'text/css' },
+      { status: 200, body: '<html>login</html>', contentType: 'text/html' },
+    ]);
+    await expect(fetchGoogleFontSubset('Noto Sans', 'A')).rejects.toBeInstanceOf(
+      FontSourceUnavailableError,
+    );
+  });
+
+  it('carries the status on the error so a handler can pick a response code', async () => {
+    stubFetch([
+      { status: 200, body: okCss, contentType: 'text/css' },
+      { status: 429 },
+    ]);
+    await expect(fetchGoogleFontSubset('Noto Sans', 'A')).rejects.toMatchObject({ status: 429 });
+  });
+
+  it('still returns null for an unknown family, which Google serves as HTML with a 200', async () => {
+    stubFetch([{ status: 200, body: '<!DOCTYPE html>', contentType: 'text/html' }]);
+    await expect(fetchGoogleFontSubset('Noto Sans Nonexistent', 'A')).resolves.toBeNull();
   });
 });

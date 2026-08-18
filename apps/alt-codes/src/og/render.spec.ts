@@ -3,7 +3,13 @@
  * each rendered end to end, plus the no-coverage case.
  *
  * These hit fonts.googleapis.com and the Twemoji CDN, because the thing under test IS the
- * network font supply. Set OG_SPIKE=0 to skip.
+ * network font supply. OPT-IN — run with `OG_SPIKE=1`, or `pnpm --filter alt-codes og:spike`
+ * for the same cards as files you can look at.
+ *
+ * Deliberately not part of the PR gate. The gate runs on every push, and pointing it at two
+ * third-party CDNs would make unrelated PRs fail when jsDelivr has a bad minute — and would
+ * lean on Google continuing to sniff a 2011 Safari User-Agent. The offline suites in
+ * font-source.spec.ts cover the code-point logic and the HTTP-status handling on every run.
  */
 
 import { readFileSync } from 'node:fs';
@@ -19,7 +25,7 @@ import {
   twemojiFilename,
 } from './render';
 
-const live = process.env.OG_SPIKE !== '0';
+const live = process.env.OG_SPIKE === '1';
 
 const CASES: Array<GlyphCardInput & { expected: 'font' | 'image' | 'none' }> = [
   {
@@ -43,10 +49,18 @@ const CASES: Array<GlyphCardInput & { expected: 'font' | 'image' | 'none' }> = [
     hex: 'U+1F600', altCode: null, categoryName: 'Smileys & Emotion', expected: 'image',
   },
   {
-    // U+2554 is covered by no Google Fonts Noto family and has no Twemoji SVG — measured, not
-    // hypothetical. It is also CP437 alt-201, so the fallback is on a real page, not a corner.
+    // Box Drawing is only in Noto Sans Mono — every other candidate 400s, and the upstream
+    // Noto Sans Symbols 2 binary has 0/128 of the block. This case guards the last entry in
+    // COMMON_FAMILIES: drop it and CP437 alt-176 to alt-223 all fall to the no-glyph card.
     codePoints: [0x2554], char: '╔', name: 'BOX DRAWINGS DOUBLE DOWN AND RIGHT',
-    hex: 'U+2554', altCode: 201, categoryName: 'Box Drawing', expected: 'none',
+    hex: 'U+2554', altCode: 201, categoryName: 'Box Drawing', expected: 'font',
+  },
+  {
+    // Genuinely uncovered: a Unicode 16 addition no released Noto family carries yet, and no
+    // Twemoji SVG. Script=Common, so it exercises the whole candidate walk before giving up —
+    // which is the path that must end in an explicit no-glyph card rather than tofu.
+    codePoints: [0x1cc00], char: '\u{1CC00}', name: 'OUTLINED LATIN CAPITAL LETTER A',
+    hex: 'U+1CC00', altCode: null, categoryName: 'Misc Symbols', expected: 'none',
   },
 ];
 
