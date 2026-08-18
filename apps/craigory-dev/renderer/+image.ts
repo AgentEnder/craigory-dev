@@ -1,9 +1,11 @@
 import type { PageContext } from 'vike/types';
+import { absoluteSiteUrl } from './site-url';
+import { cardPath } from './card-path';
 
-export default (pageContext: PageContext) => {
-  let base = new URL('https://craigory.dev');
-  if (import.meta.env.PUBLIC_ENV__BASE_URL) {
-    base = new URL(import.meta.env.PUBLIC_ENV__BASE_URL, base);
-  }
-  return new URL(pageContext.urlOriginal + '/og.png', base).href;
-};
+/**
+ * Every page gets the card that `tools/open-graph` wrote beside it. Pages that
+ * carry their own artwork — a blog post with an `ogImage` — override this with
+ * their own `+image.ts`.
+ */
+export default (pageContext: PageContext) =>
+  absoluteSiteUrl(cardPath(pageContext.urlOriginal));

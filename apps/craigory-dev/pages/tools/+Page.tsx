@@ -8,10 +8,11 @@ export function Page() {
 
   return (
     <>
-      <h1>Web Dev Tools</h1>
+      <h1>Developer Tools</h1>
       <p className="tools-intro">
-        A selection of web based tools that may come in handy during development
-        or otherwise.
+        Tools I needed at some point, built to run in a browser tab so they are
+        always one link away. Most are aimed at developers, though the glyph
+        reference and the QR generator get more general use.
       </p>
       <div className="tools-grid">
         {tools.map((tool) => (

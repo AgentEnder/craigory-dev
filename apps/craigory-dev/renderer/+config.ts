@@ -13,6 +13,10 @@ export default {
     desc: {
       env: { server: true },
     },
+    // Alt text for the social card; the default lives in `+imageAlt.ts`.
+    imageAlt: {
+      env: { server: true },
+    },
   },
   passToClient: [
     'pageProps',
