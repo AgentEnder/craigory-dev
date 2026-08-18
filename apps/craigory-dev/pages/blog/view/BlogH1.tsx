@@ -24,6 +24,14 @@ export function BlogH1({ children }: BlogH1Props) {
 
   return (
     <header ref={headerRef} className="blog-header">
+      {/* Above the title rather than below it: the cover is the post's
+          establishing shot, and it is the same image the social card is built
+          from, so a reader arriving from a share sees what they clicked. */}
+      {post.cover && (
+        <figure className="post-cover">
+          <img src={post.cover.src} alt={post.cover.alt} />
+        </figure>
+      )}
       <h1>{children}</h1>
       <div className="meta-info">
         <span className="publish-date">

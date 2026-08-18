@@ -66,6 +66,19 @@ export function Page() {
       <div className="posts-container">
         {currentPagePosts.map((post) => (
           <div id={post.slug} key={post.slug} className="post-container">
+            {post.cover && (
+              <Link
+                className="post-thumbnail"
+                href={getBlogUrl(post) + `?ref=/blog/${pageNumber}`}
+                // The title link right below carries the accessible name for
+                // this row, so the thumbnail is decorative here rather than a
+                // second announcement of the same destination.
+                tabIndex={-1}
+                aria-hidden="true"
+              >
+                <img src={post.cover.src} alt="" />
+              </Link>
+            )}
             <p key={post.title + 'PUBLISH DATE'} className="date">
               {format(post.publishDate, 'MMM dd, yyyy')}
             </p>
