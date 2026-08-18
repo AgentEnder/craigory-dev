@@ -32,7 +32,7 @@
       "executor": "nx:run-commands",
       "options": {
         "commands": [
-          "sscli -b https://craigory.dev -r dist/apps/craigory-dev/client -c '**,weekly' 'blog/**,daily' --slash",
+          "sscli -b https://craigory.dev -r dist/apps/craigory-dev/client -c '**,weekly' 'blog/**,daily' --slash -f xml --stdout > dist/apps/craigory-dev/client/sitemap-site.xml",
           "bun run tools/open-graph/index.ts"
         ],
         "parallel": true
