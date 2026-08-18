@@ -10,8 +10,8 @@
  *
  * Pages are found by sweeping the build output for anything that declares an
  * og:image of ours. That output also holds every sibling app copied in by
- * `copy-local-projects.cjs` — about 4,000 pages, nearly all alt-codes — so the
- * declaration is the filter; roughly 30 pages survive it.
+ * `copy-local-projects.cjs`, so the declaration is the filter rather than the
+ * page simply being present on disk.
  */
 
 import { existsSync, readdirSync, readFileSync, statSync, writeFileSync } from 'node:fs';

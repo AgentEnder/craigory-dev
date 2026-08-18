@@ -7,10 +7,10 @@
  *    and hands it to remark in the browser, so the prerendered viewer page is an
  *    empty shell. A crawl alone would index none of the talks. Their prose is
  *    injected as custom records instead.
- * 2. **The output is mostly not this site.** `copy-local-projects.cjs` copies
- *    every sibling app's build into the client directory — alt-codes alone is
- *    ~3,965 pages. Crawling the directory wholesale would bury blog posts under
- *    thousands of generated pages from other apps.
+ * 2. **The output is not only this site.** `copy-local-projects.cjs` copies
+ *    every sibling app's build into the client directory, so crawling it
+ *    wholesale would return another app's pages as results for this site's
+ *    search box.
  */
 
 import * as pagefind from 'pagefind';

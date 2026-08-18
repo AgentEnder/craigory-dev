@@ -111,9 +111,8 @@ export function cardOutputPath(clientDir: string, image: string): string {
 
 /**
  * Every `index.html` under the build output. This includes the sibling apps
- * `copy-local-projects.cjs` drops in — about 4,000 pages, nearly all of them
- * alt-codes — so callers must filter on what a page declares rather than
- * assuming everything here is ours.
+ * `copy-local-projects.cjs` drops in, so callers must filter on what a page
+ * declares rather than assuming everything here is ours.
  */
 export function findPageFiles(root: string): string[] {
   return readdirSync(root, { recursive: true, encoding: 'utf-8' })
