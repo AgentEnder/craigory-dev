@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useJsonViewerStore } from '../src/store';
-import { buildShareUrl, encodeShare } from '../src/share-url';
+import { buildShareUrl, decodeFragment, encodeShare } from '../src/share-url';
 
 type Status =
   | { kind: 'idle' }
@@ -46,10 +46,12 @@ export function ShareButton() {
 
       // Verify the browser will actually accept a URL this large. Some browsers
       // silently truncate the hash on history.replaceState / address-bar paste.
+      // location.hash hands back the percent-encoded fragment, so decode it
+      // before comparing — otherwise every non-ASCII payload looks truncated.
       const expected = `#share=${encoded}`;
       const previousHash = window.location.hash;
       window.history.replaceState(null, '', expected);
-      const actual = window.location.hash;
+      const actual = decodeFragment(window.location.hash);
       if (actual !== expected) {
         // Roll back so we don't leave the URL in a broken state.
         window.history.replaceState(null, '', previousHash || ' ');
@@ -74,10 +76,7 @@ export function ShareButton() {
       } catch (e) {
         // Some browsers/permission states block clipboard reads. If reading is
         // blocked, fall through silently — we did our best.
-        if (
-          e instanceof Error &&
-          e.message.startsWith('Clipboard truncated')
-        ) {
+        if (e instanceof Error && e.message.startsWith('Clipboard truncated')) {
           throw e;
         }
         console.warn('[share] clipboard readback skipped:', e);
@@ -99,8 +98,8 @@ export function ShareButton() {
     status.kind === 'copied'
       ? 'Copied!'
       : busy
-        ? 'Encoding…'
-        : 'Copy share URL';
+      ? 'Encoding…'
+      : 'Copy share URL';
 
   return (
     <div className="flex flex-col items-end gap-1">
