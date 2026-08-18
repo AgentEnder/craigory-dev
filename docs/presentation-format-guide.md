@@ -234,3 +234,11 @@ Standard format for the final slide:
 6. **Include references**: Link to tools, documentation, and resources
 7. **Test code examples**: Ensure all code snippets are valid
 8. **Consider accessibility**: Use sufficient contrast and readable fonts
+
+## Social card
+
+A deck's social card is generated, not authored: the site's own card design
+(title, abstract, venue, date) is drawn over the **background image of the first
+slide**. A deck whose opening slide is a flat color or a CSS gradient gets the
+card's own gradient instead, which is fine. If you want a deck to look
+distinctive when shared, give its `layout: true` template a `background-image`.
