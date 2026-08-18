@@ -25,6 +25,15 @@
         "^production",
         {
           "env": "PUBLIC_ENV__BASE_URL"
+        },
+        {
+          "env": "GITHUB_TOKEN"
+        },
+        {
+          "env": "GH_TOKEN"
+        },
+        {
+          "env": "CI"
         }
       ],
       "cache": true,
