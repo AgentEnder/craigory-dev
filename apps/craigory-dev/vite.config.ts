@@ -18,7 +18,12 @@ export default defineConfig({
     host: 'localhost',
   },
 
-  base: process.env.PUBLIC_ENV__BASE_URL || '/',
+  // Preview deploys serve the whole site under a path prefix. The trailing
+  // slash is added here rather than in the workflow that supplies the variable,
+  // because vite hands this value to `import.meta.env.BASE_URL` verbatim: given
+  // `/pr/12` it emits correct asset URLs but a BASE_URL that concatenates into
+  // `/pr/12blog/1`, which is how preview builds published broken social tags.
+  base: (process.env.PUBLIC_ENV__BASE_URL || '/').replace(/\/*$/, '/'),
 
   assetsInclude: ['./static/**/*'],
 
