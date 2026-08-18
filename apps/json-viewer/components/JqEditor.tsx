@@ -1,9 +1,6 @@
 import { useState, useCallback, useEffect } from 'react';
 import { useJsonViewerStore } from '../src/store';
-
-interface JqApi {
-  json: (data: unknown, filter: string) => unknown;
-}
+import type { JqApi } from '../src/jq-loader';
 
 export function JqEditor() {
   const jsonData = useJsonViewerStore((s) => s.jsonData);
@@ -21,34 +18,28 @@ export function JqEditor() {
 
     async function loadJq() {
       try {
-        // jq-web's module.exports is a Promise<{ json, raw }>.
-        // With Vite pre-bundling (esbuild CJS→ESM), mod.default is the Promise.
-        const mod = await import('jq-web');
-        const target = mod.default ?? mod;
+        // Via ../src/jq-loader, never `import('jq-web')` directly — see the
+        // comment there for why awaiting jq-web's namespace throws.
+        const { jq } = await import('../src/jq-loader');
+        const api = await jq;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const resolved: any =
-          target && typeof target.then === 'function'
-            ? await target
-            : target;
-
-        if (!resolved || typeof resolved.json !== 'function') {
+        if (typeof api?.json !== 'function') {
           throw new Error(
-            'Could not resolve jq API from module. ' +
-              `default type: ${typeof mod.default}, ` +
-              `resolved type: ${typeof resolved}`
+            `jq module resolved without a json() function (got ${typeof api}).`
           );
         }
 
         if (!cancelled) {
-          setJqApi(resolved as JqApi);
+          setJqApi(api);
           setLoading(false);
         }
       } catch (e) {
         if (!cancelled) {
           setError(
             'jq',
-            `Failed to load jq engine: ${e instanceof Error ? e.message : String(e)}`
+            `Failed to load jq engine: ${
+              e instanceof Error ? e.message : String(e)
+            }`
           );
           setLoading(false);
         }
@@ -59,7 +50,7 @@ export function JqEditor() {
     return () => {
       cancelled = true;
     };
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [setError]);
 
   const runQuery = useCallback(
     (expr: string) => {
