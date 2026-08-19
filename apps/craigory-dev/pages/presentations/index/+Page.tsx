@@ -26,11 +26,13 @@ export function Page() {
       {Object.values(PRESENTATIONS).map((p) => (
         <div
           key={p.slug}
+          // `alignItems: 'top'` was here, which is not a valid value for the
+          // property — it was dropped and the default `stretch` applied.
           style={{
             display: 'flex',
             flexDirection: 'row',
             gap: '1em',
-            alignItems: 'top',
+            alignItems: 'flex-start',
           }}
         >
           <div id={p.slug} className={`presentation-container`}>
