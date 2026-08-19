@@ -29,6 +29,9 @@ export function DeezerEmbed({
   title: string;
 }) {
   const tracklist = target.type !== 'track';
+  // No `autoplay` param: Deezer ignores it, verified in a real browser with a
+  // genuine click — the widget still renders its own play overlay and waits.
+  // Retargeting the iframe cues the track; starting it is a click inside.
   const src =
     `https://widget.deezer.com/widget/light/${target.type}/${target.id}` +
     `?tracklist=${tracklist}&radius=true`;

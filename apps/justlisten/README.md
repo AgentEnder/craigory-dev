@@ -98,6 +98,10 @@ public pages with no authentication.
 
 ## Playback
 
+On playlist pages, every track with a Deezer match gets a button that points
+the pinned player at it. The button loads the track — Deezer's widget ignores
+an autoplay parameter, so you press play once inside the player itself.
+
 Song pages embed Deezer's [widget player](https://widget.deezer.com/) whenever
 a Deezer match exists — including for songs reached via Apple, Spotify, or
 YouTube, since cross-provider matching resolves the Deezer link. Playlist pages

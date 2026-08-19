@@ -385,8 +385,20 @@ key, or SDK, so it is what lets a page actually play rather than only link out.
   YouTube, since cross-provider matching resolves the Deezer link. The links
   are what the page is for; the player is a bonus, so it sits last and carries
   no caption.
-- **Playlist page** shows a playlist/album player only when the playlist was
-  imported *from* Deezer.
+- **Playlist page** shows one shared player, pinned with `sticky top-4` so it
+  stays reachable while a long tracklist scrolls under it. (`sticky bottom-*`
+  does not work here — a bottom sticky only holds an element you are scrolling
+  *toward*, and this one sits above the list; measured, it just scrolls away.)
+  Every row with an exact Deezer match gets a button that retargets the widget
+  at that track; rows without one show their index instead.
+  - The button **loads**, it does not play. Deezer ignores an `autoplay`
+    param — verified in a real browser with a genuine user click, where the
+    widget still renders its own play overlay and waits — so starting audio is
+    a click inside the widget. The label says "Load … in the Deezer player"
+    rather than "Play" for that reason.
+  - Cued state is keyed on the row index, not the Deezer track id: two rows in
+    one playlist can resolve to the same Deezer recording (different covers),
+    and keying on the id lights both up.
 - `https://widget.deezer.com/widget/light/{type}/{id}?tracklist=&radius=true`,
   `allow="encrypted-media; clipboard-write"`, `loading="lazy"`. Theme is
   `light`, not `auto`: the design system has no dark theme, so `auto` would
