@@ -82,21 +82,6 @@ function SongDetailCard({ song }: { song: SongDetail }) {
         </div>
       </div>
 
-      {embed && (
-        <section className="mt-8" aria-label="Preview">
-          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-            Preview
-          </h2>
-          <div className="mt-3">
-            <DeezerEmbed target={embed} title={`Deezer player for ${trackLabel}`} />
-          </div>
-          <p className="mt-2 text-xs text-gray-400">
-            30-second preview from Deezer — sign in to Deezer to hear the full
-            track.
-          </p>
-        </section>
-      )}
-
       <section className="mt-8" aria-label="Listen on">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
           Listen on
@@ -117,6 +102,17 @@ function SongDetailCard({ song }: { song: SongDetail }) {
           </p>
         )}
       </section>
+
+      {embed && (
+        <section className="mt-8" aria-label="Preview">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            Preview
+          </h2>
+          <div className="mt-3">
+            <DeezerEmbed target={embed} title={`Deezer player for ${trackLabel}`} />
+          </div>
+        </section>
+      )}
     </Card>
   );
 }

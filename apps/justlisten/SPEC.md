@@ -322,10 +322,11 @@ key, or SDK, so it is what lets a page actually play rather than only link out.
 - `deezerEmbedFromUrl` / `deezerEmbedFromLinks` in `providers/links.ts` pull
   the embeddable resource out of an **exact** Deezer link (a search link is a
   query, not a resource), tolerating the locale segment on shared URLs.
-- **Song page** shows a track player whenever a Deezer match exists — including
-  for a song reached via Apple, Spotify, or YouTube, since cross-provider
-  matching resolves the Deezer link. Anonymous listeners get a 30-second
-  preview; signed-in Deezer users get the full track.
+- **Song page** shows a track player below the "Listen on" links whenever a
+  Deezer match exists — including for a song reached via Apple, Spotify, or
+  YouTube, since cross-provider matching resolves the Deezer link. The links
+  are what the page is for; the player is a bonus, so it sits last and carries
+  no caption.
 - **Playlist page** shows a playlist/album player only when the playlist was
   imported *from* Deezer.
 - `https://widget.deezer.com/widget/light/{type}/{id}?tracklist=&radius=true`,
