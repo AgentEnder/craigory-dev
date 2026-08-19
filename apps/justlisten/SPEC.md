@@ -290,8 +290,10 @@ existed for.
   catalogs searched, any skipped for missing credentials, and any that
   errored, plus a note that YouTube Music links resolve on the song page.
 - **SongPage**: artwork, title/artist/album/release date, prominent
-  "Listen on" buttons for all three providers (distinguish exact match vs
-  "Search on …" fallback styling), loading skeleton, error state.
+  "Listen on" buttons for every provider (exact matches styled apart from
+  "Search on …" fallbacks — the button labels carry that distinction, so no
+  explanatory caption), then the Deezer player. Server-rendered, so there is
+  no loading skeleton; a miss aborts to the error page.
 - **ImportPage**: paste URL, submit → POST, redirect to `/playlist/:id`.
   Explain supported URL shapes + ephemerality (7 days).
 - **PlaylistPage**: title, source badge, "Open on …" buttons, per-track rows

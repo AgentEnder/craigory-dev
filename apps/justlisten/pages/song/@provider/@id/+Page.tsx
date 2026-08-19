@@ -95,12 +95,6 @@ function SongDetailCard({ song }: { song: SongDetail }) {
             />
           ))}
         </div>
-        {orderedLinks.some((link) => link.kind === 'search') && (
-          <p className="mt-3 text-xs text-gray-400">
-            “Search on …” opens that platform's search — we couldn't confirm an
-            exact match there.
-          </p>
-        )}
       </section>
 
       {embed && (
