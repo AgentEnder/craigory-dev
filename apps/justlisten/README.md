@@ -98,21 +98,19 @@ public pages with no authentication.
 
 ## Playback
 
-On playlist and search-results pages, every track with a Deezer match gets a
-button that points the pinned player at it, and the row shows a pause icon
-while that track is genuinely sounding — the widget reports its own transport
-over postMessage. The button loads the track — Deezer's widget ignores
-an autoplay parameter, so you press play once inside the player itself.
+Playlist and search rows have a play button that streams Deezer's 30-second
+preview through a plain `<audio>` element — no iframe. The "now playing" banner
+lives in the root layout, so audio keeps playing as you move between pages.
 
-Song pages embed Deezer's [widget player](https://widget.deezer.com/) whenever
-a Deezer match exists — including for songs reached via Apple, Spotify, or
-YouTube, since cross-provider matching resolves the Deezer link. Playlist pages
-embed the playlist player when the playlist was imported from Deezer.
+Previews are fetched per play via `GET /api/preview/deezer/:id`: the URL
+carries a ~15-minute expiry token, so it cannot be stored with a 7-day
+playlist. The MP3 itself streams straight from Deezer's CDN, so only the lookup
+touches the Worker.
 
-Deezer is the only one of the four platforms whose player embeds with no
-account, API key, or SDK, so this costs nothing and needs no credentials.
-Anonymous listeners get a 30-second preview; signed-in Deezer users get the
-full track.
+Song pages instead embed Deezer's [widget player](https://widget.deezer.com/),
+which gives signed-in Deezer users the *full* track rather than a preview. The
+widget cannot be driven programmatically — its inbound postMessage commands
+have no effect — which is why list pages use the audio element instead.
 
 ## Architecture
 

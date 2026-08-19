@@ -374,56 +374,58 @@ Spotify tracks still resolved Apple and Deezer links off title/artist/duration.
   differently. Both tiers fail closed to the credentialed path, so a block
   degrades import rather than breaking it.
 
-## Deezer widget embed
+## Playback
 
-Deezer is the only supported platform whose player embeds with no account, API
-key, or SDK, so it is what lets a page actually play rather than only link out.
+Two different mechanisms, because they do different jobs.
+
+### Preview banner (list pages)
+
+`GET /api/preview/deezer/:id` → `{ url, durationMs }`. Deezer's track endpoint
+carries a `preview` field: a direct MP3 of the 30-second sample, served
+`audio/mpeg` with `access-control-allow-origin: *`. That header is why this
+works — a plain `<audio>` on our own page streams it straight from Deezer's
+CDN, so seeking and range requests never return through the Worker. We broker
+only the lookup, cached 10 minutes.
+
+The URL cannot be stored on a playlist row: it carries an `exp` token and dies
+after ~15 minutes, long before a 7-day share link is opened. Hence one lookup
+per play.
+
+- The player lives in `pages/+Layout.tsx` via `PreviewPlayerProvider`, not in a
+  page. Vike keeps the layout mounted while pages swap beneath it, so audio
+  survives navigating from a search to a song page — verified: a preview kept
+  playing across a client-side navigation. Mounted per page, every navigation
+  would silently stop the music. Player keys are therefore namespaced
+  (`search:…`, `playlist:<id>:<index>`) so rows cannot collide across pages.
+- Playback always starts in a click handler on our own origin, so no autoplay
+  policy applies and no cross-origin permission is delegated.
+
+**Why not the embedded widget here.** The widget can be *watched* but never
+*driven*: it posts `{action:'play'|'pause'}` to `window.parent` on every
+transport change, and registers a listener for those same two messages — but
+sending them has no effect on audio. Tested with `allow="autoplay"` delegated,
+with sticky user activation, and with retries past hydration. Its own play
+button is its only working control, so any custom transport had to own the
+audio outright. The bundle shows `setPlayer` *is* the state setter the handler
+guards on, so the wiring looks correct and the cause remains unexplained —
+what is established is that it does not work.
+
+Also ruled out, so nobody re-explores them: the only widget routes are
+`/widget/{light,dark,auto}/[...slug]`, i.e. theme variants of one player; the
+legacy `deezer.com/plugins/player` 308-redirects to that same widget; and the
+JS SDK is a 2.8 MB Kotlin/JS build wanting an `appId` and a `channelUrl`.
+
+### Song page widget
+
+The song page keeps the embedded widget. It is the one place full playback
+matters — signed-in Deezer users get the whole track there, which a 30-second
+preview cannot offer.
 
 - `deezerEmbedFromUrl` / `deezerEmbedFromLinks` in `providers/links.ts` pull
   the embeddable resource out of an **exact** Deezer link (a search link is a
   query, not a resource), tolerating the locale segment on shared URLs.
-- **Song page** shows a track player below the "Listen on" links whenever a
-  Deezer match exists — including for a song reached via Apple, Spotify, or
-  YouTube, since cross-provider matching resolves the Deezer link. The links
-  are what the page is for; the player is a bonus, so it sits last and carries
-  no caption.
-- **Search results** carry the same control. `AggregatedSearchResult.sources`
-  already holds each catalog's native id, so a Deezer hit becomes an embed
-  target with no link parsing. The row card moved from the `<a>` to the `<li>`
-  because a button cannot nest inside an anchor and the row still has to
-  navigate to the song page.
-- **Playlist page** shows one shared player, pinned with `sticky top-4` so it
-  stays reachable while a long tracklist scrolls under it. (`sticky bottom-*`
-  does not work here — a bottom sticky only holds an element you are scrolling
-  *toward*, and this one sits above the list; measured, it just scrolls away.)
-  Every row with an exact Deezer match gets a button that retargets the widget
-  at that track; rows without one show their index instead.
-  - The button **loads**, it does not play. Starting audio is a click inside
-    the widget, so the label says "Load … in the Deezer player".
-  - **The widget has a postMessage control set** (found in its bundle, chunk
-    `2736-*`). It posts `{action:'play'|'pause'}` to `window.parent` on every
-    transport change, and it *listens* for the same two messages with no origin
-    check.
-    - We consume the **outbound** half: `useDeezerPlaybackState` reflects real
-      playback, so the cued row shows a pause icon only while audio is actually
-      sounding. Verified live — clicking the widget's own play delivered
-      `{action:'play'}` from `https://widget.deezer.com`.
-    - We deliberately do **not** send the inbound half. Its handler calls
-      `audio.play()`/`audio.pause()` directly without touching the widget's own
-      React state, so the transport UI would disagree with what is audible, and
-      in testing an inbound `play` produced neither audio nor a matching
-      outbound event. Delegating `allow="autoplay"` did not change that.
-    - One stop is never announced: a preview that runs to its end swaps to the
-      "listen on Deezer" panel silently. Playback state therefore also clears
-      on retarget and on a 30s timer, Deezer's fixed preview length.
-  - Cued state is keyed on the row index, not the Deezer track id: two rows in
-    one playlist can resolve to the same Deezer recording (different covers),
-    and keying on the id lights both up.
-- `https://widget.deezer.com/widget/light/{type}/{id}?tracklist=&radius=true`,
-  `allow="encrypted-media; clipboard-write"`, `loading="lazy"`. Theme is
-  `light`, not `auto`: the design system has no dark theme, so `auto` would
-  follow the OS and leave a dark player on a white page.
-- Costs nothing: a third-party iframe, no API call, no subrequest, no key.
+- Theme is `light`, not `auto`: the design system has no dark theme, so `auto`
+  would follow the OS and leave a dark player on a white page.
 
 ## Cost guardrails (recap)
 

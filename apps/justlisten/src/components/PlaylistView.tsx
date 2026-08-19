@@ -11,16 +11,12 @@ import { usePageContext } from 'vike-react/usePageContext';
 
 import { resolvePlaylistSlice } from '../api';
 
-import {
-  deezerEmbedFromLinks,
-  type DeezerEmbed as DeezerEmbedTarget,
-} from '../../worker/providers/links';
+import { deezerEmbedFromLinks } from '../../worker/providers/links';
 import type { PlaylistView as PlaylistData } from '../../worker/playlists';
 import {
-  DeezerCueButton,
-  DeezerPlayerPanel,
-  useDeezerPlayer,
-} from './DeezerPlayer';
+  PreviewButton,
+  usePreviewPlayerContext,
+} from './PreviewPlayer';
 import { Artwork } from './Artwork';
 import { PROVIDER_LABELS, ProviderBadge } from './ProviderBadge';
 
@@ -107,14 +103,21 @@ function useResolvedTracks(playlist: PlaylistData): PlaylistTrack[] {
   return tracks;
 }
 
+/** Player keys are global now, so a row must not collide across playlists. */
+function rowKey(playlistId: string, index: number): string {
+  return `playlist:${playlistId}:${index}`;
+}
+
+/** A row's Deezer track id, from its exact link — '' when it has no match. */
+function deezerIdFor(item: PlaylistTrack): string {
+  return deezerEmbedFromLinks(item.links)?.id ?? '';
+}
+
 export function PlaylistView({ playlist }: { playlist: PlaylistData }) {
   const expires = expiryDate(playlist.createdAt);
-  // Only a Deezer-sourced playlist is playable whole: the widget needs the real
-  // Deezer playlist, and a title search on another platform is not one.
-  const playlistEmbed = deezerEmbedFromLinks(playlist.open);
   const tracks = useResolvedTracks(playlist);
 
-  const player = useDeezerPlayer(playlistEmbed);
+  const player = usePreviewPlayerContext();
 
   return (
     <div className="space-y-6">
@@ -133,12 +136,6 @@ export function PlaylistView({ playlist }: { playlist: PlaylistData }) {
         </p>
       </Card>
 
-      <DeezerPlayerPanel
-        player={player}
-        fallbackLabel={playlist.title}
-        returnLabel={playlistEmbed ? 'Back to playlist' : 'Close'}
-      />
-
       <Card className="overflow-hidden">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
           Tracks
@@ -154,16 +151,26 @@ export function PlaylistView({ playlist }: { playlist: PlaylistData }) {
                 key={`${item.track.provider}:${item.track.id}:${index}`}
                 index={index + 1}
                 item={item}
-                isCued={player.cued?.key === String(index)}
-                isPlaying={player.cued?.key === String(index) && player.playing}
-                onCue={(target, label) =>
-                  player.cue(String(index), target, label)
-                }
+                isCurrent={player.current?.key === rowKey(playlist.id, index)}
+                status={player.status}
+                onPlay={() => {
+                  if (player.current?.key === rowKey(playlist.id, index)) player.toggle();
+                  else
+                    player.play({
+                      key: rowKey(playlist.id, index),
+                      deezerId: deezerIdFor(item),
+                      title: item.track.title,
+                      artist: item.track.artist,
+                      artworkUrl: item.track.artworkUrl,
+                      href: `/song/${item.track.provider}/${encodeURIComponent(item.track.id)}`,
+                    });
+                }}
               />
             ))}
           </ol>
         )}
       </Card>
+
     </div>
   );
 }
@@ -368,15 +375,15 @@ function PlaylistShareRow() {
 function PlaylistTrackRow({
   index,
   item,
-  isCued,
-  isPlaying,
-  onCue,
+  isCurrent,
+  status,
+  onPlay,
 }: {
   index: number;
   item: PlaylistTrack;
-  isCued: boolean;
-  isPlaying: boolean;
-  onCue: (target: DeezerEmbedTarget, label: string) => void;
+  isCurrent: boolean;
+  status: Parameters<typeof PreviewButton>[0]['status'];
+  onPlay: () => void;
 }) {
   const { track } = item;
   const playable = deezerEmbedFromLinks(item.links);
@@ -389,12 +396,10 @@ function PlaylistTrackRow({
     <li className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:gap-4">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         {playable ? (
-          <DeezerCueButton
-            target={playable}
-            label={trackLabel}
-            isCued={isCued}
-            isPlaying={isPlaying}
-            onCue={onCue}
+          <PreviewButton
+            isCurrent={isCurrent}
+            status={status}
+            onPlay={onPlay}
           />
         ) : (
           <span

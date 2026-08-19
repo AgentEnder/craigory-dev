@@ -14,6 +14,7 @@ import { Hono } from 'hono';
 
 import { workerEnvMiddleware } from './worker/page-env';
 import { playlistRoutes } from './worker/routes/playlist';
+import { previewRoutes } from './worker/routes/preview';
 import { searchRoutes } from './worker/routes/search';
 import type { Env } from './worker/types';
 
@@ -25,6 +26,7 @@ const app = new Hono<AppEnv>();
 
 app.route('/api/search', searchRoutes);
 app.route('/api/playlists', playlistRoutes);
+app.route('/api/preview', previewRoutes);
 
 // Error convention: { error: string } with the right status. Scoped to /api/*
 // so a page render failure still reaches Vike's error page instead of being
