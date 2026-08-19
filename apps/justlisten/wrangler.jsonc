@@ -1,0 +1,29 @@
+// JustListen — Cloudflare Worker configuration.
+// Secrets (SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, YOUTUBE_API_KEY) are all
+// OPTIONAL and must be set via `wrangler secret put <NAME>` — never inline here.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "justlisten",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-08-01",
+  "assets": {
+    "directory": "dist/client",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      // PLACEHOLDER — replace with the real namespace id from
+      // `wrangler kv namespace create CACHE` (see README).
+      "id": "REPLACE_WITH_CACHE_KV_NAMESPACE_ID"
+    },
+    {
+      "binding": "PLAYLISTS",
+      // PLACEHOLDER — replace with the real namespace id from
+      // `wrangler kv namespace create PLAYLISTS` (see README).
+      "id": "REPLACE_WITH_PLAYLISTS_KV_NAMESPACE_ID"
+    }
+  ]
+}

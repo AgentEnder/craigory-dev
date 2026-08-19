@@ -26,6 +26,8 @@ allowBuilds:
   re2: true
   sharp: true
   unrs-resolver: true
+  # workerd: wrangler's local Workers runtime (justlisten dev server).
+  workerd: true
 catalog:
   cli-forge: ^1.9.2
   es-main: ^1.4.0
@@ -34,3 +36,5 @@ catalog:
 minimumReleaseAgeExclude:
   - nx
   - '@nx/*'
+  - miniflare@5.20260815.0-alpha
+  - wrangler@4.124.0

@@ -1,0 +1,41 @@
+{
+  "name": "justlisten",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "scripts": {
+    "dev": "vite build && wrangler dev",
+    "build": "vite build",
+    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.worker.json",
+    "test": "vitest run",
+    "deploy": "vite build && wrangler deploy"
+  },
+  "nx": {
+    "targets": {
+      "build": {
+        "dependsOn": [
+          "typecheck"
+        ]
+      }
+    }
+  },
+  "dependencies": {
+    "@new-personal-monorepo/small-app-design-system": "workspace:*",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-router-dom": "^6.30.1"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20260702.1",
+    "@tailwindcss/vite": "^4.1.12",
+    "@types/react": "^19.1.10",
+    "@types/react-dom": "^19.1.7",
+    "@vitejs/plugin-react": "^5.0.0",
+    "hono": "^4.13.3",
+    "tailwindcss": "^4.1.12",
+    "typescript": "^5.9.2",
+    "vite": "^7.1.5",
+    "vitest": "^4.0.9",
+    "wrangler": "^4.124.0"
+  }
+}
