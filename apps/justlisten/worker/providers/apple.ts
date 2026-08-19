@@ -8,13 +8,7 @@
  * per SPEC.
  */
 
-import type {
-  Env,
-  MusicProvider,
-  ProviderLink,
-  SearchResult,
-  Track,
-} from '../types';
+import type { Env, MusicProvider, ProviderLink, ResolvedMatch, SearchResult, Track } from '../types';
 import { exactTrackLink, searchTrackLink } from './links';
 import { pickBestMatch } from './matching';
 
@@ -290,15 +284,17 @@ export const appleProvider: MusicProvider = {
     }
   },
 
-  async resolve(_env: Env, track: Track): Promise<ProviderLink> {
+  async resolve(_env: Env, track: Track): Promise<ResolvedMatch> {
     if (track.provider === 'apple') {
       // Scraped tracks (JSON-LD fallback) may lack an id — an "exact" link
       // built from an empty id would 404, so degrade to a search link.
-      return track.id
-        ? exactTrackLink('apple', track.id)
-        : searchTrackLink('apple', track);
+      return {
+        link: track.id
+          ? exactTrackLink('apple', track.id)
+          : searchTrackLink('apple', track),
+      };
     }
-    const fallback = searchTrackLink('apple', track);
+    const fallback = { link: searchTrackLink('apple', track) };
     try {
       // ISRC lookup first — iTunes supports lookup?isrc=.
       if (track.isrc) {
@@ -312,7 +308,7 @@ export const appleProvider: MusicProvider = {
           const raw = best
             ? byIsrc.find((r) => String(r.trackId) === best.id)
             : byIsrc[0];
-          if (raw) return exactLinkFor(raw);
+          if (raw) return { link: exactLinkFor(raw), matched: mapResult(raw) };
         }
       }
       // Search term fallback.
@@ -324,8 +320,8 @@ export const appleProvider: MusicProvider = {
         const best = pickBestMatch(track, results.map(mapResult));
         if (best) {
           const raw = results.find((r) => String(r.trackId) === best.id);
-          if (raw) return exactLinkFor(raw);
-          return exactTrackLink('apple', best.id);
+          if (raw) return { link: exactLinkFor(raw), matched: mapResult(raw) };
+          return { link: exactTrackLink('apple', best.id), matched: best };
         }
       }
     } catch {

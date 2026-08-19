@@ -16,11 +16,12 @@ import type {
   Playlist,
   PlaylistTrack,
   ProviderLink,
+  ResolvedMatch,
   Track,
 } from '../types';
 import { PROVIDER_IDS } from '../types';
 import { providers } from '../providers/index';
-import { cachedTrackLink, resolveTrackOnProvider } from '../providers/matching';
+import { cachedTrackMatch, resolveTrackOnProvider } from '../providers/matching';
 import {
   exactTrackLink,
   providerDisplayName,
@@ -31,25 +32,30 @@ import { createId, savePlaylist, loadPlaylist } from '../playlists';
 const MAX_TRACKS = 100;
 
 /**
- * Subrequest budget (Workers free tier ≈ 50 subrequests/request, and KV
- * operations count too). Live-resolving one track costs up to ~8
- * subrequests worst case: 2 other providers × (KV match-cache read + up to
- * TWO provider HTTP fetches — e.g. YouTube search.list + videos.list, or
- * Apple ISRC lookup + term search — + KV cache write). The playlist fetch
- * above uses a few more (token KV read/fetch/write + paged fetches) and the
- * KV save one. So we cap live resolution at 4 tracks (4 × 8 = 32, plus
- * fetch/save overhead stays under ~40); KV cache hits make each resolve
- * nearly free, but per-call subrequest usage is not observable, so the cap
- * is fixed conservatively. The next MAX_CACHE_ONLY_RESOLVED_TRACKS tracks
- * get a cache-READ-only pass (≤2 KV reads each, no provider HTTP), and
- * every remaining track gets `kind: 'search'` links built locally by pure
- * functions — zero subrequests — so the response still always carries one
- * link per provider. This cap is documented in README Limitations.
+ * Subrequest budget.
+ *
+ * Workers Free allows **50 subrequests per invocation**, and separately
+ * **1,000 subrequests to internal services** (KV, R2, D1). KV reads and writes
+ * draw on the second budget, not the 50 — an earlier version of this comment
+ * had them competing, which is why the live cap sat at 4 and left ~5x the
+ * budget unspent.
+ *
+ * So only provider HTTP counts here. Resolving one track costs at most 2
+ * fetches per foreign provider (Apple: ISRC lookup + term search; YouTube:
+ * search.list + videos.list; Deezer: ISRC + search), and providers without
+ * credentials cost 0 because they return a search link without a request. The
+ * realistic worst case with every credential configured is ~6 fetches/track;
+ * with none it is 2. Cap at 20 against the pessimistic figure, leaving room
+ * for the playlist fetch itself and its pagination.
+ *
+ * Beyond the cap, tracks fall to a cache-read-only pass and then to locally
+ * built search links, and the client resolves the remainder in batches through
+ * POST /:id/resolve — each of those is its own invocation with its own 50.
  */
-const MAX_LIVE_RESOLVED_TRACKS = 4;
+const MAX_LIVE_RESOLVED_TRACKS = 20;
 
-/** Extra tracks resolved from the KV match cache only (≤2 KV reads each). */
-const MAX_CACHE_ONLY_RESOLVED_TRACKS = 4;
+/** Extra tracks resolved from the KV match cache only (no provider HTTP). */
+const MAX_CACHE_ONLY_RESOLVED_TRACKS = 20;
 
 /** Resolve in small sequential batches to bound concurrency. */
 const RESOLVE_BATCH_SIZE = 5;
@@ -75,35 +81,55 @@ function localTrackLinks(track: Track): ProviderLink[] {
 }
 
 /**
- * Cache-read-only links (≤2 KV reads, zero provider HTTP): cached exact
- * links where available, local search links otherwise.
+ * Build one stored row: the four provider links, plus any artwork/ISRC/album
+ * the matched tracks carry.
+ *
+ * The enrichment is the point of returning matches at all. A Spotify embed
+ * scrape has no artwork and no ISRC, but resolving the track against iTunes or
+ * Deezer has already fetched a record that does — so the row ends up with cover
+ * art, and with an ISRC that makes every later match exact.
+ *
+ * `mode: 'cache'` reads the KV match cache only (no provider HTTP, so no
+ * subrequest cost); `mode: 'live'` performs the lookups.
  */
-async function cachedTrackLinks(env: Env, track: Track): Promise<ProviderLink[]> {
-  return Promise.all(
-    PROVIDER_IDS.map(async (target) => {
+async function buildPlaylistTrack(
+  env: Env,
+  track: Track,
+  mode: 'live' | 'cache'
+): Promise<PlaylistTrack> {
+  const results = await Promise.all(
+    PROVIDER_IDS.map(async (target): Promise<ResolvedMatch> => {
       if (target === track.provider) {
-        return sourceTrackLink(track);
-      }
-      return (await cachedTrackLink(env, track, target)) ?? searchTrackLink(target, track);
-    })
-  );
-}
-
-/** Live links: reuse the KV match cache; degrade failures to search links. */
-async function liveTrackLinks(env: Env, track: Track): Promise<ProviderLink[]> {
-  return Promise.all(
-    PROVIDER_IDS.map(async (target) => {
-      if (target === track.provider) {
-        return sourceTrackLink(track);
+        return { link: sourceTrackLink(track) };
       }
       try {
-        return await resolveTrackOnProvider(env, track, target);
+        const resolved =
+          mode === 'live'
+            ? await resolveTrackOnProvider(env, track, target)
+            : await cachedTrackMatch(env, track, target);
+        return resolved ?? { link: searchTrackLink(target, track) };
       } catch (err) {
         console.error(`Resolve failed for ${target}:`, err);
-        return searchTrackLink(target, track);
+        return { link: searchTrackLink(target, track) };
       }
     })
   );
+
+  const matches = results
+    .map((result) => result.matched)
+    .filter((match): match is Track => Boolean(match));
+
+  return {
+    track: {
+      ...track,
+      artworkUrl:
+        track.artworkUrl ?? matches.find((m) => m.artworkUrl)?.artworkUrl,
+      isrc: track.isrc ?? matches.find((m) => m.isrc)?.isrc,
+      album: track.album ?? matches.find((m) => m.album)?.album,
+    },
+    links: results.map((result) => result.link),
+    ...(mode === 'live' ? { resolved: true } : {}),
+  };
 }
 
 export const playlistRoutes = new Hono<{ Bindings: Env }>();
@@ -179,13 +205,11 @@ playlistRoutes.post('/', async (c) => {
   const liveCount = Math.min(tracks.length, MAX_LIVE_RESOLVED_TRACKS);
   for (let i = 0; i < liveCount; i += RESOLVE_BATCH_SIZE) {
     const batch = tracks.slice(i, Math.min(i + RESOLVE_BATCH_SIZE, liveCount));
-    const resolved = await Promise.all(
-      batch.map(async (track) => ({
-        track,
-        links: await liveTrackLinks(c.env, track),
-      }))
+    playlistTracks.push(
+      ...(await Promise.all(
+        batch.map((track) => buildPlaylistTrack(c.env, track, 'live'))
+      ))
     );
-    playlistTracks.push(...resolved);
   }
   // Cache-read-only pass for the next few tracks (no provider HTTP).
   const cacheOnlyEnd = Math.min(
@@ -193,7 +217,7 @@ playlistRoutes.post('/', async (c) => {
     liveCount + MAX_CACHE_ONLY_RESOLVED_TRACKS
   );
   for (const track of tracks.slice(liveCount, cacheOnlyEnd)) {
-    playlistTracks.push({ track, links: await cachedTrackLinks(c.env, track) });
+    playlistTracks.push(await buildPlaylistTrack(c.env, track, 'cache'));
   }
   for (const track of tracks.slice(cacheOnlyEnd)) {
     playlistTracks.push({ track, links: localTrackLinks(track) });
@@ -218,6 +242,69 @@ playlistRoutes.post('/', async (c) => {
     );
   }
   return c.json({ id: playlist.id }, 201);
+});
+
+/**
+ * Tracks resolved per POST /:id/resolve call.
+ *
+ * Each call is its own Worker invocation with its own 50-fetch budget, which
+ * is the whole point: import can only ever resolve what fits in one request,
+ * so the tail of a long playlist is finished here instead. Sized against the
+ * same pessimistic ~6 fetches/track as the import cap.
+ */
+const RESOLVE_ENDPOINT_BATCH = 8;
+
+/**
+ * POST /api/playlists/:id/resolve  body { from: number }
+ *   → { tracks: PlaylistTrack[], from: number, done: boolean }
+ *
+ * Resolves the next unresolved slice and writes it back into the stored
+ * playlist, so the page is complete server-side on the next visit rather than
+ * re-resolving for every viewer. Re-running is harmless: an already-resolved
+ * row costs a cache read.
+ */
+playlistRoutes.post('/:id/resolve', async (c) => {
+  const id = c.req.param('id');
+  const playlist = await loadPlaylist(c.env, id);
+  if (!playlist) {
+    return c.json({ error: 'Playlist not found or expired.' }, 404);
+  }
+
+  let body: unknown;
+  try {
+    body = await c.req.json();
+  } catch {
+    body = {};
+  }
+  const rawFrom = (body as { from?: unknown }).from;
+  const from =
+    typeof rawFrom === 'number' && Number.isFinite(rawFrom) && rawFrom > 0
+      ? Math.floor(rawFrom)
+      : 0;
+  if (from >= playlist.tracks.length) {
+    return c.json({ tracks: [], from, done: true });
+  }
+
+  const end = Math.min(playlist.tracks.length, from + RESOLVE_ENDPOINT_BATCH);
+  const slice = playlist.tracks.slice(from, end);
+  const resolved = await Promise.all(
+    slice.map((row) => buildPlaylistTrack(c.env, row.track, 'live'))
+  );
+
+  playlist.tracks.splice(from, resolved.length, ...resolved);
+  try {
+    await savePlaylist(c.env, playlist);
+  } catch (err) {
+    // The rows are still correct for this caller; only the write-back that
+    // would have spared the next visitor is lost.
+    console.error('Playlist write-back failed:', err);
+  }
+
+  return c.json({
+    tracks: resolved,
+    from,
+    done: end >= playlist.tracks.length,
+  });
 });
 
 playlistRoutes.get('/:id/export.csv', async (c) => {

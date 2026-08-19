@@ -13,7 +13,7 @@ import { cacheJson } from './cache';
 import { exactTrackLink, searchTrackLink } from './providers/links';
 import { resolveTrackOnProvider } from './providers/matching';
 import { getProvider, isProviderId } from './providers/index';
-import type { Env, ProviderLink, SongDetail, Track } from './types';
+import type { Env, ResolvedMatch, SongDetail, Track } from './types';
 import { PROVIDER_IDS } from './types';
 
 const SONG_CACHE_TTL_SECONDS = 24 * 60 * 60;
@@ -34,11 +34,11 @@ export class UnknownProviderError extends Error {
  * provider (pure, no subrequest), concurrent cached resolution for the rest,
  * degrading any failure to a search link.
  */
-async function buildTrackLinks(env: Env, track: Track): Promise<ProviderLink[]> {
-  return Promise.all(
-    PROVIDER_IDS.map(async (target) => {
+async function resolveDetail(env: Env, track: Track): Promise<SongDetail> {
+  const results = await Promise.all(
+    PROVIDER_IDS.map(async (target): Promise<ResolvedMatch> => {
       if (target === track.provider) {
-        return exactTrackLink(target, track.id);
+        return { link: exactTrackLink(target, track.id) };
       }
       try {
         // Uses the KV match cache (30-day TTL) internally; contract says it
@@ -46,10 +46,28 @@ async function buildTrackLinks(env: Env, track: Track): Promise<ProviderLink[]> 
         return await resolveTrackOnProvider(env, track, target);
       } catch (err) {
         console.error(`Resolve failed for ${target}:`, err);
-        return searchTrackLink(target, track);
+        return { link: searchTrackLink(target, track) };
       }
     })
   );
+
+  // Fill gaps from whichever catalog matched: a track scraped off Spotify's
+  // embed page has no artwork and no ISRC, but the iTunes or Deezer record we
+  // just matched against does.
+  const matches = results
+    .map((result) => result.matched)
+    .filter((match): match is Track => Boolean(match));
+
+  return {
+    track: {
+      ...track,
+      artworkUrl:
+        track.artworkUrl ?? matches.find((m) => m.artworkUrl)?.artworkUrl,
+      isrc: track.isrc ?? matches.find((m) => m.isrc)?.isrc,
+      album: track.album ?? matches.find((m) => m.album)?.album,
+    },
+    links: results.map((result) => result.link),
+  };
 }
 
 /**
@@ -82,7 +100,7 @@ export async function loadSongDetail(
         if (!track) {
           throw new TrackNotFoundError();
         }
-        return { track, links: await buildTrackLinks(env, track) };
+        return resolveDetail(env, track);
       }
     );
   } catch (err) {

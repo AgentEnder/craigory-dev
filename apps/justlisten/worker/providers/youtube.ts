@@ -14,7 +14,7 @@ import { parseYouTubeInitialData } from './scrape/youtube-initial-data';
 import type {
   Env,
   MusicProvider,
-  ProviderLink,
+  ResolvedMatch,
   SearchResult,
   Track,
 } from '../types';
@@ -134,11 +134,11 @@ export const youtubeProvider: MusicProvider = {
     }
   },
 
-  async resolve(env: Env, track: Track): Promise<ProviderLink> {
+  async resolve(env: Env, track: Track): Promise<ResolvedMatch> {
     if (track.provider === 'youtube') {
-      return exactTrackLink('youtube', track.id); // music.youtube.com/watch?v=…
+      return { link: exactTrackLink('youtube', track.id) }; // music.youtube.com/watch?v=…
     }
-    const fallback = searchTrackLink('youtube', track);
+    const fallback = { link: searchTrackLink('youtube', track) };
     if (!this.available(env)) return fallback;
     try {
       const q = `${track.artist} ${track.title}`.trim();
@@ -164,7 +164,7 @@ export const youtubeProvider: MusicProvider = {
         .filter((i) => i.id)
         .map(mapVideo);
       const best = pickBestMatch(track, candidates);
-      if (best) return exactTrackLink('youtube', best.id);
+      if (best) return { link: exactTrackLink('youtube', best.id), matched: best };
     } catch {
       // Degrade to a search link — never throw from resolve.
     }

@@ -17,7 +17,7 @@
 import type {
   Env,
   MusicProvider,
-  ProviderLink,
+  ResolvedMatch,
   SearchResult,
   Track,
 } from '../types';
@@ -166,22 +166,24 @@ export const deezerProvider: MusicProvider = {
     }
   },
 
-  async resolve(env: Env, track: Track): Promise<ProviderLink> {
+  async resolve(env: Env, track: Track): Promise<ResolvedMatch> {
     if (track.provider === 'deezer') {
-      return exactTrackLink('deezer', track.id);
+      return { link: exactTrackLink('deezer', track.id) };
     }
-    const fallback = searchTrackLink('deezer', track);
+    const fallback = { link: searchTrackLink('deezer', track) };
     try {
       // ISRC first — an exact identity match beats any fuzzy scoring.
       if (track.isrc) {
         const byIsrc = await deezerTrackByIsrc(track.isrc);
-        if (byIsrc) return exactTrackLink('deezer', byIsrc.id);
+        if (byIsrc) {
+          return { link: exactTrackLink('deezer', byIsrc.id), matched: byIsrc };
+        }
       }
       const q = `${track.artist} ${track.title}`.trim();
       if (!q) return fallback;
       const candidates = await this.search(env, q, 5);
       const best = pickBestMatch(track, candidates);
-      if (best) return exactTrackLink('deezer', best.id);
+      if (best) return { link: exactTrackLink('deezer', best.id), matched: best };
     } catch {
       // Degrade to a search link — never throw from resolve.
     }

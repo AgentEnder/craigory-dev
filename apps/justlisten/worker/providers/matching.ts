@@ -6,10 +6,15 @@
  * and the KV match cache.
  */
 
-import type { Env, ProviderId, ProviderLink, Track } from '../types';
+import type {
+  Env,
+  ProviderId,
+  ResolvedMatch,
+  Track,
+} from '../types';
 import { kvGetJson, kvPutJson, matchCacheKey } from '../cache';
 import { searchTrackLink } from './links';
-import { getProvider, providers } from './index';
+import { getProvider } from './index';
 
 /** TTL for per-provider match cache entries (30 days, per SPEC). */
 export const MATCH_TTL_SECONDS = 30 * 24 * 60 * 60;
@@ -189,18 +194,22 @@ function hasCacheableIdentity(track: Track): boolean {
  * `target` (2 KV reads max per track across providers; zero provider HTTP),
  * or null on a miss. Never throws.
  */
-export async function cachedTrackLink(
+export async function cachedTrackMatch(
   env: Env,
   track: Track,
   target: ProviderId
-): Promise<ProviderLink | null> {
+): Promise<ResolvedMatch | null> {
   if (track.provider === target || !hasCacheableIdentity(track)) return null;
   try {
-    const cached = await kvGetJson<ProviderLink>(
+    const cached = await kvGetJson<ResolvedMatch>(
       env,
       matchCacheKey(matchKeyForTrack(track), target)
     );
-    if (cached && cached.kind === 'exact' && typeof cached.url === 'string') {
+    if (
+      cached?.link &&
+      cached.link.kind === 'exact' &&
+      typeof cached.link.url === 'string'
+    ) {
       return cached;
     }
   } catch {
@@ -218,9 +227,9 @@ export async function resolveTrackOnProvider(
   env: Env,
   track: Track,
   target: ProviderId
-): Promise<ProviderLink> {
+): Promise<ResolvedMatch> {
   const provider = getProvider(target);
-  if (!provider) return searchTrackLink(target, track);
+  if (!provider) return { link: searchTrackLink(target, track) };
 
   const cacheKey = matchCacheKey(matchKeyForTrack(track), target);
   // Same-provider links are derived directly from the id — skip the cache.
@@ -230,8 +239,15 @@ export async function resolveTrackOnProvider(
 
   if (cacheable) {
     try {
-      const cached = await kvGetJson<ProviderLink>(env, cacheKey);
-      if (cached && cached.kind === 'exact' && typeof cached.url === 'string') {
+      // The matched track is cached alongside the link so a cache hit still
+      // supplies the artwork and ISRC the importer copies onto its own row —
+      // otherwise a warm cache would produce worse rows than a cold one.
+      const cached = await kvGetJson<ResolvedMatch>(env, cacheKey);
+      if (
+        cached?.link &&
+        cached.link.kind === 'exact' &&
+        typeof cached.link.url === 'string'
+      ) {
         return cached;
       }
     } catch {
@@ -239,35 +255,20 @@ export async function resolveTrackOnProvider(
     }
   }
 
-  let link: ProviderLink;
+  let resolved: ResolvedMatch;
   try {
-    link = await provider.resolve(env, track);
+    resolved = await provider.resolve(env, track);
   } catch {
-    link = searchTrackLink(target, track);
+    resolved = { link: searchTrackLink(target, track) };
   }
 
-  if (cacheable && link.kind === 'exact') {
+  if (cacheable && resolved.link.kind === 'exact') {
     try {
-      await kvPutJson(env, cacheKey, link, MATCH_TTL_SECONDS);
+      await kvPutJson(env, cacheKey, resolved, MATCH_TTL_SECONDS);
     } catch {
       // Best-effort cache write.
     }
   }
-  return link;
+  return resolved;
 }
 
-/**
- * Resolve links for all providers (source link included), sequentially to
- * stay under subrequest limits, degrading per-provider failures to search
- * links. Always returns one link per provider, in canonical order.
- */
-export async function resolveAllLinks(
-  env: Env,
-  track: Track
-): Promise<ProviderLink[]> {
-  const links: ProviderLink[] = [];
-  for (const provider of providers) {
-    links.push(await resolveTrackOnProvider(env, track, provider.id));
-  }
-  return links;
-}

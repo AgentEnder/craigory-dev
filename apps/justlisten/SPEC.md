@@ -169,6 +169,12 @@ export interface Playlist {
 export interface PlaylistTrack {
   track: Track;
   links: ProviderLink[];
+  resolved?: boolean;          // has had a live cross-provider lookup
+}
+
+export interface ResolvedMatch {
+  link: ProviderLink;
+  matched?: Track;             // the matched track, when kind === 'exact'
 }
 
 export interface PlaylistOpenLinks {
@@ -240,6 +246,16 @@ degrade to `kind: 'search'` links.
     playlists via the iTunes/Apple embed lookup —
     if Apple playlist fetch proves infeasible without a MusicKit token,
     return a clear 422 explaining it and document in README.
+- `POST /api/playlists/:id/resolve` body `{ from: number }` →
+  `{ tracks, from, done }`
+  - Finishes cross-provider links for the next 8 rows and writes them back to
+    KV. Exists because resolution cannot fit in one invocation: Workers Free
+    allows 50 subrequests per invocation, while KV draws on a *separate* 1,000
+    internal-services budget. Import resolves 20 live + 20 cache-only; the
+    playlist page walks the rest from the browser, each call a fresh
+    invocation with a fresh budget.
+  - Rows carry `resolved: true` once live-resolved, so a track that matches
+    nowhere is not retried on every page view.
 - `GET /api/playlists/:id/export.csv` → `text/csv` attachment
   - Columns: Title, Artist, Album, ISRC, Release Date, then one per
     `PROVIDER_IDS` entry (Spotify, Apple Music, YouTube, Deezer). Per-platform cells carry a URL only for `kind: 'exact'` links —
@@ -266,6 +282,11 @@ existed for.
     assembled detail is Cache-API cached 24h. Returns null for a miss, which
     the hook turns into `render(404, …)`; provider failures degrade to
     `kind: 'search'` links rather than failing the page.
+- Cross-provider resolution returns `ResolvedMatch`, not just a link. The
+  matched track is cached alongside it, and the importer and song loader copy
+  its `artworkUrl`, `isrc`, and `album` onto their own row — a Spotify embed
+  scrape carries none of those, so without this an imported playlist shows no
+  cover art at all.
 - `worker/playlists.ts` → `loadPlaylistView(env, id)`
   - The stored playlist plus `open` links: exact source-platform URL; for the
     other platforms a search link for the playlist title (true cross-platform
@@ -343,8 +364,9 @@ Spotify tracks still resolved Apple and Deezer links off title/artist/duration.
   restores neither ISRC nor pagination. And none of this can move to the
   browser: neither page sends `access-control-allow-origin` (YouTube adds
   `x-frame-options: SAMEORIGIN`), so a client-side fetch cannot read the
-  response. Deezer and iTunes *do* send CORS headers, which is exactly why
-  those two are the keyless providers.
+  response. Of the keyless providers only iTunes is browser-readable
+  (`access-control-allow-origin: *`); Deezer sends allow-headers/methods/
+  credentials but *no* allow-origin, so it too must be called server-side.
 - **Unverified in production**: local `wrangler dev` runs on the developer's
   own IP. Worker egress comes from Cloudflare ranges, which YouTube may treat
   differently. Both tiers fail closed to the credentialed path, so a block

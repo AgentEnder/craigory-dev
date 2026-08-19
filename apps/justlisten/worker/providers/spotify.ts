@@ -10,7 +10,7 @@ import { parseSpotifyEmbed } from './scrape/spotify-embed';
 import type {
   Env,
   MusicProvider,
-  ProviderLink,
+  ResolvedMatch,
   SearchResult,
   Track,
 } from '../types';
@@ -227,25 +227,25 @@ export const spotifyProvider: MusicProvider = {
     }
   },
 
-  async resolve(env: Env, track: Track): Promise<ProviderLink> {
+  async resolve(env: Env, track: Track): Promise<ResolvedMatch> {
     if (track.provider === 'spotify') {
-      return exactTrackLink('spotify', track.id);
+      return { link: exactTrackLink('spotify', track.id) };
     }
-    const fallback = searchTrackLink('spotify', track);
+    const fallback = { link: searchTrackLink('spotify', track) };
     if (!this.available(env)) return fallback; // kind: 'search' deep link
     try {
       // ISRC search first: q=isrc:CODE.
       if (track.isrc) {
         const byIsrc = await searchTracks(env, `isrc:${track.isrc}`, 1);
         const hit = byIsrc[0];
-        if (hit) return exactTrackLink('spotify', hit.id);
+        if (hit) return { link: exactTrackLink('spotify', hit.id), matched: hit };
       }
       // Normalized `title artist` search fallback.
       const q = `${normalizeTitle(track.title)} ${normalizeArtist(track.artist)}`.trim();
       if (q) {
         const candidates = await searchTracks(env, q, 5);
         const best = pickBestMatch(track, candidates);
-        if (best) return exactTrackLink('spotify', best.id);
+        if (best) return { link: exactTrackLink('spotify', best.id), matched: best };
       }
     } catch {
       // Degrade to a search link — never throw from resolve.

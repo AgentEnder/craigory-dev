@@ -8,7 +8,11 @@
  * Error convention: non-2xx responses carry `{ error: string }`.
  */
 
-import type { AggregatedSearch, SearchResult } from '../worker/types';
+import type {
+  AggregatedSearch,
+  PlaylistTrack,
+  SearchResult,
+} from '../worker/types';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -75,3 +79,21 @@ export function importPlaylist(url: string): Promise<{ id: string }> {
   });
 }
 
+/**
+ * POST /api/playlists/:id/resolve  body { from }
+ *
+ * Finishes the cross-provider links for a slice of an imported playlist.
+ * Import resolves only what fits in one Worker invocation; each call here is
+ * a fresh invocation with its own budget, so the browser walks the tail.
+ */
+export function resolvePlaylistSlice(
+  id: string,
+  from: number,
+  init?: { signal?: AbortSignal }
+): Promise<{ tracks: PlaylistTrack[]; from: number; done: boolean }> {
+  return request(`/api/playlists/${encodeURIComponent(id)}/resolve`, {
+    ...init,
+    method: 'POST',
+    body: JSON.stringify({ from }),
+  });
+}

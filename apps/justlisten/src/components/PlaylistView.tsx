@@ -9,6 +9,8 @@ import type {
 import { PROVIDER_IDS } from '../../worker/types';
 import { usePageContext } from 'vike-react/usePageContext';
 
+import { resolvePlaylistSlice } from '../api';
+
 import { deezerEmbedFromLinks } from '../../worker/providers/links';
 import type { PlaylistView as PlaylistData } from '../../worker/playlists';
 import { DeezerEmbed } from './DeezerEmbed';
@@ -38,11 +40,72 @@ function expiryDate(createdAt: string): string | undefined {
 }
 
 /** Full imported-playlist view: header, share row, expiry note, track list. */
+/**
+ * Finishes the cross-provider links the importer could not.
+ *
+ * A single Worker invocation gets 50 outbound fetches, so import resolves only
+ * its first slice; every call here is a fresh invocation with a fresh budget,
+ * and the endpoint writes results back, so a later visitor gets a complete
+ * page server-side. Rows already marked `resolved` are skipped, which is what
+ * stops a track that exists nowhere else being retried on every view.
+ */
+function useResolvedTracks(playlist: PlaylistData): PlaylistTrack[] {
+  const [tracks, setTracks] = useState(playlist.tracks);
+  // The authoritative list while the loop runs. State drives rendering, but the
+  // loop needs to read the merged result synchronously to find the next gap,
+  // and a state read there would see a stale closure.
+  const merged = useRef(playlist.tracks);
+
+  // A fresh playlist id means a different page: start over from its own rows.
+  const [seenId, setSeenId] = useState(playlist.id);
+  if (seenId !== playlist.id) {
+    setSeenId(playlist.id);
+    setTracks(playlist.tracks);
+    merged.current = playlist.tracks;
+  }
+
+  useEffect(() => {
+    if (merged.current.every((row) => row.resolved)) return;
+    const controller = new AbortController();
+
+    (async () => {
+      for (;;) {
+        const from = merged.current.findIndex((row) => !row.resolved);
+        if (from < 0) return;
+
+        let batch;
+        try {
+          batch = await resolvePlaylistSlice(playlist.id, from, {
+            signal: controller.signal,
+          });
+        } catch {
+          // Offline, expired, or aborted — keep the search links already shown.
+          return;
+        }
+        if (controller.signal.aborted || batch.tracks.length === 0) return;
+
+        const next = [...merged.current];
+        batch.tracks.forEach((row, offset) => {
+          next[batch.from + offset] = row;
+        });
+        merged.current = next;
+        setTracks(next);
+        if (batch.done) return;
+      }
+    })();
+
+    return () => controller.abort();
+  }, [playlist.id]);
+
+  return tracks;
+}
+
 export function PlaylistView({ playlist }: { playlist: PlaylistData }) {
   const expires = expiryDate(playlist.createdAt);
   // Only a Deezer-sourced playlist is playable in place: the widget needs the
   // real Deezer playlist, and a title search on another platform is not one.
   const embed = deezerEmbedFromLinks(playlist.open);
+  const tracks = useResolvedTracks(playlist);
 
   return (
     <div className="space-y-6">
@@ -79,13 +142,13 @@ export function PlaylistView({ playlist }: { playlist: PlaylistData }) {
         <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
           Tracks
         </h2>
-        {playlist.tracks.length === 0 ? (
+        {tracks.length === 0 ? (
           <p className="mt-3 text-sm text-gray-500">
             No tracks could be read from this playlist.
           </p>
         ) : (
           <ol className="mt-2 divide-y divide-gray-100">
-            {playlist.tracks.map((item, index) => (
+            {tracks.map((item, index) => (
               <PlaylistTrackRow
                 key={`${item.track.provider}:${item.track.id}:${index}`}
                 index={index + 1}

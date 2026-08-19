@@ -136,8 +136,8 @@ holds the real KV bindings in both modes.
 - YouTube Data API is used only when a key is present, and only for
   detail-page resolution and playlist import — never autocomplete (search
   costs 100 quota units per call).
-- Playlist imports are capped at 100 tracks and link resolution is batched
-  *and capped* to stay under Workers subrequest limits (see Limitations).
+- Playlist imports are capped at 100 tracks. Link resolution is split across
+  requests to respect the per-invocation subrequest limit (see Limitations).
 
 ## Limitations
 
@@ -168,12 +168,13 @@ holds the real KV bindings in both modes.
   returns a clear `422` explaining that Apple playlist import is unavailable.
 - **Imported playlists are ephemeral** — stored in KV with a 7-day TTL, after
   which the share URL 404s with a friendly message.
-- **Only the first few tracks of an import get live cross-provider
-  resolution.** Workers free tier allows ~50 subrequests per request (KV
-  operations count too), so during import only the first 4 tracks are
-  live-resolved against the other providers (using the KV match cache), the
-  next 4 are resolved from the KV match cache only, and every remaining track
-  gets locally-built *search* links on the other platforms (its
-  source-platform link is still exact). Opening individual songs via search
-  or the song page always fully resolves (and caches) links, so re-imports
-  gradually pick up more exact links from the cache.
+- **Long imports finish in the background, not during the import request.**
+  A Worker invocation gets 50 outbound fetches on the free plan (KV draws on a
+  separate 1,000 budget, so it does not compete). Import live-resolves its
+  first 20 tracks, reads the KV match cache for the next 20, and gives the
+  remainder locally-built *search* links. The playlist page then walks the
+  tail through `POST /api/playlists/:id/resolve` in batches of 8 — each its
+  own invocation with its own budget — and the endpoint writes results back,
+  so a later visitor gets a complete page server-side. Measured on an
+  88-track playlist with no credentials: 20 rows resolved at import, all 88
+  after the walk, with 82 carrying artwork.

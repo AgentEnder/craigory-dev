@@ -112,6 +112,13 @@ export interface Playlist {
 export interface PlaylistTrack {
   track: Track;
   links: ProviderLink[];
+  /**
+   * True once this row has had a live cross-provider lookup. Absent rows carry
+   * locally-built search links and are what the client asks the resolve
+   * endpoint to finish — without the flag, a track that genuinely exists
+   * nowhere else would be retried on every single page view.
+   */
+  resolved?: boolean;
 }
 
 export interface PlaylistOpenLinks {
@@ -130,13 +137,25 @@ export interface Env {
   YOUTUBE_API_KEY?: string;
 }
 
+/** A resolved cross-provider link, plus the matched track when exact. */
+export interface ResolvedMatch {
+  link: ProviderLink;
+  matched?: Track;
+}
+
 export interface MusicProvider {
   id: ProviderId;
   available(env: Env): boolean;
   search(env: Env, q: string, limit: number): Promise<SearchResult[]>;
   getTrack(env: Env, id: string): Promise<Track | null>;
-  /** Resolve this provider's link for a track sourced elsewhere. */
-  resolve(env: Env, track: Track): Promise<ProviderLink>;
+  /**
+   * Resolve this provider's link for a track sourced elsewhere.
+   *
+   * Returns the matched track alongside the link when the match was exact:
+   * the lookup has already paid for that metadata, and the importer uses it to
+   * fill in artwork and ISRC the source catalog did not carry.
+   */
+  resolve(env: Env, track: Track): Promise<ResolvedMatch>;
   /** Parse a playlist URL owned by this provider; null if not theirs. */
   parsePlaylistUrl(url: string): { playlistId: string } | null;
   getPlaylist(
