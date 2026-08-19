@@ -10,8 +10,14 @@
   display: grid;
   // Wide area for title, slim area for location and date
   grid-template-columns: 2fr 1fr;
-  // First + Second rows are sized to be consistent, third row is sized to fit content.
-  grid-auto-rows: 1fr 1fr min-content;
+  // Every row hugs its content. This was `1fr 1fr min-content`, which did NOT
+  // mean "two consistent rows" — an `fr` track takes a share of the container's
+  // HEIGHT, so the two header rows grew to match whatever the description row
+  // needed. A long abstract therefore opened a tall empty band between the
+  // title and the date, and a short one looked fine, which is why it read as an
+  // intermittent regression. The title still spans both rows, so a title taller
+  // than the stacked location + date grows them as before.
+  grid-auto-rows: min-content;
   grid-auto-flow: dense;
 
   margin-bottom: 1.5rem;
