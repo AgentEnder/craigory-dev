@@ -8,7 +8,10 @@
     "build": "vite build",
     "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.worker.json",
     "test": "vitest run",
-    "deploy": "vite build && wrangler deploy"
+    "deploy": "vite build && wrangler deploy",
+    "dev:secrets": "vite build && secreq run --env-file .env.production -- node tools/secrets.mjs dev",
+    "secrets:push": "secreq run --env-file .env.production -- node tools/secrets.mjs push",
+    "secrets:init": "secreq run --env-file .env.production --prompt-unresolved -- node tools/secrets.mjs push"
   },
   "nx": {
     "targets": {

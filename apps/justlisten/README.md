@@ -14,34 +14,41 @@ pnpm install
 
 ### KV namespaces
 
-The worker uses two KV namespaces. Create them once and paste the generated
-ids into `wrangler.jsonc` (replacing the `REPLACE_WITH_…` placeholders):
+Already provisioned and wired into `wrangler.jsonc` (`CACHE` and `PLAYLISTS`,
+on the personal Cloudflare account). `wrangler dev` uses local simulations, so
+the real ids only matter for deploys. To recreate them from scratch:
 
 ```sh
 pnpm exec wrangler kv namespace create CACHE
 pnpm exec wrangler kv namespace create PLAYLISTS
 ```
 
-`wrangler dev` uses local simulations automatically — real ids are only needed
-for deploys.
-
 ### Secrets (all optional)
 
-The app works with **zero secrets** (Apple/iTunes needs no credentials), but
-degrades gracefully without the others:
+Credentials live in 1Password (`Dev Secrets` → `justlisten-production`) and
+never touch the repo. `.env.example` holds `secret://op/...` *references*;
+`secreq run` resolves them through the consent daemon and `tools/secrets.mjs`
+hands the values to Cloudflare — the same route as `my-oss-indie`.
 
 ```sh
-pnpm exec wrangler secret put SPOTIFY_CLIENT_ID
-pnpm exec wrangler secret put SPOTIFY_CLIENT_SECRET
-pnpm exec wrangler secret put YOUTUBE_API_KEY
+cp .env.example .env.production          # one-time, gitignored working copy
+pnpm --filter justlisten secrets:push    # secreq → wrangler secret bulk
 ```
+
+`secret bulk` preserves secrets absent from the payload, so a key you leave
+empty in 1Password is skipped rather than cleared.
+
+The app works with **zero secrets** (Apple/iTunes needs no credentials) and
+degrades per provider:
 
 - No Spotify creds → search falls back to iTunes; Spotify links become search
   links.
 - No YouTube key → YouTube links are `https://music.youtube.com/search?q=…`
   search links and YouTube playlist import is unavailable.
 
-For local dev, put the same names in an untracked `.dev.vars` file instead.
+For local dev, `pnpm --filter justlisten dev:secrets` injects the same
+1Password values as `wrangler dev --var`, keeping plaintext off disk. Plain
+`dev` runs credential-free (or reads an untracked `.dev.vars` if you prefer).
 
 ## Commands
 
@@ -51,6 +58,8 @@ pnpm --filter justlisten build      # vite build → dist/client
 pnpm --filter justlisten typecheck  # app + worker tsconfigs
 pnpm --filter justlisten test       # vitest (pure-logic worker tests)
 pnpm --filter justlisten deploy     # vite build && wrangler deploy
+pnpm --filter justlisten secrets:push  # 1Password → Cloudflare secrets
+pnpm --filter justlisten dev:secrets   # dev server with 1Password creds
 ```
 
 ## Cost notes

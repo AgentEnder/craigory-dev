@@ -74,9 +74,11 @@ src/
   `not_found_handling: "single-page-application"`.
 - KV: `CACHE`, `PLAYLISTS` (placeholder ids + README instructions;
   `wrangler dev` uses local simulations automatically).
-- Secrets (via `wrangler secret put`, all OPTIONAL — app must degrade
-  gracefully): `SPOTIFY_CLIENT_ID`, `SPOTIFY_CLIENT_SECRET`,
-  `YOUTUBE_API_KEY`.
+- Secrets (all OPTIONAL — app must degrade gracefully): `SPOTIFY_CLIENT_ID`,
+  `SPOTIFY_CLIENT_SECRET`, `YOUTUBE_API_KEY`. They live in 1Password
+  (`Dev Secrets` → `justlisten-production`); `.env.example` holds
+  `secret://op/...` references that `secreq run` materializes, and
+  `tools/secrets.mjs` pushes them via `wrangler secret bulk`.
   - No Spotify creds → search falls back to iTunes; Spotify links become
     search links.
   - No YouTube key → YouTube links are `https://music.youtube.com/search?q=…`

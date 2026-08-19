@@ -1,11 +1,13 @@
 // JustListen — Cloudflare Worker configuration.
 // Secrets (SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, YOUTUBE_API_KEY) are all
-// OPTIONAL and must be set via `wrangler secret put <NAME>` — never inline here.
+// OPTIONAL and live in 1Password, pushed with `pnpm --filter justlisten
+// secrets:push` (see README) — never inline here.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "justlisten",
   "main": "worker/index.ts",
   "compatibility_date": "2026-08-01",
+  "account_id": "a01f8df0a9bbc08fd34c1ca60dd88af1",
   "assets": {
     "directory": "dist/client",
     "binding": "ASSETS",
@@ -15,15 +17,11 @@
   "kv_namespaces": [
     {
       "binding": "CACHE",
-      // PLACEHOLDER — replace with the real namespace id from
-      // `wrangler kv namespace create CACHE` (see README).
-      "id": "REPLACE_WITH_CACHE_KV_NAMESPACE_ID"
+      "id": "a19a073de1c848be90360f9cefda33f7"
     },
     {
       "binding": "PLAYLISTS",
-      // PLACEHOLDER — replace with the real namespace id from
-      // `wrangler kv namespace create PLAYLISTS` (see README).
-      "id": "REPLACE_WITH_PLAYLISTS_KV_NAMESPACE_ID"
+      "id": "f00d4a2c06904b799466ccf9b0054be5"
     }
   ]
 }
