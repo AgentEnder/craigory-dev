@@ -16,7 +16,7 @@ import {
   type DeezerEmbed as DeezerEmbedTarget,
 } from '../../worker/providers/links';
 import type { PlaylistView as PlaylistData } from '../../worker/playlists';
-import { DeezerEmbed } from './DeezerEmbed';
+import { DeezerEmbed, useDeezerPlaybackState } from './DeezerEmbed';
 import { Artwork } from './Artwork';
 import { PROVIDER_LABELS, ProviderBadge } from './ProviderBadge';
 
@@ -122,6 +122,9 @@ export function PlaylistView({ playlist }: { playlist: PlaylistData }) {
   } | null>(null);
 
   const embed = selected?.target ?? playlistEmbed;
+  // Reported by the widget itself, so the icon tracks real audio rather than
+  // the last button pressed.
+  const playing = useDeezerPlaybackState(selected?.index ?? null);
 
   return (
     <div className="space-y-6">
@@ -193,6 +196,7 @@ export function PlaylistView({ playlist }: { playlist: PlaylistData }) {
                 index={index + 1}
                 item={item}
                 isCued={selected?.index === index}
+                isPlaying={selected?.index === index && playing}
                 onCue={(target, label) =>
                   setSelected({ index, target, label })
                 }
@@ -406,11 +410,13 @@ function PlaylistTrackRow({
   index,
   item,
   isCued,
+  isPlaying,
   onCue,
 }: {
   index: number;
   item: PlaylistTrack;
   isCued: boolean;
+  isPlaying: boolean;
   onCue: (target: DeezerEmbedTarget, label: string) => void;
 }) {
   const { track } = item;
@@ -438,7 +444,7 @@ function PlaylistTrackRow({
                 : 'text-gray-400 hover:bg-gray-100 hover:text-gray-700'
             )}
           >
-            <span aria-hidden="true">▶</span>
+            <span aria-hidden="true">{isPlaying ? '❚❚' : '▶'}</span>
           </button>
         ) : (
           <span

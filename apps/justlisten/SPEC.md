@@ -391,11 +391,24 @@ key, or SDK, so it is what lets a page actually play rather than only link out.
   *toward*, and this one sits above the list; measured, it just scrolls away.)
   Every row with an exact Deezer match gets a button that retargets the widget
   at that track; rows without one show their index instead.
-  - The button **loads**, it does not play. Deezer ignores an `autoplay`
-    param — verified in a real browser with a genuine user click, where the
-    widget still renders its own play overlay and waits — so starting audio is
-    a click inside the widget. The label says "Load … in the Deezer player"
-    rather than "Play" for that reason.
+  - The button **loads**, it does not play. Starting audio is a click inside
+    the widget, so the label says "Load … in the Deezer player".
+  - **The widget has a postMessage control set** (found in its bundle, chunk
+    `2736-*`). It posts `{action:'play'|'pause'}` to `window.parent` on every
+    transport change, and it *listens* for the same two messages with no origin
+    check.
+    - We consume the **outbound** half: `useDeezerPlaybackState` reflects real
+      playback, so the cued row shows a pause icon only while audio is actually
+      sounding. Verified live — clicking the widget's own play delivered
+      `{action:'play'}` from `https://widget.deezer.com`.
+    - We deliberately do **not** send the inbound half. Its handler calls
+      `audio.play()`/`audio.pause()` directly without touching the widget's own
+      React state, so the transport UI would disagree with what is audible, and
+      in testing an inbound `play` produced neither audio nor a matching
+      outbound event. Delegating `allow="autoplay"` did not change that.
+    - One stop is never announced: a preview that runs to its end swaps to the
+      "listen on Deezer" panel silently. Playback state therefore also clears
+      on retarget and on a 30s timer, Deezer's fixed preview length.
   - Cued state is keyed on the row index, not the Deezer track id: two rows in
     one playlist can resolve to the same Deezer recording (different covers),
     and keying on the id lights both up.
