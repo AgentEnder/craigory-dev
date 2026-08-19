@@ -98,8 +98,10 @@ public pages with no authentication.
 
 ## Playback
 
-On playlist pages, every track with a Deezer match gets a button that points
-the pinned player at it. The button loads the track — Deezer's widget ignores
+On playlist and search-results pages, every track with a Deezer match gets a
+button that points the pinned player at it, and the row shows a pause icon
+while that track is genuinely sounding — the widget reports its own transport
+over postMessage. The button loads the track — Deezer's widget ignores
 an autoplay parameter, so you press play once inside the player itself.
 
 Song pages embed Deezer's [widget player](https://widget.deezer.com/) whenever

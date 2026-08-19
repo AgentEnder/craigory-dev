@@ -14,6 +14,12 @@ import { searchAllTracks } from '../../src/api';
 import { Artwork } from '../../src/components/Artwork';
 import { SearchBox } from '../../src/components/SearchBox';
 import { PROVIDER_LABELS, ProviderBadge } from '../../src/components/ProviderBadge';
+import {
+  DeezerCueButton,
+  DeezerPlayerPanel,
+  useDeezerPlayer,
+} from '../../src/components/DeezerPlayer';
+import type { DeezerEmbed as DeezerEmbedTarget } from '../../worker/providers/links';
 
 const RESULT_LIMIT = 25;
 
@@ -123,6 +129,9 @@ function SearchResults({
   data: AggregatedSearch;
 }) {
   const { results, catalogs } = data;
+  // No fallback target: a search has no whole-collection Deezer resource, so
+  // the player appears only once a row is cued.
+  const player = useDeezerPlayer();
 
   if (results.length === 0) {
     return (
@@ -145,33 +154,69 @@ function SearchResults({
         {results.length} {results.length === 1 ? 'result' : 'results'} for “
         {query}”
       </h2>
-      <ul className="space-y-3">
-        {results.map((result) => (
-          <ResultRow
-            key={`${result.track.provider}:${result.track.id}`}
-            result={result}
-          />
-        ))}
+      <DeezerPlayerPanel player={player} returnLabel="Close" />
+
+      <ul className="mt-3 space-y-3">
+        {results.map((result) => {
+          const key = `${result.track.provider}:${result.track.id}`;
+          return (
+            <ResultRow
+              key={key}
+              result={result}
+              isCued={player.cued?.key === key}
+              isPlaying={player.cued?.key === key && player.playing}
+              onCue={(target, label) => player.cue(key, target, label)}
+            />
+          );
+        })}
       </ul>
       <CatalogSummary catalogs={catalogs} className="mt-6" />
     </>
   );
 }
 
-function ResultRow({ result }: { result: AggregatedSearchResult }) {
+function ResultRow({
+  result,
+  isCued,
+  isPlaying,
+  onCue,
+}: {
+  result: AggregatedSearchResult;
+  isCued: boolean;
+  isPlaying: boolean;
+  onCue: (target: DeezerEmbedTarget, label: string) => void;
+}) {
   const { track, sources } = result;
   const year = track.releaseDate?.slice(0, 4);
   const duration = formatDuration(track.durationMs);
   const meta = [track.album, year, duration].filter(Boolean).join(' · ');
+  const label = `${track.title} by ${track.artist}`;
+  // `sources` already carries each catalog's native id, so a Deezer hit needs
+  // no link parsing to become an embed target.
+  const deezerId = sources.find((source) => source.provider === 'deezer')?.id;
 
   return (
-    <li>
-      <a href={`/song/${track.provider}/${encodeURIComponent(track.id)}`}
-        className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-3 transition-all duration-200 hover:border-blue-300 hover:shadow-sm active:scale-[0.99]"
+    // The card is the <li>, not the link: a cue button cannot be nested inside
+    // an anchor, and the row still has to navigate to the song page.
+    <li className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3 transition-all duration-200 hover:border-blue-300 hover:shadow-sm">
+      {deezerId ? (
+        <DeezerCueButton
+          target={{ type: 'track', id: deezerId }}
+          label={label}
+          isCued={isCued}
+          isPlaying={isPlaying}
+          onCue={onCue}
+        />
+      ) : (
+        <span className="w-6 shrink-0" aria-hidden="true" />
+      )}
+      <a
+        href={`/song/${track.provider}/${encodeURIComponent(track.id)}`}
+        className="flex min-w-0 flex-1 items-center gap-4 active:scale-[0.99]"
       >
         <Artwork
           url={track.artworkUrl}
-          alt={`Album artwork for ${track.title} by ${track.artist}`}
+          alt={`Album artwork for ${label}`}
           className="h-14 w-14 shrink-0 rounded-xl"
         />
         <div className="min-w-0 flex-1">

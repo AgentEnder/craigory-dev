@@ -16,7 +16,11 @@ import {
   type DeezerEmbed as DeezerEmbedTarget,
 } from '../../worker/providers/links';
 import type { PlaylistView as PlaylistData } from '../../worker/playlists';
-import { DeezerEmbed, useDeezerPlaybackState } from './DeezerEmbed';
+import {
+  DeezerCueButton,
+  DeezerPlayerPanel,
+  useDeezerPlayer,
+} from './DeezerPlayer';
 import { Artwork } from './Artwork';
 import { PROVIDER_LABELS, ProviderBadge } from './ProviderBadge';
 
@@ -110,21 +114,7 @@ export function PlaylistView({ playlist }: { playlist: PlaylistData }) {
   const playlistEmbed = deezerEmbedFromLinks(playlist.open);
   const tracks = useResolvedTracks(playlist);
 
-  // Which track the shared widget is pointed at. Null means it shows the whole
-  // playlist (when the source was Deezer) or nothing at all.
-  // Keyed by row index, not by Deezer track id: two rows in one playlist can
-  // legitimately resolve to the same Deezer track (different covers matching
-  // the same recording), and keying on the id lights both up as playing.
-  const [selected, setSelected] = useState<{
-    index: number;
-    target: DeezerEmbedTarget;
-    label: string;
-  } | null>(null);
-
-  const embed = selected?.target ?? playlistEmbed;
-  // Reported by the widget itself, so the icon tracks real audio rather than
-  // the last button pressed.
-  const playing = useDeezerPlaybackState(selected?.index ?? null);
+  const player = useDeezerPlayer(playlistEmbed);
 
   return (
     <div className="space-y-6">
@@ -143,42 +133,11 @@ export function PlaylistView({ playlist }: { playlist: PlaylistData }) {
         </p>
       </Card>
 
-      {embed && (
-        // Pinned to the TOP, not the bottom: a `bottom` sticky only holds an
-        // element you are scrolling *toward*, and this one sits above the
-        // tracklist, so it would simply scroll away (measured). Sticking it to
-        // the top keeps it reachable while a long list scrolls under it —
-        // otherwise a row's play button retargets a widget that is no longer
-        // on screen.
-        <div className="sticky top-4 z-10">
-          <Card>
-            <div className="flex items-baseline justify-between gap-3">
-              <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
-                Play
-              </h2>
-              {selected && (
-                <button
-                  type="button"
-                  onClick={() => setSelected(null)}
-                  className="text-xs font-medium text-gray-400 transition-colors hover:text-gray-700"
-                >
-                  {playlistEmbed ? 'Back to playlist' : 'Close'}
-                </button>
-              )}
-            </div>
-            <div className="mt-3">
-              <DeezerEmbed
-                target={embed}
-                title={
-                  selected
-                    ? `Deezer player for ${selected.label}`
-                    : `Deezer player for ${playlist.title}`
-                }
-              />
-            </div>
-          </Card>
-        </div>
-      )}
+      <DeezerPlayerPanel
+        player={player}
+        fallbackLabel={playlist.title}
+        returnLabel={playlistEmbed ? 'Back to playlist' : 'Close'}
+      />
 
       <Card className="overflow-hidden">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
@@ -195,10 +154,10 @@ export function PlaylistView({ playlist }: { playlist: PlaylistData }) {
                 key={`${item.track.provider}:${item.track.id}:${index}`}
                 index={index + 1}
                 item={item}
-                isCued={selected?.index === index}
-                isPlaying={selected?.index === index && playing}
+                isCued={player.cued?.key === String(index)}
+                isPlaying={player.cued?.key === String(index) && player.playing}
                 onCue={(target, label) =>
-                  setSelected({ index, target, label })
+                  player.cue(String(index), target, label)
                 }
               />
             ))}
@@ -430,22 +389,13 @@ function PlaylistTrackRow({
     <li className="flex flex-col gap-2 py-3 sm:flex-row sm:items-center sm:gap-4">
       <div className="flex min-w-0 flex-1 items-center gap-3">
         {playable ? (
-          <button
-            type="button"
-            onClick={() => onCue(playable, trackLabel)}
-            aria-pressed={isCued}
-            // "Load", not "Play": this points the widget at the track, and
-            // Deezer requires a click inside the widget to start audio.
-            aria-label={`Load ${trackLabel} in the Deezer player`}
-            className={cx(
-              'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] transition-colors',
-              isCued
-                ? 'bg-[#A238FF] text-white'
-                : 'text-gray-400 hover:bg-gray-100 hover:text-gray-700'
-            )}
-          >
-            <span aria-hidden="true">{isPlaying ? '❚❚' : '▶'}</span>
-          </button>
+          <DeezerCueButton
+            target={playable}
+            label={trackLabel}
+            isCued={isCued}
+            isPlaying={isPlaying}
+            onCue={onCue}
+          />
         ) : (
           <span
             aria-hidden="true"

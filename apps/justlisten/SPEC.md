@@ -73,6 +73,8 @@ worker/
     aggregate.ts      # cross-catalog search merging (pure functions)
     links.ts          # deep-link / search-link builders + Deezer embed
                       # resolution (pure functions)
+                      # (UI: src/components/DeezerPlayer.tsx holds the one
+                      #  player shared by the playlist and search pages)
 worker/__tests__/     # vitest unit tests (pure logic only: matching, links,
                       # url parsing; no network)
 src/
@@ -385,6 +387,11 @@ key, or SDK, so it is what lets a page actually play rather than only link out.
   YouTube, since cross-provider matching resolves the Deezer link. The links
   are what the page is for; the player is a bonus, so it sits last and carries
   no caption.
+- **Search results** carry the same control. `AggregatedSearchResult.sources`
+  already holds each catalog's native id, so a Deezer hit becomes an embed
+  target with no link parsing. The row card moved from the `<a>` to the `<li>`
+  because a button cannot nest inside an anchor and the row still has to
+  navigate to the song page.
 - **Playlist page** shows one shared player, pinned with `sticky top-4` so it
   stays reachable while a long tracklist scrolls under it. (`sticky bottom-*`
   does not work here — a bottom sticky only holds an element you are scrolling
