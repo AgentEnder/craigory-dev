@@ -9,6 +9,7 @@
  */
 
 import { Hono } from 'hono';
+import { csvFilename, playlistToCsv } from '../export';
 import type {
   Env,
   MusicProvider,
@@ -228,6 +229,26 @@ playlistRoutes.post('/', async (c) => {
     );
   }
   return c.json({ id: playlist.id }, 201);
+});
+
+playlistRoutes.get('/:id/export.csv', async (c) => {
+  const playlist = await loadPlaylist(c.env, c.req.param('id'));
+  if (!playlist) {
+    return c.json(
+      {
+        error:
+          'Playlist not found. Imported playlists expire after 7 days — ' +
+          'you can re-import it from its original URL.',
+      },
+      404
+    );
+  }
+  return new Response(playlistToCsv(playlist), {
+    headers: {
+      'content-type': 'text/csv; charset=utf-8',
+      'content-disposition': `attachment; filename="${csvFilename(playlist.title)}"`,
+    },
+  });
 });
 
 playlistRoutes.get('/:id', async (c) => {

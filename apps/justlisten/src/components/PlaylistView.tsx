@@ -45,6 +45,9 @@ export function PlaylistView({ playlist }: { playlist: PlaylistWithOpenLinks }) 
         <div className="mt-6">
           <PlaylistShareRow />
         </div>
+        <div className="mt-6">
+          <PlaylistExportRow playlist={playlist} />
+        </div>
         <p className="mt-4 text-xs text-gray-400">
           Imported playlists expire {PLAYLIST_TTL_DAYS} days after import
           {expires ? ` — this one is available until ${expires}` : ''}. Anyone
@@ -150,6 +153,55 @@ function PlaylistOpenButton({ link }: { link: PlaylistOpenLinks }) {
         ↗
       </span>
     </a>
+  );
+}
+
+/**
+ * CSV download plus the handoff it exists for. No platform accepts a file as a
+ * write path — Apple Music's own import only matches your local library — so
+ * the file's job is to carry the playlist into a transfer service, which does
+ * hold the per-user credentials needed to create the real thing.
+ */
+function PlaylistExportRow({ playlist }: { playlist: PlaylistWithOpenLinks }) {
+  return (
+    <div>
+      <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+        Take it to another platform
+      </span>
+      <div className="mt-2">
+        <a
+          href={`/api/playlists/${playlist.id}/export.csv`}
+          download
+          className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition-all duration-200 hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98]"
+        >
+          <span aria-hidden="true">↓</span>
+          Download CSV
+        </a>
+      </div>
+      <p className="mt-3 text-xs text-gray-400">
+        Building the playlist on another service requires your account
+        credentials, which JustListen never asks for. Upload this file to a
+        transfer service such as{' '}
+        <a
+          href="https://soundiiz.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-gray-600"
+        >
+          Soundiiz
+        </a>{' '}
+        or{' '}
+        <a
+          href="https://www.tunemymusic.com"
+          target="_blank"
+          rel="noopener noreferrer"
+          className="underline hover:text-gray-600"
+        >
+          TuneMyMusic
+        </a>{' '}
+        to create it on Spotify, Apple Music, or YouTube Music.
+      </p>
+    </div>
   );
 }
 

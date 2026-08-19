@@ -183,6 +183,14 @@ degrade to `kind: 'search'` links.
     key), Apple Music public playlists via the iTunes/Apple embed lookup —
     if Apple playlist fetch proves infeasible without a MusicKit token,
     return a clear 422 explaining it and document in README.
+- `GET /api/playlists/:id/export.csv` → `text/csv` attachment
+  - Columns: Title, Artist, Album, ISRC, Release Date, Spotify, Apple Music,
+    YouTube. Per-platform cells carry a URL only for `kind: 'exact'` links —
+    a search link is a query, not a track. Pure string building in
+    `worker/export.ts`; no network, KV, or subrequests. Exists because no
+    platform accepts a file as a write path (Apple's native import matches
+    only your local library), so the CSV is the handoff to transfer services
+    that do hold per-user credentials. 404 when expired/unknown.
 - `GET /api/playlists/:id` → `Playlist & { open: PlaylistOpenLinks[] }`
   - `open` links: exact source-platform URL; for the other platforms a
     search link for the playlist title (true cross-platform playlist

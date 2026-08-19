@@ -78,11 +78,27 @@ pnpm --filter justlisten dev:secrets   # dev server with 1Password creds
 
 ## Limitations
 
-- **Playlist "export" is deep links, not real playlists.** Opening an imported
-  playlist on another platform gives you the exact source-platform URL plus
-  *search* links for the playlist title on the other platforms. True
-  cross-platform playlist creation requires per-user OAuth with each service —
-  out of scope.
+- **Playlist "export" is a CSV plus deep links, not a written playlist.**
+  Opening an imported playlist on another platform gives you the exact
+  source-platform URL plus *search* links for the title elsewhere, and
+  `GET /api/playlists/:id/export.csv` downloads the tracks (title, artist,
+  album, ISRC, release date, and any resolved per-platform URLs).
+
+  No service accepts a file as a write path. The macOS Music app's
+  File → Library → Import Playlist matches only tracks already in your local
+  library, not the Apple Music catalog, so an uploaded file yields an empty or
+  partial playlist. Transfer services (Soundiiz, TuneMyMusic, PlaylistGo) read
+  those files, but they write via the APIs below, holding per-user credentials
+  JustListen deliberately never asks for:
+
+  | Platform | Write path | Gate |
+  |---|---|---|
+  | Spotify | `POST /v1/users/{id}/playlists` + add tracks | Free; OAuth 2.0 PKCE works browser-side. Dev-mode apps cap at 25 allowlisted users until a quota extension is approved. |
+  | YouTube | `playlists.insert` + `playlistItems.insert` | Free OAuth, but 50 quota units per call — a 100-track playlist costs ~5,050 of the 10,000/day project quota. |
+  | Apple Music | `POST /v1/me/library/playlists` via MusicKit JS | Requires a paid Apple Developer Program membership for the MusicKit key that signs the developer token. |
+
+  Adding any of these would mean per-user OAuth; with PKCE and MusicKit JS it
+  could run entirely client-side, leaving the Worker stateless.
 - **Apple Music playlist import caveat.** Public Apple Music playlists are
   fetched via the iTunes/Apple embed lookup, which has no official contract.
   If a playlist cannot be fetched without a MusicKit developer token, the API
