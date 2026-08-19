@@ -47,8 +47,12 @@
     }
   }
 
-  & > .description {
-    // Description is takes 1 row, 2 columns (see area diagram above)
+  & > .description,
+  // Related sits below the description and is just as wide. Without this it
+  // auto-places into the 2fr title column and stops two-thirds across, which
+  // reads as a ragged right edge against the description above it.
+  & > .presentation-related {
+    // Takes 1 row, 2 columns (see area diagram above)
     grid-area: span 1 / span 2;
 
     @media screen and (max-width: 600px) {

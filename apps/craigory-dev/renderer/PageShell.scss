@@ -36,6 +36,13 @@ a {
     line-height: 1.8em;
     min-height: 100vh;
 
+    // Desktop only; MobileNav's drawer carries the same links below 900px.
+    // Must come AFTER `display: flex` above: a media query adds no specificity,
+    // so declared first it loses to the later declaration at every width.
+    @media screen and (max-width: 900px) {
+      display: none;
+    }
+
     .sidebar-nav {
       display: flex;
       flex-direction: column;
@@ -75,10 +82,24 @@ a {
   .content {
     padding: 20px;
     padding-bottom: 50px;
-    border-left: 2px solid #eee;
-    min-height: 100vh;
     width: 100%;
     max-width: 45rem;
+    border-left: 2px solid #eee;
+    min-height: 100vh;
+
+    // Below 900px this is the whole page: the sidebar is gone and the mobile
+    // header and drawer are fixed, so nothing sits beside it. These rules were
+    // `.mobile-content` in MobileNav.scss, applied to the second copy of the
+    // page body that used to exist.
+    @media screen and (max-width: 900px) {
+      border-left: none;
+      min-height: 0;
+      max-width: 90vw;
+      margin: 0 auto;
+      overflow-x: hidden;
+      word-wrap: break-word;
+      overflow-wrap: break-word;
+    }
   }
 
   @media screen and (min-width: 1600px) {
@@ -93,9 +114,11 @@ a {
     max-width: 80vw;
   }
 
-  // Hide desktop layout on mobile - MobileNav takes over
+  // Was `display: none` here, which worked only because MobileNav rendered a
+  // second copy of the page body. It renders chrome only now, so this has to
+  // stay in flow — it just stops being a row and lets .content fill the width.
   @media screen and (max-width: 900px) {
-    display: none;
+    display: block;
   }
 }
 

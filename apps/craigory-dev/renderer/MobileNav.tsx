@@ -4,7 +4,7 @@ import { Link } from './Link';
 import { SpotlightTrigger } from '../src/shared-components/spotlight-search';
 import './MobileNav.scss';
 
-export function MobileNav({ children }: { children: React.ReactNode }) {
+export function MobileNav() {
   const [isOpen, setIsOpen] = useState(false);
   const [scrolledDown, setScrolledDown] = useState(false);
   const headerRef = useRef<HTMLDivElement>(null);
@@ -79,7 +79,6 @@ export function MobileNav({ children }: { children: React.ReactNode }) {
     // copy is treated as canonical.
     <div className="mobile-nav-container" data-pagefind-ignore>
       <MobileHeader ref={headerRef} />
-      <div className="mobile-content">{children}</div>
       <MobileDrawer ref={drawerRef} isOpen={isOpen} />
       <MobileOverlay isOpen={isOpen} onClick={closeDrawer} />
       <MenuToggle
