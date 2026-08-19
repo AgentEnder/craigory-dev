@@ -322,8 +322,13 @@ existed for.
 - **PlaylistPage**: title, source badge, "Open on …" buttons, per-track rows
   (artwork, title, artist + three provider link icons), copyable share URL,
   expiry note. Handle 404/expired gracefully.
-- Provider branding: simple colored text/badge components (green Spotify,
-  red YouTube, rose Apple) — no trademarked logo assets.
+- Provider branding: colored text badges and buttons (green Spotify, red
+  YouTube, rose Apple, violet Deezer) everywhere a label fits. The playback
+  banner is the exception — it uses each service's brand mark via `react-icons`
+  (`SiSpotify`, `SiApplemusic`, `SiYoutubemusic`, and `FaDeezer`, since Simple
+  Icons carries no Deezer mark), because at that size a word does not survive.
+  Only **exact** links get an icon: a search URL would render as an identical
+  mark while going somewhere else.
 
 ## Nx / repo integration
 
@@ -391,6 +396,8 @@ The URL cannot be stored on a playlist row: it carries an `exp` token and dies
 after ~15 minutes, long before a 7-day share link is opened. Hence one lookup
 per play.
 
+- The banner carries the track's resolved provider links as brand-mark icons,
+  so whatever is playing can be opened where you actually listen.
 - The player lives in `pages/+Layout.tsx` via `PreviewPlayerProvider`, not in a
   page. Vike keeps the layout mounted while pages swap beneath it, so audio
   survives navigating from a search to a song page — verified: a preview kept

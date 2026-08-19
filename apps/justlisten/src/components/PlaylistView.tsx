@@ -163,6 +163,7 @@ export function PlaylistView({ playlist }: { playlist: PlaylistData }) {
                       artist: item.track.artist,
                       artworkUrl: item.track.artworkUrl,
                       href: `/song/${item.track.provider}/${encodeURIComponent(item.track.id)}`,
+                      links: item.links,
                     });
                 }}
               />

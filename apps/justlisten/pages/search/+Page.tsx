@@ -18,6 +18,7 @@ import {
   PreviewButton,
   usePreviewPlayerContext,
 } from '../../src/components/PreviewPlayer';
+import { exactTrackLink } from '../../worker/providers/links';
 
 const RESULT_LIMIT = 25;
 
@@ -169,6 +170,11 @@ function SearchResults({
                     artist: result.track.artist,
                     artworkUrl: result.track.artworkUrl,
                     href: `/song/${result.track.provider}/${encodeURIComponent(result.track.id)}`,
+                    // `sources` is every catalog that returned this recording,
+                    // each with its native id — so every one is an exact link.
+                    links: result.sources.map((source) =>
+                      exactTrackLink(source.provider, source.id)
+                    ),
                   });
               }}
             />

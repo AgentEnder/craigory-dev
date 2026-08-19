@@ -11,7 +11,10 @@ import {
 } from 'react';
 
 import { getDeezerPreview } from '../api';
+import type { ProviderLink } from '../../worker/types';
+import { PROVIDER_IDS } from '../../worker/types';
 import { Artwork } from './Artwork';
+import { ProviderIconLink } from './ProviderBadge';
 
 /** What the banner is playing, supplied by whichever row was pressed. */
 export interface PreviewTrack {
@@ -23,6 +26,8 @@ export interface PreviewTrack {
   artworkUrl?: string;
   /** Where to read more — the row's own detail page. */
   href?: string;
+  /** Provider links for the banner's icon row; only exact ones are shown. */
+  links?: ProviderLink[];
 }
 
 type Status = 'idle' | 'loading' | 'playing' | 'paused' | 'error';
@@ -147,6 +152,17 @@ export function PreviewButton({
 }
 
 /**
+ * Resolved links only, in provider order. A search URL would render as an
+ * identical icon while going somewhere else entirely.
+ */
+function exactLinks(links: ProviderLink[] | undefined): ProviderLink[] {
+  if (!links) return [];
+  return PROVIDER_IDS.map((provider) =>
+    links.find((link) => link.provider === provider && link.kind === 'exact')
+  ).filter((link): link is ProviderLink => link !== undefined);
+}
+
+/**
  * Fixed "now playing" bar.
  *
  * Fixed rather than sticky: it belongs to the viewport, not to a position in
@@ -232,7 +248,17 @@ export function PreviewBanner({ player }: { player: PreviewPlayer }) {
           </p>
         </div>
 
-        <span className="hidden shrink-0 text-[10px] font-semibold uppercase tracking-wider text-gray-400 sm:block">
+        <div className="hidden shrink-0 items-center gap-0.5 sm:flex">
+          {exactLinks(current.links).map((link) => (
+            <ProviderIconLink
+              key={link.provider}
+              link={link}
+              trackLabel={`${current.title} by ${current.artist}`}
+            />
+          ))}
+        </div>
+
+        <span className="hidden shrink-0 text-[10px] font-semibold uppercase tracking-wider text-gray-400 lg:block">
           30s preview · Deezer
         </span>
 

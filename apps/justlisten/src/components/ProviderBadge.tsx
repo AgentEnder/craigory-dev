@@ -1,9 +1,15 @@
 import { cx } from '@new-personal-monorepo/small-app-design-system';
+import { FaDeezer } from 'react-icons/fa6';
+import type { IconType } from 'react-icons';
+import { SiApplemusic, SiSpotify, SiYoutubemusic } from 'react-icons/si';
+
 import type { ProviderId, ProviderLink } from '../../worker/types';
 
 /**
- * Provider branding: simple colored text badges/buttons only — no trademarked
- * logo assets. Spotify green #1DB954, Apple rose, YouTube red, Deezer violet.
+ * Provider branding. Badges and buttons are colored text; the compact icon
+ * links used in the playback banner carry each service's brand mark, where a
+ * word would not survive the space. Spotify green #1DB954, Apple rose, YouTube
+ * red, Deezer violet.
  */
 export const PROVIDER_LABELS: Record<ProviderId, string> = {
   spotify: 'Spotify',
@@ -106,6 +112,53 @@ export function ProviderLinkButton({
       >
         ↗
       </span>
+    </a>
+  );
+}
+
+/**
+ * Brand marks, for places too small for a label.
+ *
+ * Deezer's comes from Font Awesome because Simple Icons does not carry one;
+ * both sets draw solid single-color marks, so they sit together evenly.
+ */
+const PROVIDER_ICONS: Record<ProviderId, IconType> = {
+  spotify: SiSpotify,
+  apple: SiApplemusic,
+  youtube: SiYoutubemusic,
+  deezer: FaDeezer,
+};
+
+const PROVIDER_ICON_COLORS: Record<ProviderId, string> = {
+  spotify: 'text-[#1DB954] hover:bg-[#1DB954]/10',
+  apple: 'text-[#FA243C] hover:bg-[#FA243C]/10',
+  youtube: 'text-[#FF0033] hover:bg-[#FF0033]/10',
+  deezer: 'text-[#A238FF] hover:bg-[#A238FF]/10',
+};
+
+/** Icon-only link out to a provider. Exact matches only — a search URL here
+ *  would look identical to a real one while going somewhere else. */
+export function ProviderIconLink({
+  link,
+  trackLabel,
+}: {
+  link: ProviderLink;
+  trackLabel: string;
+}) {
+  const Icon = PROVIDER_ICONS[link.provider];
+  return (
+    <a
+      href={link.url}
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label={`Listen to ${trackLabel} on ${PROVIDER_LABELS[link.provider]}`}
+      title={`Listen on ${PROVIDER_LABELS[link.provider]}`}
+      className={cx(
+        'flex h-8 w-8 items-center justify-center rounded-full transition-colors',
+        PROVIDER_ICON_COLORS[link.provider]
+      )}
+    >
+      <Icon aria-hidden="true" className="h-4 w-4" />
     </a>
   );
 }
