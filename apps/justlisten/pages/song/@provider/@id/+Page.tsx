@@ -2,7 +2,9 @@ import { Card } from '@new-personal-monorepo/small-app-design-system';
 import { useData } from 'vike-react/useData';
 
 import { Artwork } from '../../../../src/components/Artwork';
+import { DeezerEmbed } from '../../../../src/components/DeezerEmbed';
 import { ProviderLinkButton } from '../../../../src/components/ProviderBadge';
+import { deezerEmbedFromLinks } from '../../../../worker/providers/links';
 import type { ProviderLink, SongDetail } from '../../../../worker/types';
 import { PROVIDER_IDS } from '../../../../worker/types';
 
@@ -60,6 +62,8 @@ function SongDetailCard({ song }: { song: SongDetail }) {
     .join(' · ');
   const trackLabel = `${track.title} by ${track.artist}`;
 
+  const embed = deezerEmbedFromLinks(links);
+
   return (
     <Card>
       <div className="flex flex-col items-center gap-6 text-center sm:flex-row sm:items-start sm:text-left">
@@ -77,6 +81,21 @@ function SongDetailCard({ song }: { song: SongDetail }) {
           {meta && <p className="mt-2 text-sm text-gray-500">{meta}</p>}
         </div>
       </div>
+
+      {embed && (
+        <section className="mt-8" aria-label="Preview">
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            Preview
+          </h2>
+          <div className="mt-3">
+            <DeezerEmbed target={embed} title={`Deezer player for ${trackLabel}`} />
+          </div>
+          <p className="mt-2 text-xs text-gray-400">
+            30-second preview from Deezer — sign in to Deezer to hear the full
+            track.
+          </p>
+        </section>
+      )}
 
       <section className="mt-8" aria-label="Listen on">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">

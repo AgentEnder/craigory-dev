@@ -61,15 +61,6 @@ export function Page() {
     return () => controller.abort();
   }, [query]);
 
-  useEffect(() => {
-    if (!query) return;
-    const previous = document.title;
-    document.title = `${query} · JustListen`;
-    return () => {
-      document.title = previous;
-    };
-  }, [query]);
-
   return (
     <>
       <AppHeader title="JustListen" tagline="Find where to listen to any song" />

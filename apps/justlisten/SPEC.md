@@ -71,7 +71,8 @@ worker/
     deezer.ts         # Deezer public API (no auth) — lead search catalog
     matching.ts       # ISRC + normalized-title cross-provider matching
     aggregate.ts      # cross-catalog search merging (pure functions)
-    links.ts          # deep-link / search-link builders (pure functions)
+    links.ts          # deep-link / search-link builders + Deezer embed
+                      # resolution (pure functions)
 worker/__tests__/     # vitest unit tests (pure logic only: matching, links,
                       # url parsing; no network)
 src/
@@ -312,6 +313,26 @@ Dependencies pinned to versions compatible with the workspace catalog
 ^4.1); dev deps include
 `wrangler` (v4), `hono`, `vite`, `@vitejs/plugin-react`, `@tailwindcss/vite`,
 `vitest`, `typescript`. Do NOT add dependencies beyond what SPEC requires.
+
+## Deezer widget embed
+
+Deezer is the only supported platform whose player embeds with no account, API
+key, or SDK, so it is what lets a page actually play rather than only link out.
+
+- `deezerEmbedFromUrl` / `deezerEmbedFromLinks` in `providers/links.ts` pull
+  the embeddable resource out of an **exact** Deezer link (a search link is a
+  query, not a resource), tolerating the locale segment on shared URLs.
+- **Song page** shows a track player whenever a Deezer match exists — including
+  for a song reached via Apple, Spotify, or YouTube, since cross-provider
+  matching resolves the Deezer link. Anonymous listeners get a 30-second
+  preview; signed-in Deezer users get the full track.
+- **Playlist page** shows a playlist/album player only when the playlist was
+  imported *from* Deezer.
+- `https://widget.deezer.com/widget/light/{type}/{id}?tracklist=&radius=true`,
+  `allow="encrypted-media; clipboard-write"`, `loading="lazy"`. Theme is
+  `light`, not `auto`: the design system has no dark theme, so `auto` would
+  follow the OS and leave a dark player on a white page.
+- Costs nothing: a third-party iframe, no API call, no subrequest, no key.
 
 ## Cost guardrails (recap)
 

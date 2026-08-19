@@ -7,7 +7,11 @@ import type {
   ProviderLink,
 } from '../../worker/types';
 import { PROVIDER_IDS } from '../../worker/types';
+import { usePageContext } from 'vike-react/usePageContext';
+
+import { deezerEmbedFromLinks } from '../../worker/providers/links';
 import type { PlaylistView as PlaylistData } from '../../worker/playlists';
+import { DeezerEmbed } from './DeezerEmbed';
 import { Artwork } from './Artwork';
 import { PROVIDER_LABELS, ProviderBadge } from './ProviderBadge';
 
@@ -36,6 +40,9 @@ function expiryDate(createdAt: string): string | undefined {
 /** Full imported-playlist view: header, share row, expiry note, track list. */
 export function PlaylistView({ playlist }: { playlist: PlaylistData }) {
   const expires = expiryDate(playlist.createdAt);
+  // Only a Deezer-sourced playlist is playable in place: the widget needs the
+  // real Deezer playlist, and a title search on another platform is not one.
+  const embed = deezerEmbedFromLinks(playlist.open);
 
   return (
     <div className="space-y-6">
@@ -53,6 +60,20 @@ export function PlaylistView({ playlist }: { playlist: PlaylistData }) {
           with the link above can view it until then.
         </p>
       </Card>
+
+      {embed && (
+        <Card>
+          <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
+            Play
+          </h2>
+          <div className="mt-3">
+            <DeezerEmbed
+              target={embed}
+              title={`Deezer player for ${playlist.title}`}
+            />
+          </div>
+        </Card>
+      )}
 
       <Card className="overflow-hidden">
         <h2 className="text-xs font-semibold uppercase tracking-wider text-gray-400">
@@ -214,7 +235,12 @@ function PlaylistShareRow() {
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | undefined>(
     undefined
   );
-  const shareUrl = window.location.href;
+  // From pageContext rather than `window.location`: this renders on the server
+  // too, where reading a browser global throws and takes the whole page with
+  // it. `origin` is null only when the request URL was relative, which a real
+  // request never is.
+  const { urlParsed } = usePageContext();
+  const shareUrl = `${urlParsed.origin ?? ''}${urlParsed.pathname}`;
 
   useEffect(() => () => clearTimeout(timeoutRef.current), []);
 

@@ -145,3 +145,54 @@ export function playlistOpenLinks(
         }
   );
 }
+
+/** A Deezer resource the widget player can embed. */
+export interface DeezerEmbed {
+  type: 'track' | 'album' | 'playlist';
+  id: string;
+}
+
+const DEEZER_EMBEDDABLE = ['track', 'album', 'playlist'] as const;
+
+/**
+ * Pull the widget-embeddable resource out of a Deezer URL.
+ *
+ * Deezer is the only one of the four with a player that embeds without an
+ * account or an API key, so an exact match there is what lets a page actually
+ * play the song rather than just link out to it.
+ *
+ * Tolerates the optional locale segment Deezer puts on shared links
+ * (`/us/track/123`), and returns null for anything else — an artist page, a
+ * search URL, or another provider's link.
+ */
+export function deezerEmbedFromUrl(url: string): DeezerEmbed | null {
+  let parsed: URL;
+  try {
+    parsed = new URL(url.trim());
+  } catch {
+    return null;
+  }
+  if (parsed.hostname.replace(/^www\./, '') !== 'deezer.com') return null;
+
+  const segments = parsed.pathname.split('/').filter(Boolean);
+  let i = 0;
+  if (segments[i] && /^[a-z]{2}$/.test(segments[i]!)) i++;
+  const type = segments[i];
+  const id = segments[i + 1];
+  if (!type || !id || !/^\d+$/.test(id)) return null;
+  if (!DEEZER_EMBEDDABLE.includes(type as DeezerEmbed['type'])) return null;
+  return { type: type as DeezerEmbed['type'], id };
+}
+
+/**
+ * The embeddable Deezer resource among a set of provider links, if any.
+ * Only an `exact` match qualifies — a search link is a query, not a resource.
+ */
+export function deezerEmbedFromLinks(
+  links: readonly ProviderLink[]
+): DeezerEmbed | null {
+  const link = links.find(
+    (candidate) => candidate.provider === 'deezer' && candidate.kind === 'exact'
+  );
+  return link ? deezerEmbedFromUrl(link.url) : null;
+}

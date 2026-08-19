@@ -73,6 +73,18 @@ pnpm --filter justlisten deploy     # vike build && wrangler deploy
 pnpm --filter justlisten secrets:push  # 1Password → Cloudflare secrets
 ```
 
+## Playback
+
+Song pages embed Deezer's [widget player](https://widget.deezer.com/) whenever
+a Deezer match exists — including for songs reached via Apple, Spotify, or
+YouTube, since cross-provider matching resolves the Deezer link. Playlist pages
+embed the playlist player when the playlist was imported from Deezer.
+
+Deezer is the only one of the four platforms whose player embeds with no
+account, API key, or SDK, so this costs nothing and needs no credentials.
+Anonymous listeners get a 30-second preview; signed-in Deezer users get the
+full track.
+
 ## Architecture
 
 Vike (`vike-react`) server-renders every page inside the same Worker that
