@@ -163,10 +163,9 @@ playlistRoutes.post('/', async (c) => {
     return c.json(
       {
         error:
-          `Could not import this ${sourceName} playlist. Import from ` +
-          `${sourceName} may be unavailable on this deployment (missing API ` +
-          'credentials — see the README), or the playlist is private or no ' +
-          'longer exists.',
+          `Could not import this ${sourceName} playlist. It may be private, ` +
+          'may no longer exist, or the source may be temporarily ' +
+          'unreachable — try again in a moment.',
       },
       422
     );

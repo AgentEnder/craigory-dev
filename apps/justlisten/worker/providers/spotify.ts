@@ -5,6 +5,8 @@
  * search deep-links.
  */
 
+import { fetchPublicPage } from './scrape/fetch-page';
+import { parseSpotifyEmbed } from './scrape/spotify-embed';
 import type {
   Env,
   MusicProvider,
@@ -275,20 +277,34 @@ export const spotifyProvider: MusicProvider = {
     return null;
   },
 
+  /**
+   * API first when credentials exist — it is the only source of ISRC, which is
+   * what makes cross-provider matching exact. The embed page is the fallback,
+   * and the reason playlist import works with no credentials at all.
+   */
   async getPlaylist(
     env: Env,
     playlistId: string
   ): Promise<{ title: string; tracks: Track[] } | null> {
-    if (!this.available(env)) return null;
     const sep = playlistId.indexOf(':');
     const kind = sep === -1 ? 'playlist' : playlistId.slice(0, sep);
     const id = sep === -1 ? playlistId : playlistId.slice(sep + 1);
-    try {
-      return kind === 'album'
-        ? await getAlbumTracks(env, id)
-        : await getPlaylistTracks(env, id);
-    } catch {
-      return null;
+
+    if (this.available(env)) {
+      try {
+        const viaApi =
+          kind === 'album'
+            ? await getAlbumTracks(env, id)
+            : await getPlaylistTracks(env, id);
+        if (viaApi) return viaApi;
+      } catch {
+        // Fall through to the embed page rather than failing the import.
+      }
     }
+
+    const html = await fetchPublicPage(
+      `https://open.spotify.com/embed/${kind === 'album' ? 'album' : 'playlist'}/${encodeURIComponent(id)}`
+    );
+    return html ? parseSpotifyEmbed(html) : null;
   },
 };

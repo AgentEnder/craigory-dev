@@ -52,7 +52,8 @@ credentials) and degrades per provider:
 - No Spotify creds → Spotify is skipped as a search catalog and Spotify links
   become search links.
 - No YouTube key → YouTube links are `https://music.youtube.com/search?q=…`
-  search links and YouTube playlist import is unavailable. YouTube never backs
+  search links. Playlist import still works — it falls back to reading the
+  public playlist page, which also costs no quota. YouTube never backs
   search either way: its `search.list` costs 100 of a 10,000-unit daily quota,
   so it is only used to resolve a link on the song detail page.
 
@@ -72,6 +73,28 @@ pnpm --filter justlisten test       # vitest (pure-logic worker tests)
 pnpm --filter justlisten deploy     # vike build && wrangler deploy
 pnpm --filter justlisten secrets:push  # 1Password → Cloudflare secrets
 ```
+
+## Playlist import without credentials
+
+Spotify and YouTube playlist import fall back to reading the public page when
+no credentials are configured, so all four providers import with zero secrets:
+
+| Provider | With credentials | Without |
+|---|---|---|
+| Spotify | Web API (ISRC, album) | `open.spotify.com/embed` — 100 tracks, no ISRC |
+| YouTube | Data API (50 quota units/call) | public playlist page — no quota |
+| Deezer / Apple | *(never needed any)* | public APIs |
+
+Adding credentials still improves things: Spotify's API supplies ISRCs, which
+is what makes cross-provider matching exact rather than a title/artist/duration
+guess. The scrape is a fallback, not a replacement, and a failure at either
+tier falls through to the other.
+
+Two caveats. These parsers read undocumented page structure and will break when
+the sites change — YouTube has already moved playlist rows from
+`playlistVideoRenderer` to `lockupViewModel` once. And both platforms' terms
+prohibit automated access, which is worth knowing even though this only reads
+public pages with no authentication.
 
 ## Playback
 

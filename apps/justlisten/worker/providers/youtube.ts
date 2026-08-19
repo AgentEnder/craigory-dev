@@ -1,13 +1,16 @@
 /**
  * YouTube / YouTube Music provider — YouTube Data API v3.
  * OPTIONAL: without YOUTUBE_API_KEY, links degrade to
- * https://music.youtube.com/search?q=… and playlist import is unavailable.
+ * https://music.youtube.com/search?q=…. Playlist import still works without
+ * one by reading the public playlist page — see scrape/youtube-initial-data.ts.
  * The Data API is used only for detail-page resolution and playlist import —
  * `search.list` (100 quota units) is called ONLY inside `resolve`; the
  * `search()` interface method intentionally returns nothing so this provider
  * can never serve autocomplete.
  */
 
+import { fetchPublicPage } from './scrape/fetch-page';
+import { parseYouTubeInitialData } from './scrape/youtube-initial-data';
 import type {
   Env,
   MusicProvider,
@@ -185,62 +188,83 @@ export const youtubeProvider: MusicProvider = {
     return null;
   },
 
+  /**
+   * API first when a key exists — it carries per-track artwork the public page
+   * does not. The scrape is the fallback, and matters more than Spotify's:
+   * `playlistItems.list` costs 50 quota units per call against a 10,000/day
+   * budget, and the public page costs none.
+   */
   async getPlaylist(
     env: Env,
     playlistId: string
   ): Promise<{ title: string; tracks: Track[] } | null> {
-    if (!this.available(env)) return null;
-    try {
-      const meta = await apiGet<{ items?: { snippet?: { title?: string } }[] }>(
-        env,
-        'playlists',
-        { part: 'snippet', id: playlistId, maxResults: '1' }
-      );
-      const playlist = meta.items?.[0];
-      if (!playlist) return null;
-      const title = playlist.snippet?.title ?? 'YouTube playlist';
+    const viaApi = this.available(env)
+      ? await fetchViaApi(env, playlistId)
+      : null;
+    if (viaApi) return viaApi;
 
-      const tracks: Track[] = [];
-      let pageToken: string | undefined;
-      while (tracks.length < MAX_PLAYLIST_TRACKS) {
-        const params: Record<string, string> = {
-          part: 'snippet,contentDetails',
-          playlistId,
-          maxResults: '50',
-        };
-        if (pageToken) params['pageToken'] = pageToken;
-        const page = await apiGet<{
-          items?: YtPlaylistItem[];
-          nextPageToken?: string;
-        }>(env, 'playlistItems', params);
-        for (const item of page.items ?? []) {
-          const videoId = item.contentDetails?.videoId;
-          const videoTitle = item.snippet?.title ?? '';
-          // Skip unplayable rows.
-          if (
-            !videoId ||
-            videoTitle === 'Private video' ||
-            videoTitle === 'Deleted video'
-          ) {
-            continue;
-          }
-          const track: Track = {
-            provider: 'youtube',
-            id: videoId,
-            title: videoTitle,
-            artist: cleanChannelTitle(item.snippet?.videoOwnerChannelTitle ?? ''),
-          };
-          const artwork = thumbnailUrl(item.snippet?.thumbnails);
-          if (artwork) track.artworkUrl = artwork;
-          tracks.push(track);
-          if (tracks.length >= MAX_PLAYLIST_TRACKS) break;
-        }
-        if (!page.nextPageToken || tracks.length >= MAX_PLAYLIST_TRACKS) break;
-        pageToken = page.nextPageToken;
-      }
-      return { title, tracks };
-    } catch {
-      return null;
-    }
+    const html = await fetchPublicPage(
+      `https://www.youtube.com/playlist?list=${encodeURIComponent(playlistId)}`
+    );
+    return html ? parseYouTubeInitialData(html) : null;
   },
 };
+
+/** The Data API playlist path, split out so the provider reads as a fallback chain. */
+async function fetchViaApi(
+  env: Env,
+  playlistId: string
+): Promise<{ title: string; tracks: Track[] } | null> {
+  try {
+    const meta = await apiGet<{ items?: { snippet?: { title?: string } }[] }>(
+      env,
+      'playlists',
+      { part: 'snippet', id: playlistId, maxResults: '1' }
+    );
+    const playlist = meta.items?.[0];
+    if (!playlist) return null;
+    const title = playlist.snippet?.title ?? 'YouTube playlist';
+
+    const tracks: Track[] = [];
+    let pageToken: string | undefined;
+    while (tracks.length < MAX_PLAYLIST_TRACKS) {
+      const params: Record<string, string> = {
+        part: 'snippet,contentDetails',
+        playlistId,
+        maxResults: '50',
+      };
+      if (pageToken) params['pageToken'] = pageToken;
+      const page = await apiGet<{
+        items?: YtPlaylistItem[];
+        nextPageToken?: string;
+      }>(env, 'playlistItems', params);
+      for (const item of page.items ?? []) {
+        const videoId = item.contentDetails?.videoId;
+        const videoTitle = item.snippet?.title ?? '';
+        // Skip unplayable rows.
+        if (
+          !videoId ||
+          videoTitle === 'Private video' ||
+          videoTitle === 'Deleted video'
+        ) {
+          continue;
+        }
+        const track: Track = {
+          provider: 'youtube',
+          id: videoId,
+          title: videoTitle,
+          artist: cleanChannelTitle(item.snippet?.videoOwnerChannelTitle ?? ''),
+        };
+        const artwork = thumbnailUrl(item.snippet?.thumbnails);
+        if (artwork) track.artworkUrl = artwork;
+        tracks.push(track);
+        if (tracks.length >= MAX_PLAYLIST_TRACKS) break;
+      }
+      if (!page.nextPageToken || tracks.length >= MAX_PLAYLIST_TRACKS) break;
+      pageToken = page.nextPageToken;
+    }
+    return { title, tracks };
+  } catch {
+    return null;
+  }
+}

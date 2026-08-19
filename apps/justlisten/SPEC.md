@@ -99,7 +99,7 @@ src/
   - No Spotify creds → Spotify is skipped as a search catalog and Spotify
     links become search links.
   - No YouTube key → YouTube links are `https://music.youtube.com/search?q=…`
-    search links and YouTube playlist import is unavailable.
+    search links. Playlist import still works via the public page scrape.
   - Deezer and Apple/iTunes need no credentials, so the app works with zero
     secrets — including full search, since Deezer leads the catalog order.
 
@@ -235,8 +235,8 @@ degrade to `kind: 'search'` links.
     tracks (cap at 100), resolves links for each track (reusing the KV match
     cache; resolve sequentially in small batches to stay under subrequest
     limits), stores `Playlist` in `PLAYLISTS` KV with 7-day TTL.
-  - Supported: Spotify public playlists/albums, YouTube playlists (needs
-    key), Deezer public playlists/albums (keyless), Apple Music public
+  - Supported: Spotify public playlists/albums, YouTube playlists, Deezer
+    public playlists/albums, Apple Music public
     playlists via the iTunes/Apple embed lookup —
     if Apple playlist fetch proves infeasible without a MusicKit token,
     return a clear 422 explaining it and document in README.
@@ -315,6 +315,40 @@ Dependencies pinned to versions compatible with the workspace catalog
 ^4.1); dev deps include
 `wrangler` (v4), `hono`, `vite`, `@vitejs/plugin-react`, `@tailwindcss/vite`,
 `vitest`, `typescript`. Do NOT add dependencies beyond what SPEC requires.
+
+## Keyless playlist import (scraping)
+
+Spotify and YouTube playlist import each have two tiers: the credentialed API
+when a key exists, and a public-page scrape when it does not. Verified
+end-to-end with zero credentials on 2026-08-19 — both imported, and the
+Spotify tracks still resolved Apple and Deezer links off title/artist/duration.
+
+- **Spotify** — `open.spotify.com/embed/{kind}/{id}`, parse
+  `<script id="__NEXT_DATA__">` → `props.pageProps.state.data.entity`. Gives
+  `name` plus a `trackList` of up to **100** (the importer's own cap) with
+  title, `subtitle` (artist), `uri` → track id, and duration. No ISRC and no
+  album, so those tracks match on normalized title/artist/duration rather than
+  exactly — which is why the API is still preferred when credentials exist. A
+  private or missing playlist renders with `data: null`, so a miss is
+  detectable rather than silently empty.
+- **YouTube** — `youtube.com/playlist?list={id}`, parse `var ytInitialData`.
+  YouTube migrated playlist rows from `playlistVideoRenderer` to
+  **`lockupViewModel`**; against today's HTML the old selector finds 0 rows and
+  the new one finds 100. This tier matters more than Spotify's, because
+  `playlistItems.list` costs 50 quota units of a 10,000/day budget and the
+  public page costs none.
+- **Dead ends, so nobody re-explores them.** The embed blob also carries an
+  anonymous bearer token at `props.pageProps.state.settings.session.accessToken`;
+  `api.spotify.com` answers it with `429 QUOTA_EXCEEDED` immediately, so it
+  restores neither ISRC nor pagination. And none of this can move to the
+  browser: neither page sends `access-control-allow-origin` (YouTube adds
+  `x-frame-options: SAMEORIGIN`), so a client-side fetch cannot read the
+  response. Deezer and iTunes *do* send CORS headers, which is exactly why
+  those two are the keyless providers.
+- **Unverified in production**: local `wrangler dev` runs on the developer's
+  own IP. Worker egress comes from Cloudflare ranges, which YouTube may treat
+  differently. Both tiers fail closed to the credentialed path, so a block
+  degrades import rather than breaking it.
 
 ## Deezer widget embed
 
