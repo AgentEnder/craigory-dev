@@ -3,18 +3,20 @@ import type { ProviderId, ProviderLink } from '../../worker/types';
 
 /**
  * Provider branding: simple colored text badges/buttons only — no trademarked
- * logo assets. Spotify green #1DB954, Apple rose, YouTube red.
+ * logo assets. Spotify green #1DB954, Apple rose, YouTube red, Deezer violet.
  */
 export const PROVIDER_LABELS: Record<ProviderId, string> = {
   spotify: 'Spotify',
   apple: 'Apple Music',
   youtube: 'YouTube Music',
+  deezer: 'Deezer',
 };
 
 const BADGE_STYLES: Record<ProviderId, string> = {
   spotify: 'bg-[#1DB954]/15 text-[#14833b]',
   apple: 'bg-rose-100 text-rose-700',
   youtube: 'bg-red-100 text-red-700',
+  deezer: 'bg-violet-100 text-violet-700',
 };
 
 export interface ProviderBadgeProps {
@@ -41,6 +43,7 @@ const EXACT_STYLES: Record<ProviderId, string> = {
   spotify: 'bg-[#1DB954] text-white shadow-sm hover:bg-[#19a64b]',
   apple: 'bg-rose-500 text-white shadow-sm hover:bg-rose-600',
   youtube: 'bg-red-600 text-white shadow-sm hover:bg-red-700',
+  deezer: 'bg-violet-600 text-white shadow-sm hover:bg-violet-700',
 };
 
 const SEARCH_STYLES: Record<ProviderId, string> = {
@@ -50,6 +53,8 @@ const SEARCH_STYLES: Record<ProviderId, string> = {
     'border border-gray-200 bg-white text-rose-600 hover:border-rose-300 hover:bg-rose-50',
   youtube:
     'border border-gray-200 bg-white text-red-600 hover:border-red-300 hover:bg-red-50',
+  deezer:
+    'border border-gray-200 bg-white text-violet-600 hover:border-violet-300 hover:bg-violet-50',
 };
 
 export interface ProviderLinkButtonProps {

@@ -1,19 +1,20 @@
 # JustListen — Spec
 
 JustListen is "JustWatch, but for music": search for a song, see where you can
-listen to it (YouTube / YouTube Music, Spotify, Apple Music), and import a
-playlist from any supported platform to get listen links for every track plus
-ways to open the playlist on the other platforms.
+listen to it (YouTube / YouTube Music, Spotify, Apple Music, Deezer), and
+import a playlist from any supported platform to get listen links for every
+track plus ways to open the playlist on the other platforms.
 
 This document is the single source of truth for architecture, contracts, and
 file ownership. All implementation must conform to it.
 
 ## Stack & hosting (cost-minimizing)
 
-- **One Cloudflare Worker** serves everything: the JSON API (Hono) and the
-  built SPA via the Workers static **assets** binding. Free tier friendly:
-  100k requests/day, no separate Pages project, no Durable Objects, no D1.
-- **Frontend**: React 19 + Vite SPA, `react-router-dom` v6, Tailwind CSS v4
+- **One Cloudflare Worker** serves everything: the JSON API (Hono) and
+  server-rendered pages (Vike). Free tier friendly: 100k requests/day, no
+  separate Pages project, no Durable Objects, no D1.
+- **Frontend**: Vike (`vike-react`) with SSR on Cloudflare via
+  `@cloudflare/vite-plugin`, React 19, Tailwind CSS v4
   (via `@tailwindcss/vite`), reusing
   `@new-personal-monorepo/small-app-design-system` (exports: `AppHeader`,
   `Card`, `ErrorBoundary`, `ErrorPill`, `PageShell`, `Tabs`/`Tab`,
@@ -30,48 +31,63 @@ file ownership. All implementation must conform to it.
 
 ```
 package.json          # all deps declared here up-front; nx targets
-wrangler.jsonc        # worker config: assets binding, KV bindings, vars
-tsconfig.json         # references app + worker configs
-tsconfig.app.json     # SPA (src/)
-tsconfig.worker.json  # worker/ (types from wrangler/workers-types)
-vite.config.ts        # react + tailwind plugins, build to dist/client
-index.html
+wrangler.jsonc        # worker config: main=vike:server-entry, assets, KV
+tsconfig.json         # one project: src + pages + worker + +server.ts
+vite.config.ts        # cloudflare() BEFORE vike(); react + tailwind
++server.ts            # Worker entry: Hono /api/* + vike() SSR catch-all
 SPEC.md               # this file
 README.md             # setup, secrets, deploy, cost notes
+pages/                # Vike filesystem routing
+  +config.ts          # extends vike-react; default title/description
+  +Layout.tsx         # ErrorBoundary + PageShell + styles import
+  index/+Page.tsx           # /            hero + autocomplete
+  search/+Page.tsx          # /search?q=…  full cross-catalog results
+  import/+Page.tsx          # /import      paste playlist URL
+  song/@provider/@id/
+    +data.ts          # SSR: loadSongDetail() in-process (no HTTP hop)
+    +title.ts         # runtime title (functions can't live in +config)
+    +Page.tsx
+  playlist/@id/
+    +data.ts          # SSR: loadPlaylistView() in-process
+    +title.ts
+    +Page.tsx
+  _error/+Page.tsx    # 404 / 500, rendering the abort reason
 worker/
-  index.ts            # Hono app: /api/* routes + assets fallback
   types.ts            # ALL shared domain types + provider interface
   cache.ts            # Cache API + KV helpers (two-tier cache)
-  playlists.ts        # ephemeral playlist storage (KV)
+  playlists.ts        # ephemeral playlist storage (KV) + loadPlaylistView
+  song.ts             # loadSongDetail: track + cross-provider links
+  export.ts           # playlist CSV serialization (pure)
+  page-env.ts         # universal middleware: Worker bindings → pageContext
+  workers-globals.d.ts # caches.default, absent from the DOM lib
   routes/
-    search.ts         # GET /api/search
-    song.ts           # GET /api/song/:provider/:id
-    playlist.ts       # POST /api/playlists, GET /api/playlists/:id
+    search.ts         # GET /api/search, GET /api/search/all
+    playlist.ts       # POST /api/playlists, GET /api/playlists/:id/export.csv
   providers/
     index.ts          # provider registry
     spotify.ts
     apple.ts          # iTunes Search API (no auth)
     youtube.ts
+    deezer.ts         # Deezer public API (no auth) — lead search catalog
     matching.ts       # ISRC + normalized-title cross-provider matching
+    aggregate.ts      # cross-catalog search merging (pure functions)
     links.ts          # deep-link / search-link builders (pure functions)
 worker/__tests__/     # vitest unit tests (pure logic only: matching, links,
                       # url parsing; no network)
 src/
-  main.tsx, App.tsx   # router + shell
-  api.ts              # typed fetch client for /api/*
-  components/         # SearchBox (autocomplete), TrackCard, ProviderBadge, …
-  pages/
-    HomePage.tsx      # hero + search
-    SongPage.tsx      # /song/:provider/:id
-    ImportPage.tsx    # /import — paste playlist URL
-    PlaylistPage.tsx  # /playlist/:id — imported playlist view
+  api.ts              # typed fetch client — only the interactive calls
+  components/         # SearchBox (autocomplete), PlaylistView, ProviderBadge, …
   styles.css          # tailwind + design-system import
 ```
 
 ## Environment / bindings (wrangler.jsonc)
 
-- `ASSETS` — static assets, directory `dist/client`,
-  `not_found_handling: "single-page-application"`.
+- `main: "vike:server-entry"` — Vike wraps `+server.ts` as the Worker entry.
+  `@cloudflare/vite-plugin` generates the deployed config into
+  `dist/server/wrangler.json` at build time.
+- `assets.directory: "./dist/client"` with
+  `run_worker_first: ["/api/*"]` — Workers Assets intercepts before the Worker
+  and only answers GET/HEAD, so without this the playlist POST returns 405.
 - KV: `CACHE`, `PLAYLISTS` (placeholder ids + README instructions;
   `wrangler dev` uses local simulations automatically).
 - Secrets (all OPTIONAL — app must degrade gracefully): `SPOTIFY_CLIENT_ID`,
@@ -79,16 +95,22 @@ src/
   (`Dev Secrets` → `justlisten-production`); `.env.example` holds
   `secret://op/...` references that `secreq run` materializes, and
   `tools/secrets.mjs` pushes them via `wrangler secret bulk`.
-  - No Spotify creds → search falls back to iTunes; Spotify links become
-    search links.
+  - No Spotify creds → Spotify is skipped as a search catalog and Spotify
+    links become search links.
   - No YouTube key → YouTube links are `https://music.youtube.com/search?q=…`
     search links and YouTube playlist import is unavailable.
-  - Apple/iTunes needs no credentials, so the app works with zero secrets.
+  - Deezer and Apple/iTunes need no credentials, so the app works with zero
+    secrets — including full search, since Deezer leads the catalog order.
 
 ## Shared types (`worker/types.ts`) — the contract
 
 ```ts
-export type ProviderId = 'spotify' | 'apple' | 'youtube';
+export type ProviderId = 'spotify' | 'apple' | 'youtube' | 'deezer';
+
+/** Runtime constants, exported from types.ts so the SPA can import them
+ *  without pulling in provider implementations. */
+export const PROVIDER_IDS: readonly ProviderId[];        // canonical order
+export const SEARCH_CATALOG_IDS: readonly ProviderId[];  // deezer, spotify, apple
 
 export interface ProviderLink {
   provider: ProviderId;
@@ -110,9 +132,28 @@ export interface Track {
 
 export interface SearchResult extends Track {}   // autocomplete rows
 
+/** One recording on the full search page, merged across catalogs. */
+export interface AggregatedSearchResult {
+  track: SearchResult;                              // richest merged record
+  sources: { provider: ProviderId; id: string }[];  // catalogs listing it
+}
+
+export interface SearchCatalogStatus {
+  provider: ProviderId;
+  available: boolean;   // false = credentials not configured
+  ok: boolean;          // false = queried but errored
+  count: number;        // rows contributed before merging
+}
+
+export interface AggregatedSearch {
+  query: string;
+  results: AggregatedSearchResult[];
+  catalogs: SearchCatalogStatus[];
+}
+
 export interface SongDetail {
   track: Track;
-  links: ProviderLink[];       // one per provider, always all 3 present
+  links: ProviderLink[];       // one per PROVIDER_IDS entry, always all present
 }
 
 export interface Playlist {
@@ -137,7 +178,6 @@ export interface PlaylistOpenLinks {
 }
 
 export interface Env {
-  ASSETS: Fetcher;
   CACHE: KVNamespace;
   PLAYLISTS: KVNamespace;
   SPOTIFY_CLIENT_ID?: string;
@@ -165,37 +205,71 @@ degrade to `kind: 'search'` links.
 ## API endpoints
 
 - `GET /api/search?q=<text>&limit=8` → `SearchResult[]`
-  - Uses ONE metadata provider for autocomplete (Spotify if configured, else
-    iTunes) — do not fan out to all providers per keystroke (cost/quota).
-  - Cached with Cache API, TTL 3600s, key = normalized query. 400 on empty q.
-- `GET /api/song/:provider/:id` → `SongDetail`
-  - Fetch source track, then resolve the other two providers via
-    `matching.ts` (ISRC first — iTunes supports `lookup?isrc=`; Spotify
-    supports `search?q=isrc:<code>` — then normalized `artist title` search).
-  - Per-provider resolution cached in KV: key `match:<isrc-or-normkey>:<provider>`,
-    `expirationTtl` 30 days. Full response also Cache-API cached 24h.
+  - Uses ONE metadata provider for autocomplete — the first available entry
+    of `SEARCH_CATALOG_IDS` (Deezer, then Spotify, then iTunes). Do not fan
+    out to all providers per keystroke (cost/quota).
+  - Deezer leads because it is keyless (autocomplete works in a zero-secret
+    deploy), indexes independent releases the other catalogs miss, and
+    returns an ISRC on every row — which the song page then resolves from
+    exactly. iTunes search rows carry no ISRC, so before Deezer the
+    ISRC-first path in `matching.ts` was unreachable from a searched track.
+  - Cached with Cache API, TTL 3600s, key = catalog + limit + normalized
+    query. 400 on empty q.
+- `GET /api/search/all?q=<text>&limit=25` → `AggregatedSearch`
+  - Backs the dedicated `/search` page. Unlike autocomplete this IS a
+    fan-out: every available `SEARCH_CATALOG_IDS` entry is queried
+    concurrently, and one catalog failing or being unconfigured must not deny
+    the user the others' results (`catalogs[]` reports each outcome).
+  - Merged by `providers/aggregate.ts`: rows join when their ISRCs match, or
+    when their `normKey` matches AND durations agree within
+    `DURATION_BONUS_WINDOW_MS`. The duration guard is required —
+    `normalizeTitle` strips "(Live …)" / "- 2013 Remaster" as noise, so
+    distinct takes of one song share a normalized key and would otherwise
+    collapse into a single row.
+  - Ordering is by first appearance, so the lead catalog's relevance ranking
+    survives; rows are NOT re-sorted by how many catalogs carry them.
+  - Never queries the YouTube Data API. Cached with Cache API, TTL 6h.
 - `POST /api/playlists` body `{ url: string }` → `{ id: string }`
   - Detects provider from URL (`parsePlaylistUrl` across registry), fetches
     tracks (cap at 100), resolves links for each track (reusing the KV match
     cache; resolve sequentially in small batches to stay under subrequest
     limits), stores `Playlist` in `PLAYLISTS` KV with 7-day TTL.
   - Supported: Spotify public playlists/albums, YouTube playlists (needs
-    key), Apple Music public playlists via the iTunes/Apple embed lookup —
+    key), Deezer public playlists/albums (keyless), Apple Music public
+    playlists via the iTunes/Apple embed lookup —
     if Apple playlist fetch proves infeasible without a MusicKit token,
     return a clear 422 explaining it and document in README.
 - `GET /api/playlists/:id/export.csv` → `text/csv` attachment
-  - Columns: Title, Artist, Album, ISRC, Release Date, Spotify, Apple Music,
-    YouTube. Per-platform cells carry a URL only for `kind: 'exact'` links —
+  - Columns: Title, Artist, Album, ISRC, Release Date, then one per
+    `PROVIDER_IDS` entry (Spotify, Apple Music, YouTube, Deezer). Per-platform cells carry a URL only for `kind: 'exact'` links —
     a search link is a query, not a track. Pure string building in
     `worker/export.ts`; no network, KV, or subrequests. Exists because no
     platform accepts a file as a write path (Apple's native import matches
     only your local library), so the CSV is the handoff to transfer services
     that do hold per-user credentials. 404 when expired/unknown.
-- `GET /api/playlists/:id` → `Playlist & { open: PlaylistOpenLinks[] }`
-  - `open` links: exact source-platform URL; for the other platforms a
-    search link for the playlist title (true cross-platform playlist
-    creation requires per-user OAuth — out of scope, documented in README).
-  - 404 with friendly message when expired/unknown.
+
+### Page data (SSR, not endpoints)
+
+Song and playlist pages load in their `+data.ts` hooks, which call the worker
+modules in-process — the Worker already holds the bindings, so routing through
+this app's own HTTP API would only spend a subrequest. `GET /api/song/…` and
+`GET /api/playlists/:id` were removed along with the client-side fetching they
+existed for.
+
+- `worker/song.ts` → `loadSongDetail(env, provider, id)`
+  - Fetches the source track, then resolves the other providers via
+    `matching.ts` (ISRC first — iTunes supports `lookup?isrc=`; Spotify
+    supports `search?q=isrc:<code>` — then normalized `artist title` search).
+  - Per-provider resolution cached in KV: key
+    `match:<isrc-or-normkey>:<provider>`, `expirationTtl` 30 days. The
+    assembled detail is Cache-API cached 24h. Returns null for a miss, which
+    the hook turns into `render(404, …)`; provider failures degrade to
+    `kind: 'search'` links rather than failing the page.
+- `worker/playlists.ts` → `loadPlaylistView(env, id)`
+  - The stored playlist plus `open` links: exact source-platform URL; for the
+    other platforms a search link for the playlist title (true cross-platform
+    playlist creation requires per-user OAuth — out of scope, documented in
+    README). A miss aborts with the friendly expiry message.
 
 ## Frontend behavior
 
@@ -203,6 +277,17 @@ degrade to `kind: 'search'` links.
   autocomplete dropdown showing artwork, title, artist, album, release year;
   keyboard navigation (↑/↓/Enter/Esc); click → `/song/:provider/:id`. Link to
   `/import`.
+- **SearchBox**: the dropdown always ends with a "Search every platform for
+  …" row (including on the empty state — autocomplete queries one catalog, so
+  an empty dropdown is precisely when the wider search is worth offering).
+  Enter opens the highlighted row, or `/search?q=…` when nothing is
+  highlighted.
+- **SearchPage** (`/search?q=…`): full cross-catalog results. Per row:
+  artwork, title, artist, album · year · duration, and provider badges naming
+  every catalog that lists the recording — that availability comes free from
+  the server-side dedupe, with no per-provider resolution. Footer names the
+  catalogs searched, any skipped for missing credentials, and any that
+  errored, plus a note that YouTube Music links resolve on the song page.
 - **SongPage**: artwork, title/artist/album/release date, prominent
   "Listen on" buttons for all three providers (distinguish exact match vs
   "Search on …" fallback styling), loading skeleton, error state.
@@ -223,13 +308,18 @@ scripts: `dev` (`wrangler dev` after an initial client build — simplest:
 `test` (`vitest run`), `deploy` (`vite build && wrangler deploy`). Add nx
 target config making `build` depend on `typecheck` (mirror qr-generator).
 Dependencies pinned to versions compatible with the workspace catalog
-(react 19.1.x, react-router-dom 6.30.x, tailwindcss ^4.1); dev deps include
+(react 19.1.x, vike + vike-react from the workspace catalog, tailwindcss
+^4.1); dev deps include
 `wrangler` (v4), `hono`, `vite`, `@vitejs/plugin-react`, `@tailwindcss/vite`,
 `vitest`, `typescript`. Do NOT add dependencies beyond what SPEC requires.
 
 ## Cost guardrails (recap)
 
 - Autocomplete: single upstream provider + Cache API (never KV).
+- Full search (`/api/search/all`): fan-out is bounded to the keyless/cheap
+  catalogs and cached 6h — it is user-initiated, never per-keystroke. The 6h
+  TTL also shields Deezer's ~50-request/5s per-IP limit, which Workers hit
+  from shared per-PoP egress addresses.
 - KV writes only for long-TTL match/track data and playlist imports.
 - YouTube Data API used only when key present, only for detail-page
   resolution and playlist import (search costs 100 quota units — never used

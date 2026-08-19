@@ -4,8 +4,13 @@ import { getProvider, isProviderId, providers } from '../providers/index';
 // Skeleton smoke test — real suites (matching, links, url parsing) land with
 // their implementations. Pure logic only: no network, no Workers runtime.
 describe('provider registry', () => {
-  it('contains all three providers', () => {
-    expect(providers.map((p) => p.id)).toEqual(['spotify', 'apple', 'youtube']);
+  it('contains every provider in canonical order', () => {
+    expect(providers.map((p) => p.id)).toEqual([
+      'spotify',
+      'apple',
+      'youtube',
+      'deezer',
+    ]);
   });
 
   it('looks providers up by id', () => {

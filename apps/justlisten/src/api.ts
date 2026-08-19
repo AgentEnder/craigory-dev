@@ -1,17 +1,14 @@
 /**
  * Typed fetch client for the JustListen API (/api/*).
+ *
+ * Only the genuinely interactive calls live here — autocomplete, the deliberate
+ * search, and playlist import. Song and playlist *pages* load their data in
+ * `+data.ts` on the server, so they never round-trip through this client.
+ *
  * Error convention: non-2xx responses carry `{ error: string }`.
  */
 
-import type {
-  Playlist,
-  PlaylistOpenLinks,
-  ProviderId,
-  SearchResult,
-  SongDetail,
-} from '../worker/types';
-
-export type PlaylistWithOpenLinks = Playlist & { open: PlaylistOpenLinks[] };
+import type { AggregatedSearch, SearchResult } from '../worker/types';
 
 export class ApiError extends Error {
   readonly status: number;
@@ -55,16 +52,19 @@ export function searchTracks(
   return request<SearchResult[]>(`/api/search?${params}`, init);
 }
 
-/** GET /api/song/:provider/:id */
-export function getSong(
-  provider: ProviderId,
-  id: string,
+/**
+ * GET /api/search/all?q=<text>&limit=25
+ *
+ * The deliberate, user-initiated search: fans out across every catalog and
+ * merges duplicates, unlike the single-catalog autocomplete above.
+ */
+export function searchAllTracks(
+  q: string,
+  limit = 25,
   init?: { signal?: AbortSignal }
-): Promise<SongDetail> {
-  return request<SongDetail>(
-    `/api/song/${encodeURIComponent(provider)}/${encodeURIComponent(id)}`,
-    init
-  );
+): Promise<AggregatedSearch> {
+  const params = new URLSearchParams({ q, limit: String(limit) });
+  return request<AggregatedSearch>(`/api/search/all?${params}`, init);
 }
 
 /** POST /api/playlists  body { url } */
@@ -75,13 +75,3 @@ export function importPlaylist(url: string): Promise<{ id: string }> {
   });
 }
 
-/** GET /api/playlists/:id */
-export function getPlaylist(
-  id: string,
-  init?: { signal?: AbortSignal }
-): Promise<PlaylistWithOpenLinks> {
-  return request<PlaylistWithOpenLinks>(
-    `/api/playlists/${encodeURIComponent(id)}`,
-    init
-  );
-}

@@ -3,7 +3,19 @@
  * Playlists expire after 7 days (`expirationTtl`).
  */
 
-import type { Env, Playlist } from './types';
+import { getProvider } from './providers/index';
+import {
+  exactPlaylistLink,
+  providerDisplayName,
+  searchPlaylistLink,
+} from './providers/links';
+import type {
+  Env,
+  Playlist,
+  PlaylistOpenLinks,
+  ProviderLink,
+} from './types';
+import { PROVIDER_IDS } from './types';
 
 export const PLAYLIST_TTL_SECONDS = 7 * 24 * 60 * 60;
 
@@ -40,4 +52,43 @@ export async function loadPlaylist(
   id: string
 ): Promise<Playlist | null> {
   return env.PLAYLISTS.get<Playlist>(id, 'json');
+}
+
+/**
+ * A stored playlist plus the per-platform links for opening it.
+ *
+ * Built here rather than in a route because the page's SSR data hook is the
+ * only consumer — resolving these is pure string work over already-stored
+ * data, so it costs no subrequests.
+ */
+export interface PlaylistView extends Playlist {
+  open: PlaylistOpenLinks[];
+}
+
+export async function loadPlaylistView(
+  env: Env,
+  id: string
+): Promise<PlaylistView | null> {
+  const playlist = await loadPlaylist(env, id);
+  if (!playlist) return null;
+
+  const open: PlaylistOpenLinks[] = PROVIDER_IDS.map((providerId) => {
+    if (providerId === playlist.sourceProvider) {
+      // Exact source-platform link. Prefer the canonical builder (re-parse the
+      // stored URL for the native playlist id); fall back to the stored URL.
+      const parsed = getProvider(providerId)?.parsePlaylistUrl(
+        playlist.sourceUrl
+      );
+      const link: ProviderLink = parsed
+        ? exactPlaylistLink(providerId, parsed.playlistId)
+        : { provider: providerId, kind: 'exact', url: playlist.sourceUrl };
+      return { ...link, label: `Open on ${providerDisplayName(providerId)}` };
+    }
+    // Cross-platform playlist creation needs per-user OAuth (out of scope) —
+    // offer a title search deep-link instead.
+    const link = searchPlaylistLink(providerId, playlist.title);
+    return { ...link, label: `Find on ${providerDisplayName(providerId)}` };
+  });
+
+  return { ...playlist, open };
 }

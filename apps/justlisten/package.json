@@ -4,14 +4,14 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite build && wrangler dev",
-    "build": "vite build",
-    "typecheck": "tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.worker.json",
+    "dev": "vike dev",
+    "build": "vike build",
+    "preview": "vike preview",
+    "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "deploy": "vite build && wrangler deploy",
-    "dev:secrets": "vite build && secreq run --env-file .env.production -- node tools/secrets.mjs dev",
-    "secrets:push": "secreq run --env-file .env.production -- node tools/secrets.mjs push",
-    "secrets:init": "secreq run --env-file .env.production --prompt-unresolved -- node tools/secrets.mjs push"
+    "deploy": "vike build && wrangler deploy",
+    "secrets:push": "secreq run --env-file .env.production -- node tools/secrets.mjs",
+    "secrets:init": "secreq run --env-file .env.production --prompt-unresolved -- node tools/secrets.mjs"
   },
   "nx": {
     "targets": {
@@ -24,17 +24,21 @@
   },
   "dependencies": {
     "@new-personal-monorepo/small-app-design-system": "workspace:*",
+    "@universal-middleware/core": "^0.4.17",
+    "@vikejs/hono": "^0.2.0",
+    "hono": "^4.13.3",
     "react": "^19.1.1",
     "react-dom": "^19.1.1",
-    "react-router-dom": "^6.30.1"
+    "vike": "catalog:",
+    "vike-react": "catalog:"
   },
   "devDependencies": {
+    "@cloudflare/vite-plugin": "^1.52.1",
     "@cloudflare/workers-types": "^4.20260702.1",
     "@tailwindcss/vite": "^4.1.12",
     "@types/react": "^19.1.10",
     "@types/react-dom": "^19.1.7",
     "@vitejs/plugin-react": "^5.0.0",
-    "hono": "^4.13.3",
     "tailwindcss": "^4.1.12",
     "typescript": "^5.9.2",
     "vite": "^7.1.5",

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import type { FormEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { navigate } from 'vike/client/router';
 import { ErrorPill, TextInput } from '@new-personal-monorepo/small-app-design-system';
 import { importPlaylist } from '../api';
 
@@ -10,7 +10,6 @@ import { importPlaylist } from '../api';
  * surfaced verbatim in an ErrorPill.
  */
 export function ImportForm() {
-  const navigate = useNavigate();
   const [url, setUrl] = useState('');
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<string | null>(null);

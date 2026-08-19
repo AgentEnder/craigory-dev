@@ -6,11 +6,10 @@ import type {
   ProviderId,
   ProviderLink,
 } from '../../worker/types';
-import type { PlaylistWithOpenLinks } from '../api';
+import { PROVIDER_IDS } from '../../worker/types';
+import type { PlaylistView as PlaylistData } from '../../worker/playlists';
 import { Artwork } from './Artwork';
 import { PROVIDER_LABELS, ProviderBadge } from './ProviderBadge';
-
-const PROVIDER_ORDER: readonly ProviderId[] = ['spotify', 'apple', 'youtube'];
 
 /** Playlists live 7 days (KV expirationTtl) — mirrored here for the note. */
 const PLAYLIST_TTL_DAYS = 7;
@@ -35,7 +34,7 @@ function expiryDate(createdAt: string): string | undefined {
 }
 
 /** Full imported-playlist view: header, share row, expiry note, track list. */
-export function PlaylistView({ playlist }: { playlist: PlaylistWithOpenLinks }) {
+export function PlaylistView({ playlist }: { playlist: PlaylistData }) {
   const expires = expiryDate(playlist.createdAt);
 
   return (
@@ -79,8 +78,8 @@ export function PlaylistView({ playlist }: { playlist: PlaylistWithOpenLinks }) 
   );
 }
 
-function PlaylistHeader({ playlist }: { playlist: PlaylistWithOpenLinks }) {
-  const orderedOpen = PROVIDER_ORDER.map((p) =>
+function PlaylistHeader({ playlist }: { playlist: PlaylistData }) {
+  const orderedOpen = PROVIDER_IDS.map((p) =>
     playlist.open.find((link) => link.provider === p)
   ).filter((link): link is PlaylistOpenLinks => link !== undefined);
 
@@ -116,6 +115,7 @@ const OPEN_EXACT_STYLES: Record<ProviderId, string> = {
   spotify: 'bg-[#1DB954] text-white shadow-sm hover:bg-[#19a64b]',
   apple: 'bg-rose-500 text-white shadow-sm hover:bg-rose-600',
   youtube: 'bg-red-600 text-white shadow-sm hover:bg-red-700',
+  deezer: 'bg-violet-600 text-white shadow-sm hover:bg-violet-700',
 };
 
 const OPEN_SEARCH_STYLES: Record<ProviderId, string> = {
@@ -125,6 +125,8 @@ const OPEN_SEARCH_STYLES: Record<ProviderId, string> = {
     'border border-gray-200 bg-white text-rose-600 hover:border-rose-300 hover:bg-rose-50',
   youtube:
     'border border-gray-200 bg-white text-red-600 hover:border-red-300 hover:bg-red-50',
+  deezer:
+    'border border-gray-200 bg-white text-violet-600 hover:border-violet-300 hover:bg-violet-50',
 };
 
 /**
@@ -162,7 +164,7 @@ function PlaylistOpenButton({ link }: { link: PlaylistOpenLinks }) {
  * the file's job is to carry the playlist into a transfer service, which does
  * hold the per-user credentials needed to create the real thing.
  */
-function PlaylistExportRow({ playlist }: { playlist: PlaylistWithOpenLinks }) {
+function PlaylistExportRow({ playlist }: { playlist: PlaylistData }) {
   return (
     <div>
       <span className="text-xs font-semibold uppercase tracking-wider text-gray-400">
@@ -276,7 +278,7 @@ function PlaylistTrackRow({
   item: PlaylistTrack;
 }) {
   const { track } = item;
-  const orderedLinks = PROVIDER_ORDER.map((p) =>
+  const orderedLinks = PROVIDER_IDS.map((p) =>
     item.links.find((link) => link.provider === p)
   ).filter((link): link is ProviderLink => link !== undefined);
   const trackLabel = `${track.title} by ${track.artist}`;
@@ -319,6 +321,7 @@ const TRACK_EXACT_STYLES: Record<ProviderId, string> = {
   spotify: 'bg-[#1DB954]/15 text-[#14833b] hover:bg-[#1DB954]/25',
   apple: 'bg-rose-100 text-rose-700 hover:bg-rose-200',
   youtube: 'bg-red-100 text-red-700 hover:bg-red-200',
+  deezer: 'bg-violet-100 text-violet-700 hover:bg-violet-200',
 };
 
 const TRACK_SEARCH_STYLES: Record<ProviderId, string> = {
@@ -328,12 +331,15 @@ const TRACK_SEARCH_STYLES: Record<ProviderId, string> = {
     'border border-dashed border-gray-300 text-gray-500 hover:border-rose-300 hover:text-rose-600',
   youtube:
     'border border-dashed border-gray-300 text-gray-500 hover:border-red-300 hover:text-red-600',
+  deezer:
+    'border border-dashed border-gray-300 text-gray-500 hover:border-violet-300 hover:text-violet-600',
 };
 
 const TRACK_BADGE_ABBR: Record<ProviderId, string> = {
   spotify: 'Spotify',
   apple: 'Apple',
   youtube: 'YouTube',
+  deezer: 'Deezer',
 };
 
 /**

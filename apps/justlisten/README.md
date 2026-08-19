@@ -1,8 +1,16 @@
 # JustListen
 
 "JustWatch, but for music": search for a song, see where you can listen to it
-(Spotify, Apple Music, YouTube / YouTube Music), and import a playlist from any
-supported platform to get listen links for every track.
+(Spotify, Apple Music, YouTube / YouTube Music, Deezer), and import a playlist
+from any supported platform to get listen links for every track.
+
+Search runs against the catalogs that need no credentials or quota — Deezer
+first, then Spotify and iTunes when configured. Deezer leads because it is
+keyless, indexes independent releases the other catalogs miss, and returns an
+ISRC on every row, which makes cross-platform resolution exact rather than
+fuzzy. Pressing Enter (or the last row of the suggestions dropdown) opens
+`/search?q=…`, which fans out across every available catalog, merges
+duplicates, and shows which platforms carry each recording.
 
 See [SPEC.md](./SPEC.md) for the full architecture and contracts.
 
@@ -38,29 +46,49 @@ pnpm --filter justlisten secrets:push    # secreq → wrangler secret bulk
 `secret bulk` preserves secrets absent from the payload, so a key you leave
 empty in 1Password is skipped rather than cleared.
 
-The app works with **zero secrets** (Apple/iTunes needs no credentials) and
-degrades per provider:
+The app works with **zero secrets** (Deezer and Apple/iTunes need no
+credentials) and degrades per provider:
 
-- No Spotify creds → search falls back to iTunes; Spotify links become search
-  links.
+- No Spotify creds → Spotify is skipped as a search catalog and Spotify links
+  become search links.
 - No YouTube key → YouTube links are `https://music.youtube.com/search?q=…`
-  search links and YouTube playlist import is unavailable.
+  search links and YouTube playlist import is unavailable. YouTube never backs
+  search either way: its `search.list` costs 100 of a 10,000-unit daily quota,
+  so it is only used to resolve a link on the song detail page.
 
-For local dev, `pnpm --filter justlisten dev:secrets` injects the same
-1Password values as `wrangler dev --var`, keeping plaintext off disk. Plain
-`dev` runs credential-free (or reads an untracked `.dev.vars` if you prefer).
+For local dev, `vike dev` reads secrets from an untracked `.dev.vars` beside
+`wrangler.jsonc` — `@cloudflare/vite-plugin` sources them there rather than
+from the shell, so there is no secreq path into the dev server. Running
+credential-free is fine: search falls back to the keyless catalogs.
 
 ## Commands
 
 ```sh
-pnpm --filter justlisten dev        # vite build && wrangler dev
-pnpm --filter justlisten build      # vite build → dist/client
-pnpm --filter justlisten typecheck  # app + worker tsconfigs
+pnpm --filter justlisten dev        # vike dev (SSR inside workerd)
+pnpm --filter justlisten build      # vike build → dist/client + dist/server
+pnpm --filter justlisten preview    # vike preview
+pnpm --filter justlisten typecheck  # tsc --noEmit
 pnpm --filter justlisten test       # vitest (pure-logic worker tests)
-pnpm --filter justlisten deploy     # vite build && wrangler deploy
+pnpm --filter justlisten deploy     # vike build && wrangler deploy
 pnpm --filter justlisten secrets:push  # 1Password → Cloudflare secrets
-pnpm --filter justlisten dev:secrets   # dev server with 1Password creds
 ```
+
+## Architecture
+
+Vike (`vike-react`) server-renders every page inside the same Worker that
+serves the API, via `@cloudflare/vite-plugin` — including in dev, so `c.env`
+holds the real KV bindings in both modes.
+
+- `+server.ts` is the Worker entry (`main: "vike:server-entry"`). Hono owns
+  `/api/*`; `vike(app, [...])` catches everything else as SSR.
+- Song and playlist pages load in `+data.ts`, calling `worker/song.ts` and
+  `worker/playlists.ts` **in process**. Fetching this app's own API over HTTP
+  would spend a subrequest to reach code already in the same isolate, so those
+  two GET endpoints don't exist — the page ships rendered instead.
+- `worker/page-env.ts` is the universal middleware that puts the Worker's
+  bindings on `pageContext` for those hooks.
+- The interactive calls that genuinely are APIs — autocomplete, cross-catalog
+  search, playlist import, CSV export — stay in `src/api.ts` + `worker/routes/`.
 
 ## Cost notes
 

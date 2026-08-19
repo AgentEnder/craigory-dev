@@ -1,10 +1,10 @@
-import { Link } from 'react-router-dom';
 import { Card } from '@new-personal-monorepo/small-app-design-system';
-import { ImportForm } from '../components/ImportForm';
-import { ProviderBadge } from '../components/ProviderBadge';
+import type { ProviderId } from '../../worker/types';
+import { ImportForm } from '../../src/components/ImportForm';
+import { ProviderBadge } from '../../src/components/ProviderBadge';
 
 const URL_SHAPES: {
-  provider: 'spotify' | 'apple' | 'youtube';
+  provider: ProviderId;
   what: string;
   example: string;
   caveat?: string;
@@ -20,6 +20,11 @@ const URL_SHAPES: {
     example: 'https://www.youtube.com/playlist?list=… or https://music.youtube.com/playlist?list=…',
   },
   {
+    provider: 'deezer',
+    what: 'Public playlists and albums',
+    example: 'https://www.deezer.com/playlist/… or …/album/…',
+  },
+  {
     provider: 'apple',
     what: 'Public playlists',
     example: 'https://music.apple.com/us/playlist/…/pl.…',
@@ -28,21 +33,21 @@ const URL_SHAPES: {
   },
 ];
 
-export function ImportPage() {
+export function Page() {
   return (
     <div className="mx-auto max-w-xl">
-      <Link
-        to="/"
+      <a href="/"
         className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-blue-600"
       >
         <span aria-hidden="true">←</span> Back to search
-      </Link>
+      </a>
 
       <Card>
         <h1 className="text-2xl font-bold text-gray-900">Import a playlist</h1>
         <p className="mt-2 text-sm text-gray-600">
           Paste a playlist link and we'll build a shareable page with listen
-          links for every track on Spotify, Apple Music, and YouTube Music.
+          links for every track on Spotify, Apple Music, YouTube Music, and
+          Deezer.
         </p>
 
         <div className="mt-6">

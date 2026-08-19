@@ -93,13 +93,18 @@ describe('exactPlaylistLink', () => {
 });
 
 describe('playlistOpenLinks', () => {
-  it('returns all three providers in canonical order', () => {
+  it('returns every provider in canonical order', () => {
     const links = playlistOpenLinks(
       'spotify',
       'https://open.spotify.com/playlist/abc',
       'My Mix'
     );
-    expect(links.map((l) => l.provider)).toEqual(['spotify', 'apple', 'youtube']);
+    expect(links.map((l) => l.provider)).toEqual([
+      'spotify',
+      'apple',
+      'youtube',
+      'deezer',
+    ]);
   });
 
   it('marks the source exact with an Open label, others search with Find', () => {

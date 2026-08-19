@@ -14,19 +14,17 @@ import type {
   Env,
   MusicProvider,
   Playlist,
-  PlaylistOpenLinks,
   PlaylistTrack,
-  ProviderId,
   ProviderLink,
   Track,
 } from '../types';
-import { providers, getProvider } from '../providers/index';
+import { PROVIDER_IDS } from '../types';
+import { providers } from '../providers/index';
 import { cachedTrackLink, resolveTrackOnProvider } from '../providers/matching';
 import {
   exactTrackLink,
+  providerDisplayName,
   searchTrackLink,
-  exactPlaylistLink,
-  searchPlaylistLink,
 } from '../providers/links';
 import { createId, savePlaylist, loadPlaylist } from '../playlists';
 
@@ -45,8 +43,8 @@ const MAX_TRACKS = 100;
  * is fixed conservatively. The next MAX_CACHE_ONLY_RESOLVED_TRACKS tracks
  * get a cache-READ-only pass (≤2 KV reads each, no provider HTTP), and
  * every remaining track gets `kind: 'search'` links built locally by pure
- * functions — zero subrequests — so the response still always carries 3
- * links per track. This cap is documented in README Limitations.
+ * functions — zero subrequests — so the response still always carries one
+ * link per provider. This cap is documented in README Limitations.
  */
 const MAX_LIVE_RESOLVED_TRACKS = 4;
 
@@ -55,14 +53,6 @@ const MAX_CACHE_ONLY_RESOLVED_TRACKS = 4;
 
 /** Resolve in small sequential batches to bound concurrency. */
 const RESOLVE_BATCH_SIZE = 5;
-
-const PROVIDER_ORDER: ProviderId[] = ['spotify', 'apple', 'youtube'];
-
-const PROVIDER_NAMES: Record<ProviderId, string> = {
-  spotify: 'Spotify',
-  apple: 'Apple Music',
-  youtube: 'YouTube Music',
-};
 
 /**
  * Source-provider link. Scraped tracks (e.g. Apple JSON-LD fallback) may
@@ -77,7 +67,7 @@ function sourceTrackLink(track: Track): ProviderLink {
 
 /** All-local links (zero subrequests): exact for source, search for others. */
 function localTrackLinks(track: Track): ProviderLink[] {
-  return PROVIDER_ORDER.map((target) =>
+  return PROVIDER_IDS.map((target) =>
     target === track.provider
       ? sourceTrackLink(track)
       : searchTrackLink(target, track)
@@ -90,7 +80,7 @@ function localTrackLinks(track: Track): ProviderLink[] {
  */
 async function cachedTrackLinks(env: Env, track: Track): Promise<ProviderLink[]> {
   return Promise.all(
-    PROVIDER_ORDER.map(async (target) => {
+    PROVIDER_IDS.map(async (target) => {
       if (target === track.provider) {
         return sourceTrackLink(track);
       }
@@ -102,7 +92,7 @@ async function cachedTrackLinks(env: Env, track: Track): Promise<ProviderLink[]>
 /** Live links: reuse the KV match cache; degrade failures to search links. */
 async function liveTrackLinks(env: Env, track: Track): Promise<ProviderLink[]> {
   return Promise.all(
-    PROVIDER_ORDER.map(async (target) => {
+    PROVIDER_IDS.map(async (target) => {
       if (target === track.provider) {
         return sourceTrackLink(track);
       }
@@ -161,7 +151,7 @@ playlistRoutes.post('/', async (c) => {
     );
   }
 
-  const sourceName = PROVIDER_NAMES[source.id];
+  const sourceName = providerDisplayName(source.id);
   let fetched: { title: string; tracks: Track[] } | null;
   try {
     fetched = await source.getPlaylist(c.env, sourcePlaylistId);
@@ -249,40 +239,4 @@ playlistRoutes.get('/:id/export.csv', async (c) => {
       'content-disposition': `attachment; filename="${csvFilename(playlist.title)}"`,
     },
   });
-});
-
-playlistRoutes.get('/:id', async (c) => {
-  const id = c.req.param('id');
-  const playlist = await loadPlaylist(c.env, id);
-  if (!playlist) {
-    return c.json(
-      {
-        error:
-          'Playlist not found. Imported playlists expire after 7 days — ' +
-          'you can re-import it from its original URL.',
-      },
-      404
-    );
-  }
-
-  const open: PlaylistOpenLinks[] = PROVIDER_ORDER.map((providerId) => {
-    if (providerId === playlist.sourceProvider) {
-      // Exact source-platform link. Prefer the canonical builder (re-parse
-      // the stored URL for the native playlist id); fall back to the stored
-      // URL itself.
-      const parsed = getProvider(providerId)?.parsePlaylistUrl(
-        playlist.sourceUrl
-      );
-      const link: ProviderLink = parsed
-        ? exactPlaylistLink(providerId, parsed.playlistId)
-        : { provider: providerId, kind: 'exact', url: playlist.sourceUrl };
-      return { ...link, label: `Open on ${PROVIDER_NAMES[providerId]}` };
-    }
-    // Cross-platform playlist creation needs per-user OAuth (out of scope) —
-    // offer a title search deep-link instead.
-    const link = searchPlaylistLink(providerId, playlist.title);
-    return { ...link, label: `Find on ${PROVIDER_NAMES[providerId]}` };
-  });
-
-  return c.json({ ...playlist, open });
 });

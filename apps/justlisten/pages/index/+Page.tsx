@@ -1,9 +1,8 @@
-import { Link } from 'react-router-dom';
 import { AppHeader } from '@new-personal-monorepo/small-app-design-system';
-import { SearchBox } from '../components/SearchBox';
-import { ProviderBadge } from '../components/ProviderBadge';
+import { SearchBox } from '../../src/components/SearchBox';
+import { ProviderBadge } from '../../src/components/ProviderBadge';
 
-export function HomePage() {
+export function Page() {
   return (
     <>
       <AppHeader
@@ -16,8 +15,8 @@ export function HomePage() {
             One song, every platform.
           </h2>
           <p className="mt-3 text-base text-gray-500">
-            Search any track and get listen links for Spotify, Apple Music, and
-            YouTube Music.
+            Search any track and get listen links for Spotify, Apple Music,
+            YouTube Music, and Deezer.
           </p>
         </section>
 
@@ -32,19 +31,19 @@ export function HomePage() {
           <ProviderBadge provider="spotify" />
           <ProviderBadge provider="apple" />
           <ProviderBadge provider="youtube" />
+          <ProviderBadge provider="deezer" />
         </div>
 
         <div className="mt-12 text-center">
-          <Link
-            to="/import"
+          <a href="/import"
             className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-blue-300 hover:text-blue-600 active:scale-[0.98]"
           >
             Import a playlist
             <span aria-hidden="true">→</span>
-          </Link>
+          </a>
           <p className="mt-3 text-xs text-gray-400">
-            Paste a Spotify, Apple Music, or YouTube playlist link to get listen
-            links for every track.
+            Paste a Spotify, Apple Music, YouTube, or Deezer playlist link to
+            get listen links for every track.
           </p>
         </div>
       </main>

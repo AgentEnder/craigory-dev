@@ -1,54 +1,151 @@
 /**
- * GET /api/search?q=<text>&limit=8 → SearchResult[]
+ * GET /api/search?q=<text>&limit=8      → SearchResult[]        (autocomplete)
+ * GET /api/search/all?q=<text>&limit=25 → AggregatedSearch      (search page)
  *
- * Uses ONE metadata provider for autocomplete (Spotify if configured, else
- * iTunes) — never fans out to all providers per keystroke (cost/quota).
- * Cached with the Cache API (free/unlimited; never KV), TTL 3600s, keyed on
- * the normalized query + limit. 400 on empty/too-short q.
+ * Autocomplete uses ONE metadata provider — never fans out per keystroke
+ * (cost/quota). The full search page is user-initiated rather than
+ * per-keystroke, so it may fan out across every searchable catalog and merge
+ * the results. Neither path ever touches the YouTube Data API, whose
+ * `search.list` costs 100 of a 10,000-unit daily quota.
+ *
+ * Both are cached with the Cache API (free/unlimited; never KV), keyed on the
+ * normalized query + limit.
  */
 
 import { Hono } from 'hono';
-import type { Env, SearchResult } from '../types';
+import type { AggregatedSearch, Env, SearchResult } from '../types';
 import { cacheJson } from '../cache';
-import { getProvider } from '../providers/index';
+import { searchCatalogs } from '../providers/index';
+import { mergeCatalogResults, type CatalogResults } from '../providers/aggregate';
 
 const SEARCH_CACHE_TTL_SECONDS = 3600;
+/**
+ * The aggregate costs one upstream request per catalog, so it is cached
+ * longer than autocomplete — it also shields Deezer's ~50-request/5s per-IP
+ * limit, which Workers hit from shared per-PoP egress addresses.
+ */
+const AGGREGATE_CACHE_TTL_SECONDS = 6 * 60 * 60;
 const DEFAULT_LIMIT = 8;
+const DEFAULT_AGGREGATE_LIMIT = 25;
 const MIN_QUERY_LENGTH = 2;
 
 export const searchRoutes = new Hono<{ Bindings: Env }>();
 
-searchRoutes.get('/', async (c) => {
-  // Normalize: trim, collapse whitespace, lowercase — also the cache key, so
-  // trivially-different keystroke queries share one upstream request.
-  const q = (c.req.query('q') ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
-  if (!q) {
-    return c.json({ error: 'Missing required query parameter: q' }, 400);
-  }
+/**
+ * Normalize a raw `q`: trim, collapse whitespace, lowercase. Also the cache
+ * key, so trivially-different keystroke queries share one upstream request.
+ */
+function normalizeQuery(raw: string | undefined): string {
+  return (raw ?? '').trim().replace(/\s+/g, ' ').toLowerCase();
+}
+
+function parseLimit(raw: string | undefined, fallback: number, max: number) {
+  const parsed = Number.parseInt(raw ?? '', 10);
+  return Number.isNaN(parsed) ? fallback : Math.min(max, Math.max(1, parsed));
+}
+
+/** Shared 400s for both endpoints; null when the query is acceptable. */
+function queryError(q: string): string | null {
+  if (!q) return 'Missing required query parameter: q';
   if (q.length < MIN_QUERY_LENGTH) {
-    return c.json(
-      { error: `Query must be at least ${MIN_QUERY_LENGTH} characters` },
-      400
-    );
+    return `Query must be at least ${MIN_QUERY_LENGTH} characters`;
   }
+  return null;
+}
 
-  const rawLimit = Number.parseInt(c.req.query('limit') ?? '', 10);
-  const limit = Number.isNaN(rawLimit)
-    ? DEFAULT_LIMIT
-    : Math.min(10, Math.max(1, rawLimit));
+searchRoutes.get('/all', async (c) => {
+  const q = normalizeQuery(c.req.query('q'));
+  const error = queryError(q);
+  if (error) return c.json({ error }, 400);
 
-  // ONE provider only: Spotify when credentials are configured, else iTunes
-  // (which needs no credentials and is always available).
-  const spotify = getProvider('spotify');
-  const apple = getProvider('apple');
-  const provider = spotify?.available(c.env) ? spotify : apple;
-  if (!provider || !provider.available(c.env)) {
+  const limit = parseLimit(c.req.query('limit'), DEFAULT_AGGREGATE_LIMIT, 50);
+  // Over-fetch per catalog so the merge has duplicates to collapse and still
+  // fills `limit` rows afterwards.
+  const perCatalog = Math.min(25, limit);
+
+  try {
+    const aggregate = await cacheJson<AggregatedSearch>(
+      `search-all:${limit}:${q}`,
+      AGGREGATE_CACHE_TTL_SECONDS,
+      async () => {
+        // Concurrent: one catalog erroring or being unconfigured must not
+        // deny the user the others' results.
+        const settled = await Promise.all(
+          searchCatalogs.map(async (provider) => {
+            if (!provider.available(c.env)) {
+              return {
+                status: {
+                  provider: provider.id,
+                  available: false,
+                  ok: false,
+                  count: 0,
+                },
+                results: [] as SearchResult[],
+              };
+            }
+            try {
+              const results = await provider.search(c.env, q, perCatalog);
+              return {
+                status: {
+                  provider: provider.id,
+                  available: true,
+                  ok: true,
+                  count: results.length,
+                },
+                results,
+              };
+            } catch (err) {
+              console.error(`Search failed for ${provider.id}:`, err);
+              return {
+                status: {
+                  provider: provider.id,
+                  available: true,
+                  ok: false,
+                  count: 0,
+                },
+                results: [] as SearchResult[],
+              };
+            }
+          })
+        );
+
+        const catalogResults: CatalogResults[] = settled.map((s) => ({
+          provider: s.status.provider,
+          results: s.results,
+        }));
+        return {
+          query: q,
+          results: mergeCatalogResults(catalogResults, limit),
+          catalogs: settled.map((s) => s.status),
+        };
+      }
+    );
+    return c.json(aggregate);
+  } catch (err) {
+    console.error('Aggregate search failed:', err);
+    return c.json({ error: 'Search is temporarily unavailable' }, 502);
+  }
+});
+
+searchRoutes.get('/', async (c) => {
+  const q = normalizeQuery(c.req.query('q'));
+  const error = queryError(q);
+  if (error) return c.json({ error }, 400);
+
+  const limit = parseLimit(c.req.query('limit'), DEFAULT_LIMIT, 10);
+
+  // ONE catalog only, in `SEARCH_CATALOG_IDS` preference order: Deezer leads
+  // because it is keyless (so autocomplete works in a zero-secret deploy),
+  // indexes the independent long tail the other catalogs miss, and returns an
+  // ISRC on every row — which the song page then resolves from exactly.
+  const provider = searchCatalogs.find((p) => p.available(c.env));
+  if (!provider) {
     return c.json({ error: 'No search provider is available' }, 503);
   }
 
   try {
     const results = await cacheJson<SearchResult[]>(
-      `search:${limit}:${q}`,
+      `search:${provider.id}:${limit}:${q}`,
       SEARCH_CACHE_TTL_SECONDS,
       () => provider.search(c.env, q, limit)
     );

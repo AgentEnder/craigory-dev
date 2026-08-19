@@ -11,19 +11,26 @@
  * Pure string building: no network, no KV, no subrequests.
  */
 import type { Playlist, ProviderId } from './types';
+import { PROVIDER_IDS } from './types';
+
+/**
+ * Column heading per provider. A `Record<ProviderId, string>` rather than a
+ * literal list so adding a provider is a compile error here instead of a
+ * column silently missing from every export.
+ */
+const PROVIDER_COLUMNS: Record<ProviderId, string> = {
+  spotify: 'Spotify',
+  apple: 'Apple Music',
+  youtube: 'YouTube',
+  deezer: 'Deezer',
+};
+
+const FIXED_COLUMNS = ['Title', 'Artist', 'Album', 'ISRC', 'Release Date'];
 
 const COLUMNS = [
-  'Title',
-  'Artist',
-  'Album',
-  'ISRC',
-  'Release Date',
-  'Spotify',
-  'Apple Music',
-  'YouTube',
-] as const;
-
-const LINK_PROVIDERS: ProviderId[] = ['spotify', 'apple', 'youtube'];
+  ...FIXED_COLUMNS,
+  ...PROVIDER_IDS.map((provider) => PROVIDER_COLUMNS[provider]),
+];
 
 /**
  * RFC 4180 quoting. Values are passed through verbatim otherwise — the
@@ -41,7 +48,7 @@ export function playlistToCsv(playlist: Playlist): string {
   for (const { track, links } of playlist.tracks) {
     // A search link is a query, not a track URL — emit a cell only for a
     // resolved match so importers never follow one as if it were the song.
-    const urls = LINK_PROVIDERS.map((provider) => {
+    const urls = PROVIDER_IDS.map((provider) => {
       const link = links.find((candidate) => candidate.provider === provider);
       return link?.kind === 'exact' ? link.url : '';
     });

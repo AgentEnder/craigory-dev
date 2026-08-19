@@ -9,6 +9,7 @@ import type {
   ProviderLink,
   Track,
 } from '../types';
+import { PROVIDER_IDS } from '../types';
 
 const enc = encodeURIComponent;
 
@@ -21,6 +22,8 @@ export function providerDisplayName(provider: ProviderId): string {
       return 'Apple Music';
     case 'youtube':
       return 'YouTube Music';
+    case 'deezer':
+      return 'Deezer';
   }
 }
 
@@ -33,6 +36,8 @@ export function exactTrackLink(provider: ProviderId, id: string): ProviderLink {
       return { provider, kind: 'exact', url: `https://music.apple.com/us/song/${id}` };
     case 'youtube':
       return { provider, kind: 'exact', url: `https://music.youtube.com/watch?v=${id}` };
+    case 'deezer':
+      return { provider, kind: 'exact', url: `https://www.deezer.com/track/${id}` };
   }
 }
 
@@ -45,6 +50,8 @@ export function searchUrl(provider: ProviderId, query: string): string {
       return `https://music.apple.com/us/search?term=${enc(query)}`;
     case 'youtube':
       return `https://music.youtube.com/search?q=${enc(query)}`;
+    case 'deezer':
+      return `https://www.deezer.com/search/${enc(query)}`;
   }
 }
 
@@ -75,6 +82,7 @@ export function searchPlaylistLink(
  * - spotify: `playlist:<id>` or `album:<id>` (bare ids treated as playlists)
  * - apple:   `<storefront>/<pl.…>` (bare `pl.…` ids default to `us`)
  * - youtube: the raw `list` id
+ * - deezer:  `playlist:<id>` or `album:<id>` (bare ids treated as playlists)
  */
 export function exactPlaylistLink(
   provider: ProviderId,
@@ -104,6 +112,13 @@ export function exactPlaylistLink(
         kind: 'exact',
         url: `https://music.youtube.com/playlist?list=${playlistId}`,
       };
+    case 'deezer': {
+      const sep = playlistId.indexOf(':');
+      const kind = sep === -1 ? 'playlist' : playlistId.slice(0, sep);
+      const id = sep === -1 ? playlistId : playlistId.slice(sep + 1);
+      const path = kind === 'album' ? 'album' : 'playlist';
+      return { provider, kind: 'exact', url: `https://www.deezer.com/${path}/${id}` };
+    }
   }
 }
 
@@ -116,8 +131,7 @@ export function playlistOpenLinks(
   sourceUrl: string,
   title: string
 ): PlaylistOpenLinks[] {
-  const order: ProviderId[] = ['spotify', 'apple', 'youtube'];
-  return order.map((provider) =>
+  return PROVIDER_IDS.map((provider) =>
     provider === sourceProvider
       ? {
           provider,

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { navigate } from 'vike/client/router';
 import {
   ErrorPill,
   TextInput,
@@ -15,19 +15,37 @@ type Status = 'idle' | 'loading' | 'ready' | 'error';
 export interface SearchBoxProps {
   autoFocus?: boolean;
   className?: string;
+  /** Seeds the input, e.g. from `?q=` on the search results page. */
+  initialQuery?: string;
 }
 
 /**
  * Debounced (250ms) autocomplete search. Stale requests are canceled with an
  * AbortController; selecting a row navigates to `/song/:provider/:id`.
- * Keyboard: ↑/↓ move, Enter selects, Esc closes (then clears).
+ * Keyboard: ↑/↓ move, Enter opens the highlighted row, Esc closes (then
+ * clears).
+ *
+ * Autocomplete deliberately queries a single catalog, so it can come back
+ * empty for a recording that another catalog carries. The "see all results"
+ * row is therefore always offered — including on the empty state, which is
+ * exactly when the wider search is most useful.
  */
-export function SearchBox({ autoFocus = false, className }: SearchBoxProps) {
-  const navigate = useNavigate();
+export function SearchBox({
+  autoFocus = false,
+  className,
+  initialQuery = '',
+}: SearchBoxProps) {
   const listboxId = useId();
   const rootRef = useRef<HTMLDivElement>(null);
 
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState(initialQuery);
+  /**
+   * Suggestions are a response to typing, never to a seeded value. Without
+   * this the search page would land with the dropdown already covering the
+   * results it just fetched — and would spend a second, redundant request to
+   * populate it.
+   */
+  const [typing, setTyping] = useState(false);
   const [results, setResults] = useState<SearchResult[]>([]);
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState('');
@@ -37,6 +55,7 @@ export function SearchBox({ autoFocus = false, className }: SearchBoxProps) {
   // Debounced fetch; cleanup cancels both the timer and any in-flight request,
   // so stale responses can never land.
   useEffect(() => {
+    if (!typing) return;
     const q = query.trim();
     // Mirror the server's MIN_QUERY_LENGTH (2): a shorter query would get a
     // 400 back, flashing an error pill on the first keystroke.
@@ -69,7 +88,7 @@ export function SearchBox({ autoFocus = false, className }: SearchBoxProps) {
       window.clearTimeout(timer);
       controller.abort();
     };
-  }, [query]);
+  }, [query, typing]);
 
   // Click / tap outside closes the dropdown.
   useEffect(() => {
@@ -93,6 +112,13 @@ export function SearchBox({ autoFocus = false, className }: SearchBoxProps) {
     navigate(`/song/${row.provider}/${encodeURIComponent(row.id)}`);
   };
 
+  const seeAllResults = () => {
+    const q = query.trim();
+    if (q.length < 2) return;
+    setOpen(false);
+    navigate(`/search?q=${encodeURIComponent(q)}`);
+  };
+
   const onKeyDown = (event: KeyboardEvent<HTMLInputElement>) => {
     if (event.key === 'Escape') {
       event.preventDefault();
@@ -112,9 +138,13 @@ export function SearchBox({ autoFocus = false, className }: SearchBoxProps) {
       return;
     }
     if (event.key === 'Enter') {
+      event.preventDefault();
       if (open && activeIndex >= 0 && activeIndex < results.length) {
-        event.preventDefault();
         select(results[activeIndex]);
+      } else {
+        // Nothing highlighted — the user wants the broader search, not a
+        // guess at which suggestion they meant.
+        seeAllResults();
       }
     }
   };
@@ -129,7 +159,10 @@ export function SearchBox({ autoFocus = false, className }: SearchBoxProps) {
         type="text"
         enterKeyHint="search"
         value={query}
-        onChange={(event) => setQuery(event.target.value)}
+        onChange={(event) => {
+          setTyping(true);
+          setQuery(event.target.value);
+        }}
         onKeyDown={onKeyDown}
         onFocus={() => {
           if (status !== 'idle') setOpen(true);
@@ -209,8 +242,23 @@ export function SearchBox({ autoFocus = false, className }: SearchBoxProps) {
             <p className="px-4 py-3 text-sm text-gray-400">Searching…</p>
           ) : (
             <p className="px-4 py-3 text-sm text-gray-500">
-              No matches for “{query.trim()}”. Try a different title or artist.
+              No quick matches for “{query.trim()}”. Search every platform for
+              more.
             </p>
+          )}
+
+          {query.trim().length >= 2 && (
+            <button
+              type="button"
+              onMouseDown={(event) => event.preventDefault()}
+              onClick={seeAllResults}
+              className="flex w-full items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 text-left text-sm font-medium text-blue-600 transition-colors hover:bg-blue-50"
+            >
+              <span className="truncate">
+                Search every platform for “{query.trim()}”
+              </span>
+              <span aria-hidden="true">→</span>
+            </button>
           )}
         </div>
       )}

@@ -37,7 +37,7 @@ function playlist(tracks: PlaylistTrack[], title = 'Road Trip'): Playlist {
 describe('playlistToCsv', () => {
   it('emits a header and one row per track', () => {
     const rows = playlistToCsv(playlist([track()])).trimEnd().split('\r\n');
-    expect(rows[0]).toBe('Title,Artist,Album,ISRC,Release Date,Spotify,Apple Music,YouTube');
+    expect(rows[0]).toBe('Title,Artist,Album,ISRC,Release Date,Spotify,Apple Music,YouTube,Deezer');
     expect(rows).toHaveLength(2);
     expect(rows[1]).toContain('Bohemian Rhapsody,Queen,A Night at the Opera,GBUM71029604');
   });
@@ -72,7 +72,7 @@ describe('playlistToCsv', () => {
 
   it('handles an empty playlist', () => {
     expect(playlistToCsv(playlist([]))).toBe(
-      'Title,Artist,Album,ISRC,Release Date,Spotify,Apple Music,YouTube\r\n'
+      'Title,Artist,Album,ISRC,Release Date,Spotify,Apple Music,YouTube,Deezer\r\n'
     );
   });
 });
