@@ -43,16 +43,27 @@ export function PageShell({ children }: { children: React.ReactNode }) {
               </Link>
             </div>
           </Sidebar>
+
+          {/*
+            Mobile chrome — a fixed header and drawer, so it takes no part in
+            the flex row and is hidden by media query above 900px.
+          */}
+          <MobileNav />
+
+          {/*
+            Rendered ONCE, for both layouts. This used to appear twice, inside
+            the desktop `.layout` and again inside `MobileNav`, swapped by media
+            query — which put every `id` in the page into the document twice.
+            `getElementById` and `:target` both take the FIRST match, so an
+            anchor like /presentations#kcdc-2025-monorepo-nx could resolve to
+            the copy that was `display: none`. The presentations index relies on
+            exactly that lookup to mark a card active.
+
+            It also means the body is no longer indexed twice by Pagefind, which
+            is what the `data-pagefind-ignore` on the mobile container was for.
+          */}
           <Content>{children}</Content>
         </Layout>
-
-        {/*
-        Mobile layout. This renders the SAME `children` a second time — the two
-        layouts are swapped by media query, not by branching — so it is marked
-        ignored for Pagefind. Without it every page's body is indexed twice and
-        every excerpt comes back duplicated.
-      */}
-        <MobileNav>{children}</MobileNav>
 
         <Toaster />
       </SpotlightProvider>

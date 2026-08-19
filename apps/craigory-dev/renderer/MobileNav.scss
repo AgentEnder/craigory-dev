@@ -180,24 +180,22 @@
   }
 
   .mobile-header,
-  .mobile-content {
+  .content {
     transition: transform 300ms ease-out;
   }
 
-  // Push content completely off-screen
-  .mobile-nav-container:has(.mobile-drawer--open) .mobile-header,
-  .mobile-nav-container:has(.mobile-drawer--open) .mobile-content {
+  // Push content completely off-screen.
+  //
+  // Scoped to `.layout` rather than `.mobile-nav-container`: the page body is
+  // now a SIBLING of the mobile chrome, not a descendant of it, so the old
+  // descendant selector no longer matched anything. `.layout` is the nearest
+  // ancestor holding both.
+  .layout:has(.mobile-drawer--open) .mobile-header,
+  .layout:has(.mobile-drawer--open) .content {
     transform: translateX(-100vw);
   }
 }
 
-// Content wrapper
-.mobile-content {
-  padding: 20px;
-  padding-bottom: 50px;
-  max-width: 90vw;
-  margin: 0 auto;
-  overflow-x: hidden;
-  word-wrap: break-word;
-  overflow-wrap: break-word;
-}
+// `.mobile-content` was here. It wrapped a second copy of the page body; the
+// body is rendered once now, and these rules live on `.content` in
+// PageShell.scss under its own max-width:900px block.
