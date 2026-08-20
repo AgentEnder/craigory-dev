@@ -30,7 +30,11 @@ import type {
 } from '../types';
 import { PROVIDER_IDS } from '../types';
 import { providers } from '../providers/index';
-import { cachedTrackMatch, resolveTrackOnProvider } from '../providers/matching';
+import {
+  cachedTrackMatch,
+  resolveTrackOnProvider,
+  seedSourceMatch,
+} from '../providers/matching';
 import {
   exactTrackLink,
   providerDisplayName,
@@ -106,6 +110,13 @@ async function buildPlaylistTrack(
   track: Track,
   mode: 'live' | 'cache'
 ): Promise<PlaylistTrack> {
+  // A live row is the one place we hold a real, human-supplied id for this
+  // recording on its own platform. Record it so a later view from another
+  // catalog gets an exact link here rather than a search box — see
+  // `seedSourceMatch`. Cache rows are skipped: the whole point of that pass is
+  // to spend nothing.
+  if (mode === 'live') await seedSourceMatch(env, track);
+
   const results = await Promise.all(
     PROVIDER_IDS.map(async (target): Promise<ResolvedMatch> => {
       if (target === track.provider) {

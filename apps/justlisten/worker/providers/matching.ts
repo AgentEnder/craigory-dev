@@ -13,7 +13,7 @@ import type {
   Track,
 } from '../types';
 import { kvGetJson, kvPutJson, matchCacheKey } from '../cache';
-import { searchTrackLink } from './links';
+import { exactTrackLink, searchTrackLink } from './links';
 import { getProvider } from './index';
 
 /** TTL for per-provider match cache entries (30 days, per SPEC). */
@@ -93,6 +93,29 @@ export function matchKeyForTrack(
   return track.isrc
     ? `isrc:${track.isrc.toUpperCase()}`
     : `norm:${normKey(track)}`;
+}
+
+/**
+ * Every key portion this track could be filed under, best identity first.
+ *
+ * A recording gets cached under whichever key its *source* could supply, and
+ * sources disagree: Deezer and the Spotify Web API carry an ISRC, while the
+ * keyless paths (YouTube oEmbed, the Spotify embed page) carry none and can
+ * only ever be keyed on normalized artist + title. Reading just the preferred
+ * key would mean an ISRC-carrying track never sees an entry left by a keyless
+ * one — which is exactly the entry `seedSourceMatch` writes.
+ *
+ * Empty when the track has no usable identity at all: with no ISRC and an
+ * artist that normalizes to nothing, `normKey` degenerates to `~<title>` and
+ * would collide across every artist with that song title.
+ */
+export function matchKeysForTrack(
+  track: Pick<Track, 'title' | 'artist' | 'isrc'>
+): string[] {
+  const keys: string[] = [];
+  if (track.isrc) keys.push(`isrc:${track.isrc.toUpperCase()}`);
+  if (normalizeArtist(track.artist) !== '') keys.push(`norm:${normKey(track)}`);
+  return keys;
 }
 
 function tokens(s: string): string[] {
@@ -186,36 +209,88 @@ export function pickBestMatch<T extends Track>(
  * so different artists' same-titled songs would collide in the cache.
  */
 function hasCacheableIdentity(track: Track): boolean {
-  return Boolean(track.isrc) || normalizeArtist(track.artist) !== '';
+  return matchKeysForTrack(track).length > 0;
+}
+
+/**
+ * First cached exact match for `track` on `target`, trying each key the track
+ * could be filed under. Never throws — a cache outage is a miss.
+ *
+ * At most 2 KV reads (only ISRC-carrying tracks have a second key), which draw
+ * on the 1,000-per-invocation internal-services budget, not the 50 subrequests
+ * reserved for provider HTTP.
+ */
+async function readCachedMatch(
+  env: Env,
+  track: Track,
+  target: ProviderId
+): Promise<ResolvedMatch | null> {
+  for (const key of matchKeysForTrack(track)) {
+    try {
+      const cached = await kvGetJson<ResolvedMatch>(
+        env,
+        matchCacheKey(key, target)
+      );
+      if (
+        cached?.link &&
+        cached.link.kind === 'exact' &&
+        typeof cached.link.url === 'string'
+      ) {
+        return cached;
+      }
+    } catch {
+      // Cache unavailable — treat as a miss and try the next key.
+    }
+  }
+  return null;
+}
+
+/**
+ * Teach the match cache the link we already have for free: the one to the
+ * track's *own* provider.
+ *
+ * Resolution only ever caches links it went out and found, so the source
+ * provider's id — the most reliable datum in the whole request, since a human
+ * handed it to us — was being thrown away. Recording it means a later view of
+ * the same recording from a different catalog gets an exact link to a platform
+ * we may have no credentials for and could not otherwise resolve: paste one
+ * Spotify link and every future visitor gets that Spotify track, not a search
+ * box. It is also the only affordable way to learn YouTube video ids, whose
+ * `search.list` costs 100 of a 10,000-unit daily quota.
+ *
+ * Filed under the *normalized* key even when an ISRC is available: the readers
+ * who need this are the keyless-sourced tracks, which have no ISRC and look
+ * nowhere else. ISRC-carrying readers still find it, because `readCachedMatch`
+ * tries both. One write, both readers — which matters against KV's ~1k
+ * writes/day.
+ *
+ * Never throws: a failed seed costs a future cache hit, nothing more.
+ */
+export async function seedSourceMatch(env: Env, track: Track): Promise<void> {
+  if (!track.id || normalizeArtist(track.artist) === '') return;
+  try {
+    await kvPutJson(
+      env,
+      matchCacheKey(`norm:${normKey(track)}`, track.provider),
+      { link: exactTrackLink(track.provider, track.id), matched: track },
+      MATCH_TTL_SECONDS
+    );
+  } catch {
+    // Best-effort.
+  }
 }
 
 /**
  * Cache-read-only resolution: return the cached exact link for `track` on
- * `target` (2 KV reads max per track across providers; zero provider HTTP),
- * or null on a miss. Never throws.
+ * `target` (zero provider HTTP), or null on a miss. Never throws.
  */
 export async function cachedTrackMatch(
   env: Env,
   track: Track,
   target: ProviderId
 ): Promise<ResolvedMatch | null> {
-  if (track.provider === target || !hasCacheableIdentity(track)) return null;
-  try {
-    const cached = await kvGetJson<ResolvedMatch>(
-      env,
-      matchCacheKey(matchKeyForTrack(track), target)
-    );
-    if (
-      cached?.link &&
-      cached.link.kind === 'exact' &&
-      typeof cached.link.url === 'string'
-    ) {
-      return cached;
-    }
-  } catch {
-    // Cache unavailable — treat as a miss.
-  }
-  return null;
+  if (track.provider === target) return null;
+  return readCachedMatch(env, track, target);
 }
 
 /**
@@ -238,21 +313,11 @@ export async function resolveTrackOnProvider(
   const cacheable = track.provider !== target && hasCacheableIdentity(track);
 
   if (cacheable) {
-    try {
-      // The matched track is cached alongside the link so a cache hit still
-      // supplies the artwork and ISRC the importer copies onto its own row —
-      // otherwise a warm cache would produce worse rows than a cold one.
-      const cached = await kvGetJson<ResolvedMatch>(env, cacheKey);
-      if (
-        cached?.link &&
-        cached.link.kind === 'exact' &&
-        typeof cached.link.url === 'string'
-      ) {
-        return cached;
-      }
-    } catch {
-      // Cache unavailable — fall through to a live resolve.
-    }
+    // The matched track is cached alongside the link so a cache hit still
+    // supplies the artwork and ISRC the importer copies onto its own row —
+    // otherwise a warm cache would produce worse rows than a cold one.
+    const cached = await readCachedMatch(env, track, target);
+    if (cached) return cached;
   }
 
   let resolved: ResolvedMatch;

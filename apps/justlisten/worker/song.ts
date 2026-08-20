@@ -11,7 +11,7 @@
  */
 import { cacheJson } from './cache';
 import { exactTrackLink, searchTrackLink } from './providers/links';
-import { resolveTrackOnProvider } from './providers/matching';
+import { resolveTrackOnProvider, seedSourceMatch } from './providers/matching';
 import { getProvider, isProviderId } from './providers/index';
 import type { Env, ResolvedMatch, SongDetail, Track } from './types';
 import { PROVIDER_IDS } from './types';
@@ -35,21 +35,29 @@ export class UnknownProviderError extends Error {
  * degrading any failure to a search link.
  */
 async function resolveDetail(env: Env, track: Track): Promise<SongDetail> {
-  const results = await Promise.all(
-    PROVIDER_IDS.map(async (target): Promise<ResolvedMatch> => {
-      if (target === track.provider) {
-        return { link: exactTrackLink(target, track.id) };
-      }
-      try {
-        // Uses the KV match cache (30-day TTL) internally; contract says it
-        // never throws, but degrade defensively anyway.
-        return await resolveTrackOnProvider(env, track, target);
-      } catch (err) {
-        console.error(`Resolve failed for ${target}:`, err);
-        return { link: searchTrackLink(target, track) };
-      }
-    })
-  );
+  const [results] = await Promise.all([
+    Promise.all(
+      PROVIDER_IDS.map(async (target): Promise<ResolvedMatch> => {
+        if (target === track.provider) {
+          return { link: exactTrackLink(target, track.id) };
+        }
+        try {
+          // Uses the KV match cache (30-day TTL) internally; contract says it
+          // never throws, but degrade defensively anyway.
+          return await resolveTrackOnProvider(env, track, target);
+        } catch (err) {
+          console.error(`Resolve failed for ${target}:`, err);
+          return { link: searchTrackLink(target, track) };
+        }
+      })
+    ),
+    // Record this provider's own id for the recording, so a later view sourced
+    // from a different catalog gets an exact link here instead of a search
+    // box — including for platforms we hold no credentials for. Runs only on a
+    // Cache-API miss (see the 24h `cacheJson` around this), so it cannot churn
+    // KV's ~1k writes/day.
+    seedSourceMatch(env, track),
+  ]);
 
   // Fill gaps from whichever catalog matched: a track scraped off Spotify's
   // embed page has no artwork and no ISRC, but the iTunes or Deezer record we
