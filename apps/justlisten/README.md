@@ -53,9 +53,10 @@ credentials) and degrades per provider:
   become search links.
 - No YouTube key → YouTube links are `https://music.youtube.com/search?q=…`
   search links. Playlist import still works — it falls back to reading the
-  public playlist page, which also costs no quota. YouTube never backs
-  search either way: its `search.list` costs 100 of a 10,000-unit daily quota,
-  so it is only used to resolve a link on the song detail page.
+  public playlist page, which also costs no quota — and so does opening a
+  pasted `watch?v=…` link, via the keyless `oembed` endpoint. YouTube never
+  backs search either way: its `search.list` costs 100 of a 10,000-unit daily
+  quota, so it is only used to resolve a link on the song detail page.
 
 For local dev, `vike dev` reads secrets from an untracked `.dev.vars` beside
 `wrangler.jsonc` — `@cloudflare/vite-plugin` sources them there rather than
@@ -113,19 +114,34 @@ and exits 0 rather than failing the PR — so an unconfigured repo, or a fork PR
 where secrets are withheld, still gets a green check and a site preview, just
 no JustListen preview URL.
 
-## Playlist import without credentials
+## Pasting links without credentials
 
-Paste a playlist link into the search box — there is no separate import page.
-Spotify and YouTube fall back to reading the public page when no credentials
-are configured, so all four providers import with zero secrets:
-Spotify and YouTube playlist import fall back to reading the public page when
-no credentials are configured, so all four providers import with zero secrets:
+Paste a link into the search box — there is no separate import page. It takes
+a link to **one song** as happily as a playlist, because that is what most
+share buttons give you: `youtube.com/watch?v=…` is the link a desktop browser
+puts on your clipboard, and it names a single video, not a collection. A song
+link goes straight to that song's page; a playlist link is imported. The server
+decides which, so the box never has to guess.
+
+A playlist link that also carries a video (`watch?v=…&list=…`) is treated as
+the playlist — the collection is the more useful reading of a link that names
+both.
+
+Spotify and YouTube fall back to reading public pages when no credentials are
+configured, so everything works with zero secrets:
 
 | Provider | With credentials | Without |
 |---|---|---|
 | Spotify | Web API (ISRC, album) | `open.spotify.com/embed` — 100 tracks, no ISRC |
-| YouTube | Data API (50 quota units/call) | public playlist page — no quota |
+| YouTube playlist | Data API (50 quota units/call) | public playlist page — no quota |
+| YouTube video | Data API `videos.list` (1 unit, has duration) | `youtube.com/oembed` — no quota, no duration |
 | Deezer / Apple | *(never needed any)* | public APIs |
+
+The oEmbed fallback also catches a key whose daily quota has run out: the API
+path is tried first and any failure falls through to it rather than 404ing the
+song page. Losing duration costs only the +0.1 duration bonus in `scoreMatch`,
+so cross-provider matching stays good — and auto-generated music channels are
+named "<Artist> - Topic", which normalizes to the bare artist.
 
 Adding credentials still improves things: Spotify's API supplies ISRCs, which
 is what makes cross-provider matching exact rather than a title/artist/duration

@@ -61,7 +61,8 @@ worker/
   workers-globals.d.ts # caches.default, absent from the DOM lib
   routes/
     search.ts         # GET /api/search, GET /api/search/all
-    playlist.ts       # POST /api/playlists, GET /api/playlists/:id/export.csv
+    playlist.ts       # POST /api/playlists (any pasted music link),
+                      # GET /api/playlists/:id/export.csv
   providers/
     index.ts          # provider registry
     spotify.ts
@@ -202,6 +203,8 @@ export interface MusicProvider {
   resolve(env: Env, track: Track): Promise<ProviderLink>;
   /** Parse a playlist URL owned by this provider; null if not theirs. */
   parsePlaylistUrl(url: string): { playlistId: string } | null;
+  /** Parse a single-track URL owned by this provider; null if not theirs. */
+  parseTrackUrl(url: string): { trackId: string } | null;
   getPlaylist(env: Env, playlistId: string): Promise<{ title: string; tracks: Track[] } | null>;
 }
 ```
@@ -237,16 +240,29 @@ degrade to `kind: 'search'` links.
   - Ordering is by first appearance, so the lead catalog's relevance ranking
     survives; rows are NOT re-sorted by how many catalogs carry them.
   - Never queries the YouTube Data API. Cached with Cache API, TTL 6h.
-- `POST /api/playlists` body `{ url: string }` → `{ id: string }`
-  - Detects provider from URL (`parsePlaylistUrl` across registry), fetches
-    tracks (cap at 100), resolves links for each track (reusing the KV match
-    cache; resolve sequentially in small batches to stay under subrequest
-    limits), stores `Playlist` in `PLAYLISTS` KV with 7-day TTL.
-  - Supported: Spotify public playlists/albums, YouTube playlists, Deezer
-    public playlists/albums, Apple Music public
+- `POST /api/playlists` body `{ url: string }` → `PastedLinkResult`
+  - The endpoint behind the search box's paste affordance, so it answers for
+    any music link. People paste one song as often as a collection — a
+    `youtube.com/watch?v=…` link is what a desktop browser hands you — so it
+    reports *what the link was* and the client routes on `kind`.
+  - **Playlist** (`parsePlaylistUrl` across the registry): fetches tracks
+    (cap at 100), resolves links for each track (reusing the KV match cache;
+    resolve sequentially in small batches to stay under subrequest limits),
+    stores `Playlist` in `PLAYLISTS` KV with 7-day TTL →
+    **201** `{ kind: 'playlist', id }`.
+  - **Single track** (`parseTrackUrl`, tried *second* so a watch URL carrying
+    `list=` still imports its playlist) → **200**
+    `{ kind: 'song', provider, id }`. Pure parsing: no fetch, no KV write,
+    nothing created — hence 200, not 201 — and `/song/:provider/:id` owns the
+    lookup and its own 404.
+  - Supported collections: Spotify public playlists/albums, YouTube playlists,
+    Deezer public playlists/albums, Apple Music public
     playlists via the iTunes/Apple embed lookup —
     if Apple playlist fetch proves infeasible without a MusicKit token,
     return a clear 422 explaining it and document in README.
+  - Supported tracks: `open.spotify.com/track/…`, Apple `…/song/…` and album
+    URLs carrying `?i=`, `youtube.com/watch?v=…` / `youtu.be/…` /
+    `music.youtube.com/watch?v=…`, and `deezer.com/track/…`.
 - `POST /api/playlists/:id/resolve` body `{ from: number }` →
   `{ tracks, from, done }`
   - Finishes cross-provider links for the next 8 rows and writes them back to
@@ -316,15 +332,17 @@ existed for.
   "Search on …" fallbacks — the button labels carry that distinction, so no
   explanatory caption), then the Deezer player. Server-rendered, so there is
   no loading skeleton; a miss aborts to the error page.
-- **Import lives in the search box**, not on its own page. Anything that parses
-  as a URL is treated as an import rather than a search — no query starting
-  `https://` is a useful search term — and the dropdown offers "Import this
-  <service> link" instead of suggestions, naming the service when the host is
-  recognised. `src/playlist-url.ts` makes that call and is deliberately looser
-  than the providers' own `parsePlaylistUrl`: it is not a second copy of that
-  logic, it only decides which of two jobs the box is doing. The server stays
-  the authority and answers 422 with the supported shapes, which is now the
-  only place they are documented — keep that message complete.
+- **Pasting lives in the search box**, not on its own page. Anything that
+  parses as a URL is treated as a link to open rather than a search — no query
+  starting `https://` is a useful search term — and the dropdown offers "Open
+  this <service> link" instead of suggestions, naming the service when the host
+  is recognised. It deliberately does *not* say "playlist" or "song": which one
+  it is, is the server's call, and the client learns it from `kind` in the
+  response. `src/playlist-url.ts` makes the link-vs-search call and is
+  deliberately looser than the providers' own parsers: it is not a second copy
+  of that logic, it only decides which of two jobs the box is doing. The server
+  stays the authority and answers 422 with the supported shapes, which is now
+  the only place they are documented — keep that message complete.
 - **PlaylistPage**: title, source badge, "Open on …" buttons, per-track rows
   (artwork, title, artist + three provider link icons), copyable share URL,
   expiry note. Handle 404/expired gracefully.
