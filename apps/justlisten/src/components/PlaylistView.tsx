@@ -210,21 +210,21 @@ function PlaylistHeader({ playlist }: { playlist: PlaylistData }) {
 }
 
 const OPEN_EXACT_STYLES: Record<ProviderId, string> = {
-  spotify: 'bg-[#1DB954] text-white shadow-sm hover:bg-[#19a64b]',
-  apple: 'bg-rose-500 text-white shadow-sm hover:bg-rose-600',
-  youtube: 'bg-red-600 text-white shadow-sm hover:bg-red-700',
-  deezer: 'bg-violet-600 text-white shadow-sm hover:bg-violet-700',
+  spotify: 'bg-[#1DB954] text-white shadow-sm hover:bg-[#14833b]',
+  apple: 'bg-[#FA243C] text-white shadow-sm hover:bg-[#B3122A]',
+  youtube: 'bg-[#FF0033] text-white shadow-sm hover:bg-[#C10023]',
+  deezer: 'bg-[#A238FF] text-white shadow-sm hover:bg-[#7A22CC]', // unslop-ignore — brand purple
 };
 
 const OPEN_SEARCH_STYLES: Record<ProviderId, string> = {
   spotify:
     'border border-gray-200 bg-white text-[#14833b] hover:border-[#1DB954]/50 hover:bg-[#1DB954]/5',
   apple:
-    'border border-gray-200 bg-white text-rose-600 hover:border-rose-300 hover:bg-rose-50',
+    'border border-gray-200 bg-white text-[#B3122A] hover:border-[#FA243C]/50 hover:bg-[#FA243C]/5',
   youtube:
-    'border border-gray-200 bg-white text-red-600 hover:border-red-300 hover:bg-red-50',
-  deezer:
-    'border border-gray-200 bg-white text-violet-600 hover:border-violet-300 hover:bg-violet-50',
+    'border border-gray-200 bg-white text-[#C10023] hover:border-[#FF0033]/50 hover:bg-[#FF0033]/5',
+  deezer: // unslop-ignore — brand purple
+    'border border-gray-200 bg-white text-[#7A22CC] hover:border-[#A238FF]/50 hover:bg-[#A238FF]/5',
 };
 
 /**
@@ -437,20 +437,20 @@ function PlaylistTrackRow({
 
 const TRACK_EXACT_STYLES: Record<ProviderId, string> = {
   spotify: 'bg-[#1DB954]/15 text-[#14833b] hover:bg-[#1DB954]/25',
-  apple: 'bg-rose-100 text-rose-700 hover:bg-rose-200',
-  youtube: 'bg-red-100 text-red-700 hover:bg-red-200',
-  deezer: 'bg-violet-100 text-violet-700 hover:bg-violet-200',
+  apple: 'bg-[#FA243C]/15 text-[#B3122A] hover:bg-[#FA243C]/25',
+  youtube: 'bg-[#FF0033]/15 text-[#C10023] hover:bg-[#FF0033]/25',
+  deezer: 'bg-[#A238FF]/15 text-[#7A22CC] hover:bg-[#A238FF]/25', // unslop-ignore — brand purple
 };
 
 const TRACK_SEARCH_STYLES: Record<ProviderId, string> = {
   spotify:
     'border border-dashed border-gray-300 text-gray-500 hover:border-[#1DB954]/60 hover:text-[#14833b]',
   apple:
-    'border border-dashed border-gray-300 text-gray-500 hover:border-rose-300 hover:text-rose-600',
+    'border border-dashed border-gray-300 text-gray-500 hover:border-[#FA243C]/60 hover:text-[#B3122A]',
   youtube:
-    'border border-dashed border-gray-300 text-gray-500 hover:border-red-300 hover:text-red-600',
-  deezer:
-    'border border-dashed border-gray-300 text-gray-500 hover:border-violet-300 hover:text-violet-600',
+    'border border-dashed border-gray-300 text-gray-500 hover:border-[#FF0033]/60 hover:text-[#C10023]',
+  deezer: // unslop-ignore — brand purple
+    'border border-dashed border-gray-300 text-gray-500 hover:border-[#A238FF]/60 hover:text-[#7A22CC]',
 };
 
 const TRACK_BADGE_ABBR: Record<ProviderId, string> = {

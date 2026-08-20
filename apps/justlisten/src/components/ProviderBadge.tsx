@@ -18,11 +18,24 @@ export const PROVIDER_LABELS: Record<ProviderId, string> = {
   deezer: 'Deezer',
 };
 
+/**
+ * Each service's own brand colour, plus an `ink` darkened enough to clear 4.5:1
+ * on white for text use.
+ *
+ * Spelled out as literal hexes in every map below rather than composed at
+ * runtime, because Tailwind only emits arbitrary values it can find as static
+ * strings. Previously only Spotify used its real colour and the other three
+ * fell back to the nearest Tailwind ramp (rose, red, violet), which is how a
+ * provider ends up wearing a colour nobody chose for it.
+ *
+ *   spotify #1DB954 / #14833b     apple   #FA243C / #B3122A
+ *   youtube #FF0033 / #C10023     deezer  #A238FF / #7A22CC
+ */
 const BADGE_STYLES: Record<ProviderId, string> = {
   spotify: 'bg-[#1DB954]/15 text-[#14833b]',
-  apple: 'bg-rose-100 text-rose-700',
-  youtube: 'bg-red-100 text-red-700',
-  deezer: 'bg-violet-100 text-violet-700',
+  apple: 'bg-[#FA243C]/15 text-[#B3122A]',
+  youtube: 'bg-[#FF0033]/15 text-[#C10023]',
+  deezer: 'bg-[#A238FF]/15 text-[#7A22CC]', // unslop-ignore — Deezer's brand purple
 };
 
 export interface ProviderBadgeProps {
@@ -46,21 +59,21 @@ export function ProviderBadge({ provider, className }: ProviderBadgeProps) {
 }
 
 const EXACT_STYLES: Record<ProviderId, string> = {
-  spotify: 'bg-[#1DB954] text-white shadow-sm hover:bg-[#19a64b]',
-  apple: 'bg-rose-500 text-white shadow-sm hover:bg-rose-600',
-  youtube: 'bg-red-600 text-white shadow-sm hover:bg-red-700',
-  deezer: 'bg-violet-600 text-white shadow-sm hover:bg-violet-700',
+  spotify: 'bg-[#1DB954] text-white shadow-sm hover:bg-[#14833b]',
+  apple: 'bg-[#FA243C] text-white shadow-sm hover:bg-[#B3122A]',
+  youtube: 'bg-[#FF0033] text-white shadow-sm hover:bg-[#C10023]',
+  deezer: 'bg-[#A238FF] text-white shadow-sm hover:bg-[#7A22CC]', // unslop-ignore — brand purple
 };
 
 const SEARCH_STYLES: Record<ProviderId, string> = {
   spotify:
     'border border-gray-200 bg-white text-[#14833b] hover:border-[#1DB954]/50 hover:bg-[#1DB954]/5',
   apple:
-    'border border-gray-200 bg-white text-rose-600 hover:border-rose-300 hover:bg-rose-50',
+    'border border-gray-200 bg-white text-[#B3122A] hover:border-[#FA243C]/50 hover:bg-[#FA243C]/5',
   youtube:
-    'border border-gray-200 bg-white text-red-600 hover:border-red-300 hover:bg-red-50',
-  deezer:
-    'border border-gray-200 bg-white text-violet-600 hover:border-violet-300 hover:bg-violet-50',
+    'border border-gray-200 bg-white text-[#C10023] hover:border-[#FF0033]/50 hover:bg-[#FF0033]/5',
+  deezer: // unslop-ignore — brand purple
+    'border border-gray-200 bg-white text-[#7A22CC] hover:border-[#A238FF]/50 hover:bg-[#A238FF]/5',
 };
 
 export interface ProviderLinkButtonProps {
