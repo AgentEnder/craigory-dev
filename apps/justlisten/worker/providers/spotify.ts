@@ -7,7 +7,7 @@
 
 import { scopedKey } from '../kv-scope';
 import { fetchPublicPage } from './scrape/fetch-page';
-import { parseSpotifyEmbed } from './scrape/spotify-embed';
+import { parseSpotifyEmbed, parseSpotifyEmbedTrack } from './scrape/spotify-embed';
 import type {
   Env,
   MusicProvider,
@@ -219,15 +219,25 @@ export const spotifyProvider: MusicProvider = {
     return searchTracks(env, q, limit);
   },
 
+  /**
+   * API first when credentials exist — it is the only source of ISRC, which is
+   * what makes cross-provider matching exact — then the embed page, which
+   * needs none. The fallback is what lets a pasted `open.spotify.com/track/…`
+   * link open a real song page on a deployment with no Spotify credentials.
+   */
   async getTrack(env: Env, id: string): Promise<Track | null> {
-    if (!this.available(env)) return null;
-    try {
-      const t = await apiGet<SpotifyTrackObj>(env, `/tracks/${id}`);
-      if (!t?.id) return null;
-      return mapTrack(t); // ISRC captured from external_ids in mapTrack.
-    } catch {
-      return null;
+    if (this.available(env)) {
+      try {
+        const t = await apiGet<SpotifyTrackObj>(env, `/tracks/${id}`);
+        if (t?.id) return mapTrack(t); // ISRC captured from external_ids.
+      } catch {
+        // Expired token, outage, or bad credentials — try the keyless path.
+      }
     }
+    const html = await fetchPublicPage(
+      `https://open.spotify.com/embed/track/${encodeURIComponent(id)}`
+    );
+    return html ? parseSpotifyEmbedTrack(html) : null;
   },
 
   async resolve(env: Env, track: Track): Promise<ResolvedMatch> {

@@ -42,7 +42,13 @@ function trackIdFromUri(uri: unknown): string | undefined {
   return match?.[1];
 }
 
-export function parseSpotifyEmbed(html: string): ScrapedPlaylist | null {
+/**
+ * The `__NEXT_DATA__` entity an embed page was rendered for, or null.
+ *
+ * A private or nonexistent entity still renders the page, but with
+ * `state.data` null — so a miss is detectable rather than silently empty.
+ */
+function embedEntity(html: string): Record<string, unknown> | null {
   const script = /<script id="__NEXT_DATA__"[^>]*>([\s\S]*?)<\/script>/i.exec(
     html
   );
@@ -55,15 +61,71 @@ export function parseSpotifyEmbed(html: string): ScrapedPlaylist | null {
     return null;
   }
 
-  // A private or nonexistent playlist still renders the page, but with
-  // `state.data` null — so a miss is detectable rather than silently empty.
   const entity = (
     data as {
       props?: { pageProps?: { state?: { data?: { entity?: unknown } } } };
     }
-  )?.props?.pageProps?.state?.data?.entity as
+  )?.props?.pageProps?.state?.data?.entity;
+  return entity && typeof entity === 'object'
+    ? (entity as Record<string, unknown>)
+    : null;
+}
+
+/**
+ * One track from `open.spotify.com/embed/track/{id}` — the keyless route into
+ * a single Spotify song, and what makes a pasted `open.spotify.com/track/…`
+ * link open a real song page with no credentials configured.
+ *
+ * Same blob and same limits as the playlist path above: no ISRC, so a track
+ * sourced here matches on normalized title + artist + duration rather than
+ * exactly. It carries artwork, duration and release date, which is everything
+ * else the song page shows.
+ *
+ * Guards on `type === 'track'` so a playlist or album embed can never be
+ * mapped into a single song.
+ */
+export function parseSpotifyEmbedTrack(html: string): Track | null {
+  const entity = embedEntity(html);
+  if (!entity || entity['type'] !== 'track') return null;
+
+  const id = str(entity['id']) ?? trackIdFromUri(entity['uri']);
+  const title = str(entity['name']) ?? str(entity['title']);
+  if (!id || !title) return null;
+
+  const artist = (Array.isArray(entity['artists']) ? entity['artists'] : [])
+    .map((a) => str((a as { name?: unknown })?.name))
+    .filter((name): name is string => Boolean(name))
+    .join(', ');
+  if (!artist) return null;
+
+  const track: Track = { provider: 'spotify', id, title, artist };
+
+  const duration = entity['duration'];
+  if (typeof duration === 'number') track.durationMs = duration;
+
+  const iso = str((entity['releaseDate'] as { isoString?: unknown })?.isoString);
+  if (iso) track.releaseDate = iso.slice(0, 10);
+
+  // `visualIdentity.image` is unsorted; prefer a mid-size cover, matching
+  // `artworkFrom` on the Web API path.
+  const images = (entity['visualIdentity'] as { image?: unknown })?.image;
+  const covers = (Array.isArray(images) ? images : [])
+    .map((i) => i as { url?: unknown; maxWidth?: unknown })
+    .filter((i) => str(i.url));
+  const cover =
+    covers.find(
+      (i) => typeof i.maxWidth === 'number' && i.maxWidth > 0 && i.maxWidth <= 300
+    ) ?? covers[0];
+  const artworkUrl = cover ? str(cover.url) : undefined;
+  if (artworkUrl) track.artworkUrl = artworkUrl;
+
+  return track;
+}
+
+export function parseSpotifyEmbed(html: string): ScrapedPlaylist | null {
+  const entity = embedEntity(html) as
     | { name?: unknown; trackList?: unknown }
-    | undefined;
+    | null;
   if (!entity) return null;
 
   const title = str(entity.name);
