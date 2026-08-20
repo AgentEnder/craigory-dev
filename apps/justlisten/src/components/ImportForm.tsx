@@ -56,7 +56,7 @@ export function ImportForm() {
         <button
           type="submit"
           disabled={importing || !url.trim()}
-          className="shrink-0 rounded-2xl bg-blue-600 px-6 py-4 font-semibold text-white shadow-sm transition-all duration-200 hover:bg-blue-700 active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 sm:self-stretch"
+          className="shrink-0 rounded-xl bg-ink px-6 py-4 font-semibold text-white shadow-sm transition-all duration-200 hover:bg-ink-soft active:scale-[0.98] disabled:pointer-events-none disabled:opacity-50 sm:self-stretch"
         >
           {importing ? 'Importing…' : 'Import'}
         </button>
@@ -69,7 +69,7 @@ export function ImportForm() {
         >
           <span
             aria-hidden="true"
-            className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600"
+            className="inline-block h-4 w-4 animate-spin rounded-full border-2 border-gray-300 border-t-ink"
           />
           Importing… this can take a few seconds
         </p>

@@ -75,7 +75,7 @@ export function Page() {
       <AppHeader title="JustListen" tagline="Find where to listen to any song" />
       <main className="mx-auto max-w-2xl">
         <a href="/"
-          className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-blue-600"
+          className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-ink"
         >
           <span aria-hidden="true">←</span> Back to search
         </a>
@@ -111,7 +111,7 @@ function ResultsSkeleton() {
       {[0, 1, 2, 3, 4].map((i) => (
         <div
           key={i}
-          className="flex items-center gap-4 rounded-2xl border border-gray-200 bg-white p-3"
+          className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-3"
         >
           <div className="h-14 w-14 shrink-0 rounded-xl bg-gray-200" />
           <div className="flex-1 space-y-2">
@@ -213,7 +213,7 @@ function ResultRow({
   return (
     // The card is the <li>, not the link: a cue button cannot be nested inside
     // an anchor, and the row still has to navigate to the song page.
-    <li className="flex items-center gap-3 rounded-2xl border border-gray-200 bg-white p-3 transition-all duration-200 hover:border-blue-300 hover:shadow-sm">
+    <li className="flex items-center gap-3 rounded-xl border border-gray-200 bg-white p-3 transition-all duration-200 hover:border-ink/30 hover:shadow-sm">
       {deezerId ? (
         <PreviewButton
           isCurrent={isCurrent}

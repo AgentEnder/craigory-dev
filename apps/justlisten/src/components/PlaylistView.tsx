@@ -241,7 +241,7 @@ function PlaylistOpenButton({ link }: { link: PlaylistOpenLinks }) {
       rel="noopener noreferrer"
       aria-label={`${link.label} (opens in a new tab)`}
       className={cx(
-        'inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 active:scale-[0.98]',
+        'inline-flex items-center gap-1.5 rounded-full px-4 py-2 text-sm font-semibold transition-all duration-200 active:scale-[0.98]', // unslop-ignore — chip by role
         exact ? OPEN_EXACT_STYLES[link.provider] : OPEN_SEARCH_STYLES[link.provider]
       )}
     >
@@ -272,7 +272,7 @@ function PlaylistExportRow({ playlist }: { playlist: PlaylistData }) {
         <a
           href={`/api/playlists/${playlist.id}/export.csv`}
           download
-          className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition-all duration-200 hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98]"
+          className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-semibold text-gray-700 shadow-sm transition-all duration-200 hover:border-gray-300 hover:bg-gray-50 active:scale-[0.98]"
         >
           <span aria-hidden="true">↓</span>
           Download CSV
@@ -351,16 +351,16 @@ function PlaylistShareRow() {
           readOnly
           value={shareUrl}
           onFocus={(event) => event.target.select()}
-          className="w-full flex-1 truncate rounded-2xl border border-gray-200 bg-gray-50 px-4 py-3 font-mono text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full flex-1 truncate rounded-lg border border-gray-200 bg-gray-50 px-4 py-3 font-mono text-sm text-gray-600 focus:outline-none focus:ring-2 focus:ring-ink"
         />
         <button
           type="button"
           onClick={copy}
           className={cx(
-            'shrink-0 rounded-2xl px-5 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98]',
+            'shrink-0 rounded-xl px-5 py-3 text-sm font-semibold transition-all duration-200 active:scale-[0.98]',
             copied
               ? 'bg-emerald-600 text-white'
-              : 'bg-blue-600 text-white shadow-sm hover:bg-blue-700'
+              : 'bg-ink text-white shadow-sm hover:bg-ink-soft'
           )}
         >
           {copied ? 'Copied!' : 'Copy'}
@@ -489,7 +489,7 @@ function PlaylistTrackLinkBadge({
           : `Search for ${trackLabel} on ${providerName}`
       } (opens in a new tab)`}
       className={cx(
-        'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors',
+        'inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-semibold transition-colors', // unslop-ignore — badge by role
         exact ? TRACK_EXACT_STYLES[link.provider] : TRACK_SEARCH_STYLES[link.provider]
       )}
     >

@@ -40,7 +40,7 @@ export function Page() {
 
         <div className="mt-12 text-center">
           <a href="/import"
-            className="inline-flex items-center gap-2 rounded-2xl border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-blue-300 hover:text-blue-600 active:scale-[0.98]"
+            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-ink/30 hover:text-ink active:scale-[0.98]"
           >
             Import a playlist
             <span aria-hidden="true">→</span>

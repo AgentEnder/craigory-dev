@@ -322,8 +322,17 @@ existed for.
 - **PlaylistPage**: title, source badge, "Open on …" buttons, per-track rows
   (artwork, title, artist + three provider link icons), copyable share URL,
   expiry note. Handle 404/expired gracefully.
-- Provider branding: colored text badges and buttons (green Spotify, red
-  YouTube, rose Apple, violet Deezer) everywhere a label fits. The playback
+- **Palette: ink plus one accent** (`src/styles.css` `@theme`). The app points
+  at other services, so the four provider colours are the only chroma that
+  carries meaning; our own controls stay near-black (`--color-ink`). Exactly
+  one accent, a deep teal, is reserved for playback — chosen because it is the
+  one saturated hue no provider claims, so a play button can never be misread
+  as a platform's branding. Playback previously wore Deezer's purple and
+  primary actions wore Tailwind's default blue.
+- **Radius by role**: surfaces 2xl, controls xl, inputs lg, badges and icon
+  buttons full. Uniform rounding flattened those roles into one shape.
+- Provider branding: each service's real brand hex, with an `ink` variant that
+  clears 4.5:1 for text, everywhere a label fits. The playback
   banner is the exception — it uses each service's brand mark via `react-icons`
   (`SiSpotify`, `SiApplemusic`, `SiYoutubemusic`, and `FaDeezer`, since Simple
   Icons carries no Deezer mark), because at that size a word does not survive.

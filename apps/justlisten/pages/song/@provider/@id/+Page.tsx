@@ -41,7 +41,7 @@ export function Page() {
     <div className="mx-auto max-w-xl">
       <a
         href="/"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-blue-600"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-ink"
       >
         <span aria-hidden="true">←</span> Back to search
       </a>
@@ -71,7 +71,7 @@ function SongDetailCard({ song }: { song: SongDetail }) {
           url={upscaleArtwork(track.artworkUrl)}
           fallbackUrl={track.artworkUrl}
           alt={`Album artwork for ${trackLabel}`}
-          className="h-40 w-40 shrink-0 rounded-2xl shadow-md"
+          className="h-40 w-40 shrink-0 rounded-xl shadow-md"
         />
         <div className="min-w-0 flex-1 sm:pt-2">
           <h1 className="break-words text-2xl font-bold text-gray-900 sm:text-3xl">

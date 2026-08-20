@@ -2,16 +2,15 @@
   <title>JustListen</title>
   <defs>
     <linearGradient id="jl" x1="0" y1="1" x2="1" y2="0">
-      <stop offset="0" stop-color="#34D399"/>
-      <stop offset="0.38" stop-color="#FBBF24"/>
-      <stop offset="0.7" stop-color="#FB7185"/>
-      <stop offset="1" stop-color="#A855F7"/>
+      <stop offset="0" stop-color="#12A594"/>
+      <stop offset="1" stop-color="#0B7C74"/>
     </linearGradient>
   </defs>
   <rect width="64" height="64" rx="14" fill="#0F172A"/>
-  <!-- One play mark, four colours: one song, wherever you listen. Corners are
-       rounded by stroking the fill in its own paint rather than by a second
-       path, so the shape stays a single triangle at any size. -->
+  <!-- Ink and one accent, same rule as the app: our own surfaces stay out of
+       the way so the services are the only chroma that means anything. Corners
+       are rounded by stroking the fill in its own paint rather than by a second
+       path, so the shape stays one triangle at any size. -->
   <path d="M25.5 21.5 L25.5 42.5 L44 32 Z"
         fill="url(#jl)" stroke="url(#jl)" stroke-width="9" stroke-linejoin="round"/>
 </svg>

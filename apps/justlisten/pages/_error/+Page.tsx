@@ -24,13 +24,13 @@ export function Page() {
           <div className="mt-6 flex flex-wrap justify-center gap-3">
             <a
               href="/"
-              className="rounded-2xl bg-blue-600 px-6 py-3 font-semibold text-white shadow-sm transition-all duration-200 hover:bg-blue-700 active:scale-[0.98]"
+              className="rounded-xl bg-ink px-6 py-3 font-semibold text-white shadow-sm transition-all duration-200 hover:bg-ink-soft active:scale-[0.98]"
             >
               Search for a song
             </a>
             <a
               href="/import"
-              className="rounded-2xl border border-gray-200 bg-white px-6 py-3 font-semibold text-gray-700 transition-all duration-200 hover:border-blue-300 hover:text-blue-600 active:scale-[0.98]"
+              className="rounded-xl border border-gray-200 bg-white px-6 py-3 font-semibold text-gray-700 transition-all duration-200 hover:border-ink/30 hover:text-ink active:scale-[0.98]"
             >
               Import a playlist
             </a>
@@ -46,7 +46,7 @@ export function Page() {
         <ErrorPill>{reason ?? 'Something went wrong on our end.'}</ErrorPill>
         <p className="mt-4 text-sm text-gray-500">
           Try again in a moment, or head{' '}
-          <a href="/" className="font-medium text-blue-600 hover:underline">
+          <a href="/" className="font-medium text-ink hover:underline">
             back to search
           </a>
           .

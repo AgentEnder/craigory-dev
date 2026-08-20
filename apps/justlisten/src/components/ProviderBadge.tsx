@@ -48,7 +48,7 @@ export function ProviderBadge({ provider, className }: ProviderBadgeProps) {
   return (
     <span
       className={cx(
-        'inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold',
+        'inline-block rounded-full px-2.5 py-0.5 text-xs font-semibold', // unslop-ignore — badge by role
         BADGE_STYLES[provider],
         className
       )}
@@ -111,7 +111,7 @@ export function ProviderLinkButton({
       rel="noopener noreferrer"
       aria-label={ariaLabel}
       className={cx(
-        'flex w-full items-center justify-between gap-3 rounded-2xl px-5 font-semibold transition-all duration-200 active:scale-[0.98]',
+        'flex w-full items-center justify-between gap-3 rounded-xl px-5 font-semibold transition-all duration-200 active:scale-[0.98]',
         exact
           ? cx('py-3.5 text-base', EXACT_STYLES[link.provider])
           : cx('py-3 text-sm', SEARCH_STYLES[link.provider]),

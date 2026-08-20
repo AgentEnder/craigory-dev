@@ -140,7 +140,7 @@ export function PreviewButton({
       className={cx(
         'flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[10px] transition-colors',
         isCurrent
-          ? 'bg-[#A238FF] text-white'
+          ? 'bg-accent text-white'
           : 'text-gray-400 hover:bg-gray-100 hover:text-gray-700'
       )}
     >
@@ -167,6 +167,10 @@ function exactLinks(links: ProviderLink[] | undefined): ProviderLink[] {
  * the list, and a `bottom` sticky only holds an element you are scrolling
  * toward (measured — it scrolled straight away).
  */
+/** Icon button — round by role. */
+const CLOSE_BUTTON =
+  'shrink-0 rounded-full px-2 py-1 text-sm text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700'; // unslop-ignore — icon button
+
 export function PreviewBanner({ player }: { player: PreviewPlayer }) {
   const { current, status, audio } = player;
   const bar = useRef<HTMLDivElement | null>(null);
@@ -205,7 +209,7 @@ export function PreviewBanner({ player }: { player: PreviewPlayer }) {
     <div className="fixed inset-x-0 bottom-0 z-20 border-t border-gray-200 bg-white/95 backdrop-blur">
       <div
         ref={bar}
-        className="h-0.5 bg-[#A238FF]"
+        className="h-0.5 bg-accent-bright"
         style={{ width: '0%' }}
         role="progressbar"
         aria-label="Preview progress"
@@ -218,7 +222,7 @@ export function PreviewBanner({ player }: { player: PreviewPlayer }) {
           type="button"
           onClick={player.toggle}
           aria-label={status === 'playing' ? 'Pause preview' : 'Play preview'}
-          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-[#A238FF] text-sm text-white transition-transform active:scale-95"
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-accent text-sm text-white transition-transform active:scale-95"
         >
           <span aria-hidden="true">
             {status === 'loading' ? '···' : status === 'playing' ? '❚❚' : '▶'}
@@ -264,7 +268,7 @@ export function PreviewBanner({ player }: { player: PreviewPlayer }) {
           type="button"
           onClick={player.close}
           aria-label="Close player"
-          className="shrink-0 rounded-full px-2 py-1 text-sm text-gray-400 transition-colors hover:bg-gray-100 hover:text-gray-700"
+          className={CLOSE_BUTTON}
         >
           <span aria-hidden="true">✕</span>
         </button>

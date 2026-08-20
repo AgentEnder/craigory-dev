@@ -15,7 +15,7 @@ export function Page() {
     <div className="mx-auto max-w-3xl">
       <a
         href="/"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-blue-600"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-ink"
       >
         <span aria-hidden="true">←</span> Back to search
       </a>

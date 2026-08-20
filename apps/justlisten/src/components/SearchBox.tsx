@@ -30,6 +30,10 @@ export interface SearchBoxProps {
  * row is therefore always offered — including on the empty state, which is
  * exactly when the wider search is most useful.
  */
+/** Floating surface — same role as a card, so the same radius. */
+const DROPDOWN_SURFACE =
+  'absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl animate-fade-in'; // unslop-ignore — surface role
+
 export function SearchBox({
   autoFocus = false,
   className,
@@ -186,12 +190,12 @@ export function SearchBox({
       {status === 'loading' && (
         <div
           aria-hidden="true"
-          className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin rounded-full border-2 border-gray-200 border-t-blue-500"
+          className="absolute right-4 top-1/2 h-5 w-5 -translate-y-1/2 animate-spin rounded-full border-2 border-gray-200 border-t-ink"
         />
       )}
 
       {open && (
-        <div className="absolute left-0 right-0 top-full z-20 mt-2 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-xl animate-fade-in">
+        <div className={DROPDOWN_SURFACE}>
           {showList ? (
             <ul
               role="listbox"
@@ -210,7 +214,7 @@ export function SearchBox({
                     aria-selected={active}
                     className={cx(
                       'flex cursor-pointer items-center gap-3 px-3 py-2.5 transition-colors',
-                      active && 'bg-blue-50'
+                      active && 'bg-ink/5'
                     )}
                     onMouseDown={(event) => event.preventDefault()}
                     onClick={() => select(row)}
@@ -252,7 +256,7 @@ export function SearchBox({
               type="button"
               onMouseDown={(event) => event.preventDefault()}
               onClick={seeAllResults}
-              className="flex w-full items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 text-left text-sm font-medium text-blue-600 transition-colors hover:bg-blue-50"
+              className="flex w-full items-center justify-between gap-3 border-t border-gray-100 px-4 py-3 text-left text-sm font-medium text-ink transition-colors hover:bg-ink/5"
             >
               <span className="truncate">
                 Search every platform for “{query.trim()}”

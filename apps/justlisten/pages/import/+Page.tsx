@@ -37,7 +37,7 @@ export function Page() {
   return (
     <div className="mx-auto max-w-xl">
       <a href="/"
-        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-blue-600"
+        className="mb-4 inline-flex items-center gap-1.5 text-sm font-medium text-gray-500 transition-colors hover:text-ink"
       >
         <span aria-hidden="true">←</span> Back to search
       </a>
@@ -81,7 +81,7 @@ export function Page() {
           </ul>
         </section>
 
-        <p className="mt-6 rounded-xl bg-blue-50 px-4 py-3 text-sm text-blue-800">
+        <p className="mt-6 rounded-xl bg-ink/5 px-4 py-3 text-sm text-ink">
           Imported playlists are ephemeral: they expire{' '}
           <strong>7 days</strong> after import. Re-import the playlist any time
           to get a fresh link.

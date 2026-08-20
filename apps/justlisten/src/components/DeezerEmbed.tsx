@@ -64,7 +64,7 @@ export function DeezerEmbed({
       // Below the fold on the playlist page, and never the reason a page
       // should be slow to paint.
       loading="lazy"
-      className="w-full rounded-2xl border-0"
+      className="w-full rounded-xl border-0"
     />
   );
 }
