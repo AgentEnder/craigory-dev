@@ -355,6 +355,32 @@ export const appleProvider: MusicProvider = {
     return { playlistId: `${storefront}/${id}` };
   },
 
+  /**
+   * Two shapes, because Apple has two ways of pointing at one song: a
+   * `/song/<slug>/<id>` page, and an album page whose `?i=` names the track —
+   * which is what "Share → Copy Link" produces from a song row. Both yield a
+   * catalog id, which `getTrack` looks up through the keyless iTunes API, so
+   * no storefront is needed here.
+   */
+  parseTrackUrl(url: string): { trackId: string } | null {
+    let u: URL;
+    try {
+      u = new URL(url.trim());
+    } catch {
+      return null;
+    }
+    if (u.hostname !== 'music.apple.com' && u.hostname !== 'itunes.apple.com') {
+      return null;
+    }
+    const i = u.searchParams.get('i');
+    if (i && /^\d+$/.test(i)) return { trackId: i };
+    const segments = u.pathname.split('/').filter(Boolean);
+    const idx = segments.indexOf('song');
+    if (idx === -1) return null;
+    const id = segments.slice(idx + 1).find((s) => /^\d+$/.test(s));
+    return id ? { trackId: id } : null;
+  },
+
   async getPlaylist(
     _env: Env,
     playlistId: string

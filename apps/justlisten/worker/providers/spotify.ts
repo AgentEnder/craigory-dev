@@ -280,6 +280,23 @@ export const spotifyProvider: MusicProvider = {
     return null;
   },
 
+  parseTrackUrl(url: string): { trackId: string } | null {
+    let u: URL;
+    try {
+      u = new URL(url.trim());
+    } catch {
+      return null;
+    }
+    if (u.hostname !== 'open.spotify.com') return null;
+    const segments = u.pathname.split('/').filter(Boolean);
+    let i = 0;
+    if (segments[i]?.startsWith('intl-')) i++; // locale prefix, e.g. /intl-de/
+    if (segments[i] === 'embed') i++;
+    const id = segments[i + 1];
+    if (segments[i] !== 'track' || id === undefined) return null;
+    return /^[A-Za-z0-9]+$/.test(id) ? { trackId: id } : null;
+  },
+
   /**
    * API first when credentials exist — it is the only source of ISRC, which is
    * what makes cross-provider matching exact. The embed page is the fallback,

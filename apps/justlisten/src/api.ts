@@ -10,6 +10,7 @@
 
 import type {
   AggregatedSearch,
+  PastedLinkResult,
   PlaylistTrack,
   SearchResult,
 } from '../worker/types';
@@ -71,9 +72,16 @@ export function searchAllTracks(
   return request<AggregatedSearch>(`/api/search/all?${params}`, init);
 }
 
-/** POST /api/playlists  body { url } */
-export function importPlaylist(url: string): Promise<{ id: string }> {
-  return request<{ id: string }>('/api/playlists', {
+/**
+ * POST /api/playlists  body { url } → PastedLinkResult
+ *
+ * Whatever was pasted: a playlist link is imported and answers with the new
+ * playlist's id, a single-track link answers with the provider and track id to
+ * open. The client cannot make that call itself — `src/playlist-url.ts` only
+ * decides link-vs-search, and the server stays the authority on link shapes.
+ */
+export function resolvePastedLink(url: string): Promise<PastedLinkResult> {
+  return request<PastedLinkResult>('/api/playlists', {
     method: 'POST',
     body: JSON.stringify({ url }),
   });

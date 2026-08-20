@@ -121,6 +121,21 @@ export interface PlaylistTrack {
   resolved?: boolean;
 }
 
+/**
+ * What `POST /api/playlists` made of a pasted link.
+ *
+ * The box takes one text field and people paste whatever they copied, which is
+ * as often one song as a collection — a `youtube.com/watch?v=…` link is what a
+ * desktop browser gives you. So the endpoint answers *what the link was* and
+ * the client routes on it, rather than assuming every URL is a playlist.
+ *
+ * `song` costs no subrequests: the URL is parsed, not fetched, and
+ * `/song/:provider/:id` does its own lookup (and its own 404).
+ */
+export type PastedLinkResult =
+  | { kind: 'playlist'; id: string }
+  | { kind: 'song'; provider: ProviderId; id: string };
+
 export interface PlaylistOpenLinks {
   provider: ProviderId;
   kind: 'exact' | 'search';
@@ -164,6 +179,19 @@ export interface MusicProvider {
   resolve(env: Env, track: Track): Promise<ResolvedMatch>;
   /** Parse a playlist URL owned by this provider; null if not theirs. */
   parsePlaylistUrl(url: string): { playlistId: string } | null;
+  /**
+   * Parse a single-track URL owned by this provider; null if not theirs.
+   *
+   * The peer of `parsePlaylistUrl`, and the reason a pasted song link is no
+   * longer answered with "unsupported playlist link": a YouTube video URL is
+   * what you get sharing from a desktop browser, and it names one recording,
+   * not a collection. Callers try `parsePlaylistUrl` first, so a watch URL
+   * carrying `list=` still imports the playlist.
+   *
+   * Pure parsing, no network: the id feeds `/song/:provider/:id`, whose own
+   * lookup decides whether the track actually exists.
+   */
+  parseTrackUrl(url: string): { trackId: string } | null;
   getPlaylist(
     env: Env,
     playlistId: string

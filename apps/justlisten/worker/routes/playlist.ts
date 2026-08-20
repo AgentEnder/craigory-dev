@@ -1,8 +1,17 @@
 /**
- * POST /api/playlists  body { url: string } → { id: string }
- *   Detect provider from URL (parsePlaylistUrl across registry), fetch tracks
- *   (cap 100), resolve links in small sequential batches (reusing the KV match
- *   cache), store Playlist in PLAYLISTS KV with 7-day TTL.
+ * POST /api/playlists  body { url: string } → PastedLinkResult
+ *   The endpoint behind the search box's paste affordance, so it answers for
+ *   any music link, not only collections.
+ *
+ *   Playlist (parsePlaylistUrl across the registry): fetch tracks (cap 100),
+ *   resolve links in small sequential batches (reusing the KV match cache),
+ *   store Playlist in PLAYLISTS KV with 7-day TTL → 201 { kind: 'playlist' }.
+ *
+ *   Single track (parseTrackUrl, tried second so a watch URL carrying `list=`
+ *   still imports its playlist): → 200 { kind: 'song', provider, id }, pure
+ *   parsing with no subrequests. Nothing is created, hence 200 not 201.
+ *
+ *   Neither: 422 naming every supported shape.
  *
  * GET /api/playlists/:id → Playlist & { open: PlaylistOpenLinks[] }
  *   404 with friendly message when expired/unknown.
@@ -166,15 +175,28 @@ playlistRoutes.post('/', async (c) => {
       break;
     }
   }
+  // Not a collection — but a link to one song is the other thing people
+  // paste, and the app already has somewhere better to put it than an import.
+  // Parsing only: no fetch here, and /song/:provider/:id owns the 404.
   if (!source || sourcePlaylistId === undefined) {
+    for (const provider of providers) {
+      const parsed = provider.parseTrackUrl(url);
+      if (parsed) {
+        return c.json(
+          { kind: 'song', provider: provider.id, id: parsed.trackId },
+          200
+        );
+      }
+    }
     return c.json(
       {
         error:
           // The only place the supported shapes are documented now that the
-          // search box handles import — keep it complete.
-          'Unsupported playlist link. Supported: Spotify playlists and ' +
-          'albums, Deezer playlists and albums, YouTube playlists, and ' +
-          'public Apple Music playlists.',
+          // search box handles both jobs — keep it complete.
+          'Unsupported music link. Supported: single tracks on Spotify, ' +
+          'Apple Music, YouTube and Deezer; Spotify playlists and albums; ' +
+          'Deezer playlists and albums; YouTube playlists; and public Apple ' +
+          'Music playlists.',
       },
       422
     );
@@ -244,7 +266,7 @@ playlistRoutes.post('/', async (c) => {
       503
     );
   }
-  return c.json({ id: playlist.id }, 201);
+  return c.json({ kind: 'playlist', id: playlist.id }, 201);
 });
 
 /**

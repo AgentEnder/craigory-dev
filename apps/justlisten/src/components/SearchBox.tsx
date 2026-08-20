@@ -7,7 +7,7 @@ import {
   cx,
 } from '@new-personal-monorepo/small-app-design-system';
 import type { SearchResult } from '../../worker/types';
-import { importPlaylist, searchTracks } from '../api';
+import { resolvePastedLink, searchTracks } from '../api';
 import { asPastedLink } from '../playlist-url';
 import { PROVIDER_LABELS } from './ProviderBadge';
 import { Artwork } from './Artwork';
@@ -57,13 +57,14 @@ export function SearchBox({
   const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
-  const [importing, setImporting] = useState(false);
-  const [importError, setImportError] = useState('');
+  const [opening, setOpening] = useState(false);
+  const [linkError, setLinkError] = useState('');
 
   /**
-   * A pasted link is an import, not a search. Detecting it here rather than
-   * behind a separate page means the box does the obvious thing with whatever
-   * is on your clipboard.
+   * A pasted link is something to open, not a search. Detecting it here rather
+   * than behind a separate page means the box does the obvious thing with
+   * whatever is on your clipboard — and the server decides whether that is a
+   * playlist to import or a single song to jump to.
    */
   const pasted = asPastedLink(query);
 
@@ -135,19 +136,23 @@ export function SearchBox({
     navigate(`/song/${row.provider}/${encodeURIComponent(row.id)}`);
   };
 
-  const runImport = () => {
-    if (!pasted || importing) return;
-    setImporting(true);
-    setImportError('');
-    importPlaylist(pasted.url)
-      .then(({ id }) => {
+  const openPastedLink = () => {
+    if (!pasted || opening) return;
+    setOpening(true);
+    setLinkError('');
+    resolvePastedLink(pasted.url)
+      .then((result) => {
         setOpen(false);
-        navigate(`/playlist/${encodeURIComponent(id)}`);
+        navigate(
+          result.kind === 'song'
+            ? `/song/${result.provider}/${encodeURIComponent(result.id)}`
+            : `/playlist/${encodeURIComponent(result.id)}`
+        );
       })
       .catch((err: unknown) => {
-        setImporting(false);
-        setImportError(
-          err instanceof Error ? err.message : 'Could not import that link.'
+        setOpening(false);
+        setLinkError(
+          err instanceof Error ? err.message : 'Could not open that link.'
         );
       });
   };
@@ -180,7 +185,7 @@ export function SearchBox({
     if (event.key === 'Enter') {
       event.preventDefault();
       if (pasted) {
-        runImport();
+        openPastedLink();
       } else if (open && activeIndex >= 0 && activeIndex < results.length) {
         select(results[activeIndex]);
       } else {
@@ -237,29 +242,30 @@ export function SearchBox({
           <button
             type="button"
             onMouseDown={(event) => event.preventDefault()}
-            onClick={runImport}
-            disabled={importing}
+            onClick={openPastedLink}
+            disabled={opening}
             className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-medium text-ink transition-colors hover:bg-ink/5 disabled:opacity-60"
           >
             <span className="min-w-0">
+              {/* Song or playlist is the server's call, so the label commits
+                  to neither — it names the service, which is the part the
+                  host already tells us. */}
               <span className="block truncate">
-                {importing
-                  ? 'Importing…'
-                  : `Import this ${
-                      pasted.provider
-                        ? PROVIDER_LABELS[pasted.provider]
-                        : 'playlist'
-                    } link`}
+                {opening
+                  ? 'Opening…'
+                  : pasted.provider
+                    ? `Open this ${PROVIDER_LABELS[pasted.provider]} link`
+                    : 'Open this link'}
               </span>
               <span className="block truncate text-xs font-normal text-gray-500">
                 {pasted.url}
               </span>
             </span>
-            <span aria-hidden="true">{importing ? '···' : '→'}</span>
+            <span aria-hidden="true">{opening ? '···' : '→'}</span>
           </button>
-          {importError && (
+          {linkError && (
             <div className="border-t border-gray-100 p-3">
-              <ErrorPill>{importError}</ErrorPill>
+              <ErrorPill>{linkError}</ErrorPill>
             </div>
           )}
         </div>

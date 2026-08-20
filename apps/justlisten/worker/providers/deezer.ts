@@ -211,6 +211,24 @@ export const deezerProvider: MusicProvider = {
     return null;
   },
 
+  parseTrackUrl(url: string): { trackId: string } | null {
+    let u: URL;
+    try {
+      u = new URL(url.trim());
+    } catch {
+      return null;
+    }
+    const host = u.hostname.replace(/^www\./, '');
+    if (host !== 'deezer.com' && host !== 'deezer.page.link') return null;
+    const segments = u.pathname.split('/').filter(Boolean);
+    let i = 0;
+    // Locale prefix, e.g. /us/track/123.
+    if (segments[i] && /^[a-z]{2}$/.test(segments[i]!)) i++;
+    const id = segments[i + 1];
+    if (segments[i] !== 'track' || !id) return null;
+    return /^\d+$/.test(id) ? { trackId: id } : null;
+  },
+
   async getPlaylist(
     _env: Env,
     playlistId: string

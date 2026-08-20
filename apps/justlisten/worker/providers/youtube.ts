@@ -94,6 +94,70 @@ function mapVideo(item: YtVideoItem): Track {
   return track;
 }
 
+/**
+ * Map a `youtube.com/oembed` document onto a `Track`. Null without a title,
+ * the one field nothing downstream can work without.
+ *
+ * Split from the fetch so it stays pure and unit-testable, exactly like
+ * `mapVideo` is for the API shape. `author_name` is the channel, which is what
+ * both the API and the playlist scrape already record as a video's artist, so
+ * a track sourced here resolves identically to one sourced there.
+ */
+export function parseYouTubeOEmbed(id: string, body: unknown): Track | null {
+  if (!body || typeof body !== 'object') return null;
+  const doc = body as {
+    title?: unknown;
+    author_name?: unknown;
+    thumbnail_url?: unknown;
+  };
+  const title = typeof doc.title === 'string' ? doc.title : '';
+  if (!title) return null;
+
+  const track: Track = {
+    provider: 'youtube',
+    id,
+    title,
+    artist:
+      typeof doc.author_name === 'string'
+        ? cleanChannelTitle(doc.author_name)
+        : '',
+  };
+  if (typeof doc.thumbnail_url === 'string' && doc.thumbnail_url) {
+    track.artworkUrl = doc.thumbnail_url;
+  }
+  return track;
+}
+
+/**
+ * One video, keylessly.
+ *
+ * `youtube.com/oembed` is public, unauthenticated, and costs nothing against
+ * the Data API's 10,000-unit daily quota. A far better keyless path than
+ * scraping the watch page: no HTML, no `ytInitialPlayerResponse` blob to keep
+ * chasing when YouTube renames it (see scrape/youtube-initial-data.ts for that
+ * treadmill), and a private, deleted or embed-blocked video answers non-200
+ * rather than rendering a page that parses to nothing.
+ *
+ * What it gives up versus `videos.list` is duration, which costs only the
+ * +0.1 duration bonus in `scoreMatch` — title and artist carry the other 100%
+ * of the score, so matches stay good.
+ *
+ * Shape verified against the live endpoint 2026-08-20.
+ */
+async function fetchOEmbed(id: string): Promise<Track | null> {
+  const params = new URLSearchParams({
+    url: `https://www.youtube.com/watch?v=${id}`,
+    format: 'json',
+  });
+  try {
+    const res = await fetch(`https://www.youtube.com/oembed?${params}`);
+    if (!res.ok) return null;
+    return parseYouTubeOEmbed(id, await res.json());
+  } catch {
+    return null;
+  }
+}
+
 async function apiGet<T>(
   env: Env,
   resource: string,
@@ -120,18 +184,26 @@ export const youtubeProvider: MusicProvider = {
     return [];
   },
 
+  /**
+   * API first when a key exists — `videos.list` costs 1 unit and carries the
+   * duration oEmbed omits — then oEmbed, which costs nothing at all. The
+   * fallback is what makes a pasted `watch?v=…` link work with no credentials
+   * configured, and what covers a key whose quota has run out.
+   */
   async getTrack(env: Env, id: string): Promise<Track | null> {
-    if (!this.available(env)) return null;
-    try {
-      const data = await apiGet<{ items?: YtVideoItem[] }>(env, 'videos', {
-        part: 'snippet,contentDetails',
-        id,
-      });
-      const item = data.items?.[0];
-      return item?.id ? mapVideo(item) : null;
-    } catch {
-      return null;
+    if (this.available(env)) {
+      try {
+        const data = await apiGet<{ items?: YtVideoItem[] }>(env, 'videos', {
+          part: 'snippet,contentDetails',
+          id,
+        });
+        const item = data.items?.[0];
+        if (item?.id) return mapVideo(item);
+      } catch {
+        // Quota, outage, or a bad key — try the keyless path before giving up.
+      }
     }
+    return fetchOEmbed(id);
   },
 
   async resolve(env: Env, track: Track): Promise<ResolvedMatch> {
@@ -186,6 +258,32 @@ export const youtubeProvider: MusicProvider = {
       return { playlistId: list };
     }
     return null;
+  },
+
+  /**
+   * `watch?v=…` (any youtube.com subdomain) and `youtu.be/…` — between them,
+   * every link you can copy out of a browser or a share sheet.
+   *
+   * A watch URL carrying `list=` parses here too, and that is not a conflict:
+   * callers try `parsePlaylistUrl` first, so the playlist keeps winning.
+   */
+  parseTrackUrl(url: string): { trackId: string } | null {
+    let u: URL;
+    try {
+      u = new URL(url.trim());
+    } catch {
+      return null;
+    }
+    const host = u.hostname.replace(/^(www|m)\./, '');
+    const id =
+      host === 'youtu.be'
+        ? u.pathname.split('/').filter(Boolean)[0]
+        : (host === 'youtube.com' || host === 'music.youtube.com') &&
+            u.pathname === '/watch'
+          ? u.searchParams.get('v')
+          : undefined;
+    if (!id) return null;
+    return /^[A-Za-z0-9_-]+$/.test(id) ? { trackId: id } : null;
   },
 
   /**
