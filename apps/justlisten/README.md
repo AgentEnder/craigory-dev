@@ -70,9 +70,48 @@ pnpm --filter justlisten build      # vike build → dist/client + dist/server
 pnpm --filter justlisten preview    # vike preview
 pnpm --filter justlisten typecheck  # tsc --noEmit
 pnpm --filter justlisten test       # vitest (pure-logic worker tests)
-pnpm --filter justlisten deploy     # vike build && wrangler deploy
 pnpm --filter justlisten secrets:push  # 1Password → Cloudflare secrets
+
+npx nx deploy justlisten            # build, then wrangler deploy
+npx nx deploy justlisten -c preview # build, then upload a preview version
 ```
+
+Deployment goes through Nx rather than a package script so the build is a real
+task dependency instead of a `&&`, and so the target can carry the preview
+configuration below.
+
+## Deployments
+
+| | |
+|---|---|
+| Production | `wrangler deploy` — serves traffic at the Worker's route |
+| Preview | `wrangler versions upload` — a version at **0% traffic**, on its own URL |
+
+Both run from `tools/deploy.mjs`.
+
+CI reaches this indirectly: `craigory-dev`'s deploy target declares
+`implicitDependencies: ["apps/*"]` and `dependsOn: ["^deploy"]`, so deploying
+the site fans out across every app. Nx passes its `-c` down to each dependency
+that defines that configuration, which is what routes a PR to the preview path
+and a `main` push to the production one.
+
+Preview versions bind the **same KV namespaces as production** — there is only
+one pair. `--var KV_PREFIX:pr-<n>` therefore namespaces every key a preview
+touches, on reads as well as writes, so it gets a cold cache and an empty
+playlist store rather than production's data (see `worker/kv-scope.ts`). Both
+key families already expire on their own (7 days for playlists, 30 for
+matches), so a merged PR's keys need no cleanup.
+
+`--preview-alias pr-<n>` keeps a PR's preview URL stable across pushes instead
+of changing with each version id; `tools/update-preview-comment.ts` reads that
+URL out of wrangler's `WRANGLER_OUTPUT_FILE_PATH` output and puts it in the PR
+comment.
+
+**CI needs a `CLOUDFLARE_API_TOKEN` repo secret** (locally, wrangler's
+interactive OAuth login covers it). Without one, `tools/deploy.mjs` logs a note
+and exits 0 rather than failing the PR — so an unconfigured repo, or a fork PR
+where secrets are withheld, still gets a green check and a site preview, just
+no JustListen preview URL.
 
 ## Playlist import without credentials
 

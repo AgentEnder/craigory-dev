@@ -7,7 +7,7 @@
  *   KV free tier allows ~1k writes/day, so high-churn data must NOT go here.
  */
 
-import type { KVNamespace } from '@cloudflare/workers-types';
+import { scopedKey } from './kv-scope';
 import type { Env } from './types';
 
 /**
@@ -50,30 +50,6 @@ export async function cacheJson<T>(
   return value;
 }
 
-/**
- * KV-backed JSON memoizer over any namespace (typically `env.CACHE`).
- * Returns the cached value for `key` when present; otherwise runs
- * `producer`, stores its result with `expirationTtl`, and returns it.
- * `null`/`undefined` producer results are returned but never written, so
- * transient misses are retried on the next request.
- */
-export async function kvJson<T>(
-  kv: KVNamespace,
-  key: string,
-  ttlSeconds: number,
-  producer: () => Promise<T>
-): Promise<T> {
-  const hit = await kv.get<T>(key, 'json');
-  if (hit !== null) {
-    return hit;
-  }
-  const value = await producer();
-  if (value !== null && value !== undefined) {
-    await kv.put(key, JSON.stringify(value), { expirationTtl: ttlSeconds });
-  }
-  return value;
-}
-
 /** Read a cached Response from the Cache API for the given key URL. */
 export async function cacheGet(keyUrl: string): Promise<Response | null> {
   return (await caches.default.match(new Request(keyUrl))) ?? null;
@@ -95,7 +71,7 @@ export async function cachePut(
 
 /** Read a JSON value from the long-lived KV cache. */
 export async function kvGetJson<T>(env: Env, key: string): Promise<T | null> {
-  return env.CACHE.get<T>(key, 'json');
+  return env.CACHE.get<T>(scopedKey(env, key), 'json');
 }
 
 /** Write a JSON value to the long-lived KV cache with a TTL (seconds). */
@@ -105,7 +81,7 @@ export async function kvPutJson(
   value: unknown,
   expirationTtlSeconds: number
 ): Promise<void> {
-  await env.CACHE.put(key, JSON.stringify(value), {
+  await env.CACHE.put(scopedKey(env, key), JSON.stringify(value), {
     expirationTtl: expirationTtlSeconds,
   });
 }

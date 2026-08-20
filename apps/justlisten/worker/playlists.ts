@@ -3,6 +3,7 @@
  * Playlists expire after 7 days (`expirationTtl`).
  */
 
+import { scopedKey } from './kv-scope';
 import { getProvider } from './providers/index';
 import {
   exactPlaylistLink,
@@ -41,9 +42,11 @@ export const generatePlaylistId = createId;
 
 /** Store a playlist with the 7-day TTL. */
 export async function savePlaylist(env: Env, playlist: Playlist): Promise<void> {
-  await env.PLAYLISTS.put(playlist.id, JSON.stringify(playlist), {
-    expirationTtl: PLAYLIST_TTL_SECONDS,
-  });
+  await env.PLAYLISTS.put(
+    scopedKey(env, playlist.id),
+    JSON.stringify(playlist),
+    { expirationTtl: PLAYLIST_TTL_SECONDS }
+  );
 }
 
 /** Load a playlist; null when expired/unknown. */
@@ -51,7 +54,7 @@ export async function loadPlaylist(
   env: Env,
   id: string
 ): Promise<Playlist | null> {
-  return env.PLAYLISTS.get<Playlist>(id, 'json');
+  return env.PLAYLISTS.get<Playlist>(scopedKey(env, id), 'json');
 }
 
 /**

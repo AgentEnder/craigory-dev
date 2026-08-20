@@ -9,7 +9,6 @@
     "preview": "vike preview",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
-    "deploy": "vike build && wrangler deploy",
     "secrets:push": "secreq run --env-file .env.production -- node tools/secrets.mjs",
     "secrets:init": "secreq run --env-file .env.production --prompt-unresolved -- node tools/secrets.mjs"
   },
@@ -19,6 +18,18 @@
         "dependsOn": [
           "typecheck"
         ]
+      },
+      "deploy": {
+        "executor": "nx:run-commands",
+        "options": {
+          "command": "node tools/deploy.mjs",
+          "cwd": "{projectRoot}"
+        },
+        "configurations": {
+          "preview": {
+            "command": "node tools/deploy.mjs --preview"
+          }
+        }
       }
     }
   },

@@ -135,6 +135,12 @@ export interface Env {
   SPOTIFY_CLIENT_ID?: string;
   SPOTIFY_CLIENT_SECRET?: string;
   YOUTUBE_API_KEY?: string;
+  /**
+   * Namespaces every KV key this Worker touches (see `kv-scope.ts`). Set only
+   * on preview versions, which share production's KV bindings; unset in
+   * production, so production keys keep their bare names.
+   */
+  KV_PREFIX?: string;
 }
 
 /** A resolved cross-provider link, plus the matched track when exact. */

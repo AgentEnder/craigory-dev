@@ -5,6 +5,7 @@
  * search deep-links.
  */
 
+import { scopedKey } from '../kv-scope';
 import { fetchPublicPage } from './scrape/fetch-page';
 import { parseSpotifyEmbed } from './scrape/spotify-embed';
 import type {
@@ -83,7 +84,7 @@ function mapTrack(t: SpotifyTrackObj, albumContext?: SpotifyAlbum): Track {
  * `expirationTtl` of `expires_in - 60` seconds.
  */
 async function getToken(env: Env): Promise<string> {
-  const cached = await env.CACHE.get(TOKEN_KV_KEY);
+  const cached = await env.CACHE.get(scopedKey(env, TOKEN_KV_KEY));
   if (cached) return cached;
 
   const res = await fetch(ACCOUNTS_TOKEN_URL, {
@@ -108,7 +109,9 @@ async function getToken(env: Env): Promise<string> {
   }
   // KV minimum expirationTtl is 60s.
   const ttl = Math.max(60, (data.expires_in ?? 3600) - 60);
-  await env.CACHE.put(TOKEN_KV_KEY, data.access_token, { expirationTtl: ttl });
+  await env.CACHE.put(scopedKey(env, TOKEN_KV_KEY), data.access_token, {
+    expirationTtl: ttl,
+  });
   return data.access_token;
 }
 
@@ -119,7 +122,7 @@ async function apiGet<T>(env: Env, pathAndQuery: string): Promise<T> {
   });
   if (res.status === 401) {
     // Token expired/revoked early — refresh once and retry.
-    await env.CACHE.delete(TOKEN_KV_KEY);
+    await env.CACHE.delete(scopedKey(env, TOKEN_KV_KEY));
     token = await getToken(env);
     res = await fetch(`${API_BASE}${pathAndQuery}`, {
       headers: { Authorization: `Bearer ${token}` },
