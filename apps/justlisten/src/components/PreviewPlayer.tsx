@@ -258,10 +258,6 @@ export function PreviewBanner({ player }: { player: PreviewPlayer }) {
           ))}
         </div>
 
-        <span className="hidden shrink-0 text-[10px] font-semibold uppercase tracking-wider text-gray-400 lg:block">
-          30s preview · Deezer
-        </span>
-
         <button
           type="button"
           onClick={player.close}
