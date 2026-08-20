@@ -49,8 +49,11 @@ empty in 1Password is skipped rather than cleared.
 The app works with **zero secrets** (Deezer and Apple/iTunes need no
 credentials) and degrades per provider:
 
-- No Spotify creds → Spotify is skipped as a search catalog and Spotify links
-  become search links.
+- No Spotify creds → Spotify is skipped as a search catalog and unresolved
+  Spotify links become search links. A pasted `open.spotify.com/track/…` link
+  still opens a real song page, via the embed page — and, once opened, seeds
+  the match cache so later visitors get that exact Spotify track too (see
+  "Every pasted link teaches the cache" below).
 - No YouTube key → YouTube links are `https://music.youtube.com/search?q=…`
   search links. Playlist import still works — it falls back to reading the
   public playlist page, which also costs no quota — and so does opening a
@@ -132,16 +135,45 @@ configured, so everything works with zero secrets:
 
 | Provider | With credentials | Without |
 |---|---|---|
-| Spotify | Web API (ISRC, album) | `open.spotify.com/embed` — 100 tracks, no ISRC |
+| Spotify playlist | Web API (ISRC, album) | `open.spotify.com/embed` — 100 tracks, no ISRC |
+| Spotify track | Web API (ISRC, album) | `open.spotify.com/embed/track` — no ISRC |
 | YouTube playlist | Data API (50 quota units/call) | public playlist page — no quota |
 | YouTube video | Data API `videos.list` (1 unit, has duration) | `youtube.com/oembed` — no quota, no duration |
 | Deezer / Apple | *(never needed any)* | public APIs |
 
-The oEmbed fallback also catches a key whose daily quota has run out: the API
-path is tried first and any failure falls through to it rather than 404ing the
-song page. Losing duration costs only the +0.1 duration bonus in `scoreMatch`,
-so cross-provider matching stays good — and auto-generated music channels are
-named "<Artist> - Topic", which normalizes to the bare artist.
+Both fallbacks also catch credentials that exist but fail — an expired token,
+an outage, a YouTube key whose daily quota has run out. The API path is tried
+first and *any* failure falls through rather than 404ing the song page. Losing
+duration costs only the +0.1 duration bonus in `scoreMatch`, so cross-provider
+matching stays good — and auto-generated YouTube music channels are named
+"<Artist> - Topic", which normalizes to the bare artist.
+
+## Every pasted link teaches the cache
+
+Resolution used to cache only the links it went out and *found*, which threw
+away the best datum in the whole request: the provider id a human just handed
+us by pasting a link. That id is now recorded too, under
+`match:norm:<artist>~<title>:<provider>`.
+
+The payoff is direct links on platforms this deployment has no credentials
+for. Paste one `open.spotify.com/track/…` link with Spotify unconfigured, and
+every later visitor who reaches that recording from Deezer or YouTube gets the
+exact Spotify track instead of a search box. It is also the only affordable way
+to learn YouTube video ids, since `search.list` costs 100 of a 10,000-unit
+daily quota and a paste costs nothing.
+
+Two details make it work on one KV write:
+
+- It is filed under the **normalized** artist/title key even when an ISRC is
+  available. The readers who need it most are keyless-sourced tracks (YouTube
+  oEmbed, the Spotify embed), which have no ISRC and look nowhere else.
+- Reads try **every** key a track could be filed under — ISRC first, then
+  normalized — so an ISRC-carrying track still finds an entry left by a
+  keyless one. Reads are the plentiful side of KV's free tier (100k/day
+  against ~1k writes), so the asymmetry is deliberate.
+
+Nothing is seeded for a track with no id or an artist that normalizes to empty:
+`norm:~<title>` would collide across every artist with that song title.
 
 Adding credentials still improves things: Spotify's API supplies ISRCs, which
 is what makes cross-provider matching exact rather than a title/artist/duration

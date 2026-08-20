@@ -299,6 +299,28 @@ existed for.
     assembled detail is Cache-API cached 24h. Returns null for a miss, which
     the hook turns into `render(404, …)`; provider failures degrade to
     `kind: 'search'` links rather than failing the page.
+  - **Reads try every key the track can be filed under** (`matchKeysForTrack`):
+    ISRC first, then the normalized key. Sources disagree about identity —
+    Deezer and the Spotify Web API carry an ISRC, the keyless paths (YouTube
+    oEmbed, Spotify embed) carry none — so reading only the preferred key
+    would hide entries left by a keyless source from an ISRC-carrying one.
+- **`seedSourceMatch` records the source provider's own id.** Resolution
+  otherwise only caches links it went out and found, throwing away the most
+  reliable datum in the request: the id a human just handed us. Seeding it
+  means a later view of the same recording, sourced from another catalog, gets
+  an exact link to a platform we may hold no credentials for — paste one
+  Spotify link and every later visitor gets that Spotify track rather than a
+  search box. It is also the only affordable way to learn YouTube video ids,
+  whose `search.list` costs 100 of a 10,000-unit daily quota.
+  - Filed under the **normalized** key even when an ISRC exists, because the
+    readers who need it are keyless-sourced tracks that look nowhere else;
+    ISRC-carrying readers still find it via the dual read above. One write,
+    both readers — which matters against KV's ~1k writes/day.
+  - Called from `loadSongDetail` (behind the 24h Cache-API memo, so it cannot
+    churn writes) and from live playlist-import rows only — the cache-only
+    pass exists to spend nothing.
+  - Skipped when the track has no id, or an artist that normalizes to empty:
+    `norm:~<title>` would collide across every artist with that song title.
 - Cross-provider resolution returns `ResolvedMatch`, not just a link. The
   matched track is cached alongside it, and the importer and song loader copy
   its `artworkUrl`, `isrc`, and `album` onto their own row — a Spotify embed
