@@ -322,6 +322,9 @@ existed for.
 - **PlaylistPage**: title, source badge, "Open on …" buttons, per-track rows
   (artwork, title, artist + three provider link icons), copyable share URL,
   expiry note. Handle 404/expired gracefully.
+- **The mark keeps its four colours** — one stop per service, the one place the
+  app is allowed chroma. Its stops are chosen values, not Tailwind ramp steps,
+  and none is a provider's actual brand colour.
 - **Palette: ink plus one accent** (`src/styles.css` `@theme`). The app points
   at other services, so the four provider colours are the only chroma that
   carries meaning; our own controls stay near-black (`--color-ink`). Exactly
