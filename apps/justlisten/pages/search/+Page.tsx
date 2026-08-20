@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Logo } from '../../src/components/Logo';
 import { usePageContext } from 'vike-react/usePageContext';
 import {
   AppHeader,
@@ -68,6 +69,9 @@ export function Page() {
 
   return (
     <>
+      <div className="mb-3 flex justify-center">
+        <Logo size={44} />
+      </div>
       <AppHeader title="JustListen" tagline="Find where to listen to any song" />
       <main className="mx-auto max-w-2xl">
         <a href="/"

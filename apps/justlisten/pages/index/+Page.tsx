@@ -1,10 +1,14 @@
 import { AppHeader } from '@new-personal-monorepo/small-app-design-system';
+import { Logo } from '../../src/components/Logo';
 import { SearchBox } from '../../src/components/SearchBox';
 import { ProviderBadge } from '../../src/components/ProviderBadge';
 
 export function Page() {
   return (
     <>
+      <div className="mb-3 flex justify-center">
+        <Logo size={44} />
+      </div>
       <AppHeader
         title="JustListen"
         tagline="Find where to listen to any song"
