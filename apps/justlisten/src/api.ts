@@ -97,16 +97,3 @@ export function resolvePlaylistSlice(
     body: JSON.stringify({ from }),
   });
 }
-
-/**
- * GET /api/preview/deezer/:id
- *
- * A fresh 30-second preview URL. Fetched per play rather than stored: the URL
- * carries an expiry token and dies after ~15 minutes.
- */
-export function getDeezerPreview(
-  id: string,
-  init?: { signal?: AbortSignal }
-): Promise<{ url: string; durationMs?: number }> {
-  return request(`/api/preview/deezer/${encodeURIComponent(id)}`, init);
-}

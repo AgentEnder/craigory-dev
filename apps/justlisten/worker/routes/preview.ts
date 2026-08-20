@@ -1,11 +1,12 @@
 /**
- * GET /api/preview/deezer/:id → { url, durationMs }
+ * GET /api/preview/deezer/:id → 302 to the 30-second preview MP3.
  *
- * Deezer's track endpoint carries a `preview` field: a direct MP3 of the
- * 30-second sample, served `audio/mpeg` with `access-control-allow-origin: *`.
- * That last header is the whole reason this route exists — the browser can
- * stream it straight from Deezer's CDN, so seeking and range requests never
- * come back through the Worker. We only broker the lookup.
+ * A redirect rather than JSON so the client can point an `<audio>` element
+ * straight at this URL and call `play()` **synchronously inside the click
+ * handler**. Returning the URL for the client to fetch first forced `play()`
+ * to happen after an await, outside the user gesture — which Chrome tolerates
+ * via sticky activation but Safari rejects outright, surfacing as a spurious
+ * "no preview available".
  *
  * The lookup cannot be skipped by storing the URL on a playlist row: preview
  * URLs carry an `exp` token and die after ~15 minutes, long before a 7-day
@@ -21,6 +22,12 @@ import type { Env } from '../types';
  * leaves minutes of validity — far more than a 30-second preview needs.
  */
 const PREVIEW_CACHE_TTL_SECONDS = 10 * 60;
+
+/**
+ * Kept under the signature lifetime so a browser-cached redirect can never
+ * outlive the URL it points at.
+ */
+const REDIRECT_MAX_AGE_SECONDS = 5 * 60;
 
 /** Thrown inside the cache producer so a miss is never cached. */
 class NoPreviewError extends Error {}
@@ -60,7 +67,8 @@ previewRoutes.get('/deezer/:id', async (c) => {
         };
       }
     );
-    return c.json(preview);
+    c.header('cache-control', `private, max-age=${REDIRECT_MAX_AGE_SECONDS}`);
+    return c.redirect(preview.url, 302);
   } catch (err) {
     if (err instanceof NoPreviewError) {
       return c.json({ error: 'No preview available for this track' }, 404);

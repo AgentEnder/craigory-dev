@@ -10,7 +10,6 @@ import {
   type RefObject,
 } from 'react';
 
-import { getDeezerPreview } from '../api';
 import type { ProviderLink } from '../../worker/types';
 import { PROVIDER_IDS } from '../../worker/types';
 import { Artwork } from './Artwork';
@@ -47,6 +46,11 @@ export interface PreviewPlayer {
   close: () => void;
 }
 
+/** The Worker redirects this to a fresh preview MP3. */
+function previewSrc(deezerId: string): string {
+  return `/api/preview/deezer/${encodeURIComponent(deezerId)}`;
+}
+
 /**
  * A plain `<audio>` element playing Deezer's preview MP3s.
  *
@@ -62,16 +66,15 @@ export function usePreviewPlayer(): PreviewPlayer {
   const audio = useRef<HTMLAudioElement | null>(null);
   const [current, setCurrent] = useState<PreviewTrack | null>(null);
   const [status, setStatus] = useState<Status>('idle');
-  // Guards against a slow lookup for a track the listener has already moved on
-  // from: only the newest request may take the player.
-  const latest = useRef(0);
 
   useEffect(() => {
     const element = new Audio();
     element.preload = 'none';
     audio.current = element;
     const onEnded = () => setStatus('paused');
+    const onError = () => setStatus('error');
     element.addEventListener('ended', onEnded);
+    element.addEventListener('error', onError);
     element.addEventListener('play', () => setStatus('playing'));
     element.addEventListener('pause', () =>
       setStatus((s) => (s === 'playing' ? 'paused' : s))
@@ -79,6 +82,7 @@ export function usePreviewPlayer(): PreviewPlayer {
     return () => {
       element.pause();
       element.removeEventListener('ended', onEnded);
+      element.removeEventListener('error', onError);
       audio.current = null;
     };
   }, []);
@@ -86,21 +90,16 @@ export function usePreviewPlayer(): PreviewPlayer {
   const play = useCallback((track: PreviewTrack) => {
     const element = audio.current;
     if (!element) return;
-    const ticket = ++latest.current;
     setCurrent(track);
     setStatus('loading');
-    element.pause();
-
-    getDeezerPreview(track.deezerId)
-      .then(({ url }) => {
-        if (ticket !== latest.current || !audio.current) return;
-        element.src = url;
-        return element.play();
-      })
-      .catch(() => {
-        if (ticket !== latest.current) return;
-        setStatus('error');
-      });
+    // `src` + `play()` both run synchronously inside the click handler. Looking
+    // the URL up first and playing in the callback put `play()` outside the
+    // user gesture, which Safari refuses — it surfaced as a spurious "no
+    // preview available" that went away on a second press.
+    element.src = previewSrc(track.deezerId);
+    const started = element.play();
+    // A rejection here is a real failure to start, not a stale request.
+    if (started) started.catch(() => setStatus('error'));
   }, []);
 
   const toggle = useCallback(() => {
@@ -111,7 +110,6 @@ export function usePreviewPlayer(): PreviewPlayer {
   }, []);
 
   const close = useCallback(() => {
-    latest.current++;
     audio.current?.pause();
     setCurrent(null);
     setStatus('idle');
@@ -178,6 +176,10 @@ export function PreviewBanner({ player }: { player: PreviewPlayer }) {
   // 60fps to fix that would be worse than writing the one style we need.
   useEffect(() => {
     if (!current) return;
+    // Zero it up front: on a swap the element keeps the previous track's
+    // currentTime until the new source loads, which left the bar parked at the
+    // old position for a beat before snapping back.
+    if (bar.current) bar.current.style.width = '0%';
     let frame = 0;
     const tick = () => {
       const element = audio.current;

@@ -385,12 +385,19 @@ Two different mechanisms, because they do different jobs.
 
 ### Preview banner (list pages)
 
-`GET /api/preview/deezer/:id` → `{ url, durationMs }`. Deezer's track endpoint
+`GET /api/preview/deezer/:id` → **302** to the MP3. Deezer's track endpoint
 carries a `preview` field: a direct MP3 of the 30-second sample, served
-`audio/mpeg` with `access-control-allow-origin: *`. That header is why this
-works — a plain `<audio>` on our own page streams it straight from Deezer's
-CDN, so seeking and range requests never return through the Worker. We broker
-only the lookup, cached 10 minutes.
+`audio/mpeg`. The lookup is cached 10 minutes and the redirect is marked
+`private, max-age=300`, kept under the signature lifetime so a browser-cached
+redirect can never outlive the URL it points at.
+
+A redirect rather than JSON so `src` and `play()` both run **synchronously
+inside the click handler**. Returning the URL for the client to fetch first put
+`play()` after an await, outside the user gesture: Chrome tolerates that via
+sticky activation, but Safari refuses it, which surfaced as a spurious "no
+preview available" that cleared on a second press. The error state now comes
+from the element's own `error` event, so it means the source genuinely failed
+to load.
 
 The URL cannot be stored on a playlist row: it carries an `exp` token and dies
 after ~15 minutes, long before a 7-day share link is opened. Hence one lookup
