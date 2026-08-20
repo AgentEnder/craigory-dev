@@ -7,7 +7,9 @@ import {
   cx,
 } from '@new-personal-monorepo/small-app-design-system';
 import type { SearchResult } from '../../worker/types';
-import { searchTracks } from '../api';
+import { importPlaylist, searchTracks } from '../api';
+import { asPastedLink } from '../playlist-url';
+import { PROVIDER_LABELS } from './ProviderBadge';
 import { Artwork } from './Artwork';
 
 type Status = 'idle' | 'loading' | 'ready' | 'error';
@@ -55,12 +57,29 @@ export function SearchBox({
   const [error, setError] = useState('');
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [importing, setImporting] = useState(false);
+  const [importError, setImportError] = useState('');
+
+  /**
+   * A pasted link is an import, not a search. Detecting it here rather than
+   * behind a separate page means the box does the obvious thing with whatever
+   * is on your clipboard.
+   */
+  const pasted = asPastedLink(query);
 
   // Debounced fetch; cleanup cancels both the timer and any in-flight request,
   // so stale responses can never land.
   useEffect(() => {
     if (!typing) return;
     const q = query.trim();
+    // A URL is never a useful search term; the import affordance takes over.
+    if (asPastedLink(q)) {
+      setResults([]);
+      setStatus('idle');
+      setOpen(true);
+      setActiveIndex(-1);
+      return;
+    }
     // Mirror the server's MIN_QUERY_LENGTH (2): a shorter query would get a
     // 400 back, flashing an error pill on the first keystroke.
     if (q.length < 2) {
@@ -116,6 +135,23 @@ export function SearchBox({
     navigate(`/song/${row.provider}/${encodeURIComponent(row.id)}`);
   };
 
+  const runImport = () => {
+    if (!pasted || importing) return;
+    setImporting(true);
+    setImportError('');
+    importPlaylist(pasted.url)
+      .then(({ id }) => {
+        setOpen(false);
+        navigate(`/playlist/${encodeURIComponent(id)}`);
+      })
+      .catch((err: unknown) => {
+        setImporting(false);
+        setImportError(
+          err instanceof Error ? err.message : 'Could not import that link.'
+        );
+      });
+  };
+
   const seeAllResults = () => {
     const q = query.trim();
     if (q.length < 2) return;
@@ -143,7 +179,9 @@ export function SearchBox({
     }
     if (event.key === 'Enter') {
       event.preventDefault();
-      if (open && activeIndex >= 0 && activeIndex < results.length) {
+      if (pasted) {
+        runImport();
+      } else if (open && activeIndex >= 0 && activeIndex < results.length) {
         select(results[activeIndex]);
       } else {
         // Nothing highlighted — the user wants the broader search, not a
@@ -194,7 +232,40 @@ export function SearchBox({
         />
       )}
 
-      {open && (
+      {open && pasted && (
+        <div className={DROPDOWN_SURFACE}>
+          <button
+            type="button"
+            onMouseDown={(event) => event.preventDefault()}
+            onClick={runImport}
+            disabled={importing}
+            className="flex w-full items-center justify-between gap-3 px-4 py-3 text-left text-sm font-medium text-ink transition-colors hover:bg-ink/5 disabled:opacity-60"
+          >
+            <span className="min-w-0">
+              <span className="block truncate">
+                {importing
+                  ? 'Importing…'
+                  : `Import this ${
+                      pasted.provider
+                        ? PROVIDER_LABELS[pasted.provider]
+                        : 'playlist'
+                    } link`}
+              </span>
+              <span className="block truncate text-xs font-normal text-gray-500">
+                {pasted.url}
+              </span>
+            </span>
+            <span aria-hidden="true">{importing ? '···' : '→'}</span>
+          </button>
+          {importError && (
+            <div className="border-t border-gray-100 p-3">
+              <ErrorPill>{importError}</ErrorPill>
+            </div>
+          )}
+        </div>
+      )}
+
+      {open && !pasted && (
         <div className={DROPDOWN_SURFACE}>
           {showList ? (
             <ul

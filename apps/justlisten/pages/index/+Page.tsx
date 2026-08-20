@@ -38,18 +38,10 @@ export function Page() {
           <ProviderBadge provider="deezer" />
         </div>
 
-        <div className="mt-12 text-center">
-          <a href="/import"
-            className="inline-flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-5 py-3 text-sm font-medium text-gray-700 transition-all duration-200 hover:border-ink/30 hover:text-ink active:scale-[0.98]"
-          >
-            Import a playlist
-            <span aria-hidden="true">→</span>
-          </a>
-          <p className="mt-3 text-xs text-gray-400">
-            Paste a Spotify, Apple Music, YouTube, or Deezer playlist link to
-            get listen links for every track.
-          </p>
-        </div>
+        <p className="mt-8 text-center text-xs text-gray-400">
+          Have a playlist? Paste a Spotify, Apple Music, YouTube, or Deezer
+          link into the box above and it will be imported instead.
+        </p>
       </main>
     </>
   );

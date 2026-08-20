@@ -42,7 +42,6 @@ pages/                # Vike filesystem routing
   +Layout.tsx         # ErrorBoundary + PageShell + styles import
   index/+Page.tsx           # /            hero + autocomplete
   search/+Page.tsx          # /search?q=…  full cross-catalog results
-  import/+Page.tsx          # /import      paste playlist URL
   song/@provider/@id/
     +data.ts          # SSR: loadSongDetail() in-process (no HTTP hop)
     +title.ts         # runtime title (functions can't live in +config)
@@ -317,8 +316,15 @@ existed for.
   "Search on …" fallbacks — the button labels carry that distinction, so no
   explanatory caption), then the Deezer player. Server-rendered, so there is
   no loading skeleton; a miss aborts to the error page.
-- **ImportPage**: paste URL, submit → POST, redirect to `/playlist/:id`.
-  Explain supported URL shapes + ephemerality (7 days).
+- **Import lives in the search box**, not on its own page. Anything that parses
+  as a URL is treated as an import rather than a search — no query starting
+  `https://` is a useful search term — and the dropdown offers "Import this
+  <service> link" instead of suggestions, naming the service when the host is
+  recognised. `src/playlist-url.ts` makes that call and is deliberately looser
+  than the providers' own `parsePlaylistUrl`: it is not a second copy of that
+  logic, it only decides which of two jobs the box is doing. The server stays
+  the authority and answers 422 with the supported shapes, which is now the
+  only place they are documented — keep that message complete.
 - **PlaylistPage**: title, source badge, "Open on …" buttons, per-track rows
   (artwork, title, artist + three provider link icons), copyable share URL,
   expiry note. Handle 404/expired gracefully.

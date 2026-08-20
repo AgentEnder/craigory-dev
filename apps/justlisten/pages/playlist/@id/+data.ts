@@ -12,7 +12,7 @@ import { loadPlaylistView, type PlaylistView } from '../../../worker/playlists';
 
 const EXPIRED_MESSAGE =
   'Playlist not found. Imported playlists expire after 7 days — ' +
-  'you can re-import it from its original URL.';
+  'paste its original link into the search box to import it again.';
 
 export async function data(
   pageContext: PageContextServer

@@ -170,8 +170,11 @@ playlistRoutes.post('/', async (c) => {
     return c.json(
       {
         error:
-          'Unsupported playlist URL. Supported: Spotify playlists/albums, ' +
-          'YouTube playlists, and Apple Music public playlists.',
+          // The only place the supported shapes are documented now that the
+          // search box handles import — keep it complete.
+          'Unsupported playlist link. Supported: Spotify playlists and ' +
+          'albums, Deezer playlists and albums, YouTube playlists, and ' +
+          'public Apple Music playlists.',
       },
       422
     );

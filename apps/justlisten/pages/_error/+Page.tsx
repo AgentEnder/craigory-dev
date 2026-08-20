@@ -28,12 +28,6 @@ export function Page() {
             >
               Search for a song
             </a>
-            <a
-              href="/import"
-              className="rounded-xl border border-gray-200 bg-white px-6 py-3 font-semibold text-gray-700 transition-all duration-200 hover:border-ink/30 hover:text-ink active:scale-[0.98]"
-            >
-              Import a playlist
-            </a>
           </div>
         </Card>
       </div>

@@ -76,6 +76,9 @@ pnpm --filter justlisten secrets:push  # 1Password → Cloudflare secrets
 
 ## Playlist import without credentials
 
+Paste a playlist link into the search box — there is no separate import page.
+Spotify and YouTube fall back to reading the public page when no credentials
+are configured, so all four providers import with zero secrets:
 Spotify and YouTube playlist import fall back to reading the public page when
 no credentials are configured, so all four providers import with zero secrets:
 
