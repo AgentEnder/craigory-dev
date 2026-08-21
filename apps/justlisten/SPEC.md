@@ -315,10 +315,32 @@ existed for.
   - Filed under the **normalized** key even when an ISRC exists, because the
     readers who need it are keyless-sourced tracks that look nowhere else;
     ISRC-carrying readers still find it via the dual read above. One write,
-    both readers — which matters against KV's ~1k writes/day.
+    both readers.
+  - **Writes are net-new only.** Seeding reads the key first and skips the
+    write when an exact link is already on file. Reads come from a pool ten
+    times larger and ten times cheaper per operation than writes (Workers
+    Paid: 10M vs 1M/month included, $0.50 vs $5.00 per million), so trading
+    one for the other is the right direction on either tier. First writer
+    wins: an existing exact link is left alone rather than replaced by an
+    equally valid alternative id (a single vs its album release), which would
+    churn a write on every visit.
   - Called from `loadSongDetail` (behind the 24h Cache-API memo, so it cannot
-    churn writes) and from live playlist-import rows only — the cache-only
-    pass exists to spend nothing.
+    churn writes), from live playlist-import rows only — the cache-only pass
+    exists to spend nothing — and from the aggregate search producer.
+- **`seedAggregateMatches` keeps what a cross-catalog search worked out.**
+  `mergeCatalogResults` already decides which rows are the same recording and
+  reports each catalog's native id for it (`sources`), without spending a
+  single `resolve()` call. That is the match cache's own mapping, and it used
+  to be discarded when the 6h search cache expired. Every source is filed
+  under the *representative's* key, since the group merged on the claim that
+  its members are one recording and the representative is its richest
+  description.
+  - Runs inside the `cacheJson` producer, so once per distinct query per 6h —
+    not per search. Measured: one 25-row search for "bohemian rhapsody" with
+    two catalogs configured wrote 33 keys; re-running it wrote 0.
+  - Autocomplete (`GET /api/search`) is deliberately excluded: it queries one
+    catalog, so it learns no cross-provider mapping, and it fires far more
+    often.
   - Skipped when the track has no id, or an artist that normalizes to empty:
     `norm:~<title>` would collide across every artist with that song title.
 - Cross-provider resolution returns `ResolvedMatch`, not just a link. The

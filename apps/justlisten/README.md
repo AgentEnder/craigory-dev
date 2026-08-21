@@ -162,18 +162,36 @@ exact Spotify track instead of a search box. It is also the only affordable way
 to learn YouTube video ids, since `search.list` costs 100 of a 10,000-unit
 daily quota and a paste costs nothing.
 
-Two details make it work on one KV write:
+**Searching backfills too, and it is the richest source of all.** The
+cross-catalog search page already works out which rows are the same recording
+— by ISRC, or by normalized key plus a compatible duration — and reports each
+catalog's native id for it. One search establishes a whole set of
+cross-provider mappings at once, for free, and that used to evaporate when the
+6h search cache expired. It is now kept. Autocomplete is excluded: it queries
+one catalog, so it learns no mapping, and it fires far more often.
 
-- It is filed under the **normalized** artist/title key even when an ISRC is
-  available. The readers who need it most are keyless-sourced tracks (YouTube
-  oEmbed, the Spotify embed), which have no ISRC and look nowhere else.
+Three details keep it cheap:
+
+- Entries are filed under the **normalized** artist/title key even when an
+  ISRC is available. The readers who need them most are keyless-sourced tracks
+  (YouTube oEmbed, the Spotify embed), which have no ISRC and look nowhere
+  else.
 - Reads try **every** key a track could be filed under — ISRC first, then
   normalized — so an ISRC-carrying track still finds an entry left by a
-  keyless one. Reads are the plentiful side of KV's free tier (100k/day
-  against ~1k writes), so the asymmetry is deliberate.
+  keyless one.
+- **Writes are net-new only.** Seeding reads first and skips the write when an
+  exact link is already on file, so a warm recording costs nothing. Reads are
+  the plentiful side of KV on either tier (Workers Paid: 10M reads vs 1M
+  writes per month, $0.50 vs $5.00 per million), so trading a read for a write
+  is the right direction.
+
+Measured: one 25-row search for "bohemian rhapsody" with two catalogs
+configured wrote 33 keys. Re-running the same search wrote 0.
 
 Nothing is seeded for a track with no id or an artist that normalizes to empty:
-`norm:~<title>` would collide across every artist with that song title.
+`norm:~<title>` would collide across every artist with that song title. First
+writer wins — an existing exact link is never replaced by an equally valid
+alternative id, which would churn a write on every visit.
 
 Adding credentials still improves things: Spotify's API supplies ISRCs, which
 is what makes cross-provider matching exact rather than a title/artist/duration
