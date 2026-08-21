@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   cachedTrackMatch,
   matchKeysForTrack,
+  seedAggregateMatches,
   seedSourceMatch,
 } from '../providers/matching';
 import type { Env, Track } from '../types';
@@ -156,5 +157,97 @@ describe('cachedTrackMatch reads every key a track can be filed under', () => {
     const { env } = fakeEnv();
     await seedSourceMatch(env, YT_TRACK);
     expect(await cachedTrackMatch(env, YT_TRACK, 'youtube')).toBeNull();
+  });
+});
+
+describe('seeding writes only net-new information', () => {
+  it('skips the write when an exact entry is already on file', async () => {
+    const { env, store } = fakeEnv({
+      'match:norm:cam-burnette~trickle-down-blues:youtube': {
+        link: {
+          provider: 'youtube',
+          kind: 'exact',
+          url: 'https://music.youtube.com/watch?v=alreadyKnown',
+        },
+      },
+    });
+    await seedSourceMatch(env, YT_TRACK);
+    // First writer wins: no churn, and the existing id is left alone.
+    expect(
+      JSON.parse(store.get('match:norm:cam-burnette~trickle-down-blues:youtube')!)
+        .link.url
+    ).toContain('alreadyKnown');
+  });
+
+  it('does write over a cached search link, which carries no id', async () => {
+    const { env, store } = fakeEnv({
+      'match:norm:cam-burnette~trickle-down-blues:youtube': {
+        link: { provider: 'youtube', kind: 'search', url: 'https://search/x' },
+      },
+    });
+    await seedSourceMatch(env, YT_TRACK);
+    expect(
+      JSON.parse(store.get('match:norm:cam-burnette~trickle-down-blues:youtube')!)
+        .link
+    ).toMatchObject({ kind: 'exact' });
+  });
+});
+
+describe('seedAggregateMatches', () => {
+  const row = {
+    track: {
+      provider: 'deezer' as const,
+      id: '3814389462',
+      title: 'Trickle Down Blues',
+      artist: 'Cam Burnette',
+      isrc: 'QZHN72627781',
+    },
+    sources: [
+      { provider: 'deezer' as const, id: '3814389462' },
+      { provider: 'spotify' as const, id: 'spot123' },
+      { provider: 'apple' as const, id: '999' },
+    ],
+  };
+
+  it('records every catalog the merge proved carries the recording', async () => {
+    const { env, store } = fakeEnv();
+    await seedAggregateMatches(env, [row]);
+    expect([...store.keys()].sort()).toEqual([
+      'match:norm:cam-burnette~trickle-down-blues:apple',
+      'match:norm:cam-burnette~trickle-down-blues:deezer',
+      'match:norm:cam-burnette~trickle-down-blues:spotify',
+    ]);
+    expect(
+      JSON.parse(store.get('match:norm:cam-burnette~trickle-down-blues:spotify')!)
+        .link.url
+    ).toBe('https://open.spotify.com/track/spot123');
+  });
+
+  it('keys every source on the representative, not on its own catalog row', async () => {
+    // The group merged because these ARE one recording; the representative is
+    // the richest description of it, so it names the key all sources file under.
+    const { env, store } = fakeEnv();
+    await seedAggregateMatches(env, [
+      { ...row, sources: [{ provider: 'spotify', id: 'spot123' }] },
+    ]);
+    expect([...store.keys()]).toEqual([
+      'match:norm:cam-burnette~trickle-down-blues:spotify',
+    ]);
+  });
+
+  it('writes nothing on a second pass over the same results', async () => {
+    const { env, store } = fakeEnv();
+    await seedAggregateMatches(env, [row]);
+    const first = new Map(store);
+    await seedAggregateMatches(env, [row]);
+    expect([...store.entries()]).toEqual([...first.entries()]);
+  });
+
+  it('skips rows with no usable artist', async () => {
+    const { env, store } = fakeEnv();
+    await seedAggregateMatches(env, [
+      { track: { ...row.track, artist: '' }, sources: row.sources },
+    ]);
+    expect(store.size).toBe(0);
   });
 });

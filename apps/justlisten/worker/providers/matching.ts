@@ -7,6 +7,7 @@
  */
 
 import type {
+  AggregatedSearchResult,
   Env,
   ProviderId,
   ResolvedMatch,
@@ -268,16 +269,63 @@ async function readCachedMatch(
  */
 export async function seedSourceMatch(env: Env, track: Track): Promise<void> {
   if (!track.id || normalizeArtist(track.artist) === '') return;
+  const key = matchCacheKey(`norm:${normKey(track)}`, track.provider);
   try {
+    // Net-new only. A read costs from a pool ten times larger and ten times
+    // cheaper per operation than the write it avoids (10M vs 1M/month
+    // included, $0.50 vs $5.00 per million), so trading one for the other is
+    // the right direction — and it makes re-seeding a warm recording free.
+    //
+    // First writer wins: an exact link already on file is left alone rather
+    // than overwritten with an equally valid alternative id (a single vs its
+    // album release), which would otherwise churn a write on every visit.
+    const existing = await kvGetJson<ResolvedMatch>(env, key);
+    if (existing?.link?.kind === 'exact' && typeof existing.link.url === 'string') {
+      return;
+    }
     await kvPutJson(
       env,
-      matchCacheKey(`norm:${normKey(track)}`, track.provider),
+      key,
       { link: exactTrackLink(track.provider, track.id), matched: track },
       MATCH_TTL_SECONDS
     );
   } catch {
     // Best-effort.
   }
+}
+
+/**
+ * Record what a cross-catalog search already worked out.
+ *
+ * `mergeCatalogResults` decides which rows are the same recording — by ISRC,
+ * or by normalized key plus a compatible duration — and hands back the native
+ * id each catalog uses for it. That is precisely the mapping the match cache
+ * exists to hold, established without spending a single `resolve()` call, and
+ * it was previously discarded when the 6h search cache expired.
+ *
+ * Every source is filed under the *representative's* key. The group merged
+ * because its members are one recording, and the representative is the richest
+ * description of it (see `metadataRichness`), so it is the identity a later
+ * lookup will normalize to.
+ *
+ * Writes are net-new only, which is what makes this affordable: the second
+ * search that touches a recording writes nothing.
+ */
+export async function seedAggregateMatches(
+  env: Env,
+  results: readonly AggregatedSearchResult[]
+): Promise<void> {
+  await Promise.all(
+    results.flatMap((row) =>
+      row.sources.map((source) =>
+        seedSourceMatch(env, {
+          ...row.track,
+          provider: source.provider,
+          id: source.id,
+        })
+      )
+    )
+  );
 }
 
 /**

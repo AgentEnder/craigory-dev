@@ -17,6 +17,7 @@ import type { AggregatedSearch, Env, SearchResult } from '../types';
 import { cacheJson } from '../cache';
 import { searchCatalogs } from '../providers/index';
 import { mergeCatalogResults, type CatalogResults } from '../providers/aggregate';
+import { seedAggregateMatches } from '../providers/matching';
 
 const SEARCH_CACHE_TTL_SECONDS = 3600;
 /**
@@ -113,9 +114,23 @@ searchRoutes.get('/all', async (c) => {
           provider: s.status.provider,
           results: s.results,
         }));
+        const results = mergeCatalogResults(catalogResults, limit);
+
+        // The merge just established which catalogs carry each recording, and
+        // under which native id — the exact mapping the match cache holds, for
+        // free. Keep it, so a later song page can offer a direct link to a
+        // platform this deployment holds no credentials for.
+        //
+        // Inside the cache producer on purpose: this runs once per distinct
+        // query per 6h, not per search. Writes are net-new only, so a warm
+        // catalog costs nothing. Autocomplete is deliberately excluded — it
+        // queries one catalog, so it learns no cross-provider mapping, and it
+        // fires far more often.
+        await seedAggregateMatches(c.env, results);
+
         return {
           query: q,
-          results: mergeCatalogResults(catalogResults, limit),
+          results,
           catalogs: settled.map((s) => s.status),
         };
       }
