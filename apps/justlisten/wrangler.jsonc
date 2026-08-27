@@ -1,0 +1,40 @@
+// JustListen — Cloudflare Worker configuration.
+//
+// This file is read by the wrangler CLI and by `@cloudflare/vite-plugin` at
+// build time. The config the Worker is actually DEPLOYED with is generated
+// into `dist/server/wrangler.json` by that plugin, which also writes
+// `.wrangler/deploy/config.json` here pointing at it — so `wrangler deploy`
+// runs from this directory and is redirected.
+//
+// Secrets (SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, YOUTUBE_API_KEY) are all
+// OPTIONAL and live in 1Password, pushed with `pnpm --filter justlisten
+// secrets:push` (see README) — never inline here.
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "justlisten",
+  // Pinned because this login can see two accounts (personal and Elite
+  // Wrestling Alliance) and wrangler refuses to guess in a non-interactive
+  // shell. This is the personal account.
+  "account_id": "a01f8df0a9bbc08fd34c1ca60dd88af1",
+  "compatibility_date": "2026-08-01",
+  "compatibility_flags": ["nodejs_compat"],
+  // Vike's generated Worker entry, which wraps +server.ts.
+  "main": "vike:server-entry",
+  "assets": {
+    "directory": "./dist/client",
+    // Workers Assets intercepts every request before the Worker runs, and the
+    // asset layer only answers GET/HEAD — without this, POST /api/playlists
+    // falls into its not-found handling and comes back 405.
+    "run_worker_first": ["/api/*"]
+  },
+  "kv_namespaces": [
+    {
+      "binding": "CACHE",
+      "id": "a19a073de1c848be90360f9cefda33f7"
+    },
+    {
+      "binding": "PLAYLISTS",
+      "id": "f00d4a2c06904b799466ccf9b0054be5"
+    }
+  ]
+}

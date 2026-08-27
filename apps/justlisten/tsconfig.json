@@ -1,0 +1,35 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "useDefineForClassFields": true,
+    "module": "ESNext",
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "jsx": "react-jsx",
+    "skipLibCheck": true,
+
+    /* Bundler mode */
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "verbatimModuleSyntax": true,
+    "moduleDetection": "force",
+    "noEmit": true,
+
+    /* `node` is for `+server.ts`, which reads process.env.PORT for the `prod`
+       entry Vike uses outside workerd. Worker bindings are imported explicitly
+       from @cloudflare/workers-types in worker/types.ts rather than pulled in
+       ambiently, so DOM and Workers types never collide. */
+    "types": ["vite/client", "vike/types", "node"],
+
+    /* Linting */
+    "strict": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUncheckedSideEffectImports": true
+  },
+  /* `+server.ts` is included deliberately: it is the Worker's entry, and
+     leaving it out would let a Worker that fails on every request typecheck
+     clean. One project rather than the old app/worker split, because a Vike
+     page directory holds both client components and server data hooks. */
+  "include": ["src", "pages", "worker", "+server.ts"]
+}

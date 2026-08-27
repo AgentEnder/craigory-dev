@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="JustListen">
+  <title>JustListen</title>
+  <defs>
+    <!-- Four stops, one per service, so the mark says what the app does: one
+         song wherever you listen. Each is a chosen value rather than a Tailwind
+         ramp step — the progression is the point, not any single hue, and none
+         of them is a provider's actual brand colour. -->
+    <linearGradient id="jl" x1="0" y1="1" x2="1" y2="0">
+      <stop offset="0" stop-color="#2FBF8F"/>
+      <stop offset="0.38" stop-color="#F0B429"/>
+      <stop offset="0.7" stop-color="#F2647C"/>
+      <stop offset="1" stop-color="#9B4DE0"/> <!-- unslop-ignore — chosen, not a ramp -->
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" rx="14" fill="#0F172A"/>
+  <!-- Corners are rounded by stroking the fill in its own paint rather than by
+       a second path, so the shape stays one triangle at any size. -->
+  <path d="M25.5 21.5 L25.5 42.5 L44 32 Z"
+        fill="url(#jl)" stroke="url(#jl)" stroke-width="9" stroke-linejoin="round"/>
+</svg>

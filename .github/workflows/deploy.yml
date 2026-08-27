@@ -94,6 +94,11 @@ jobs:
           # unlike a fine-grained PAT it never needs rotating.
           GITHUB_PUBLIC_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           FIREBASE_TOKEN: ${{ secrets.FIREBASE_TOKEN }}
+          # This deploy fans out over `apps/*` via `^deploy`, which includes
+          # justlisten's Cloudflare Worker. On a main push ENV is `main` — a
+          # configuration no project defines — so every project falls back to
+          # its base target, and justlisten's base is a real `wrangler deploy`.
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           ENV: ${{ github.event.inputs.environment || github.ref_name }}
 
       - name: Release

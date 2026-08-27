@@ -1,0 +1,38 @@
+@import 'tailwindcss' source('..');
+@import '@new-personal-monorepo/small-app-design-system/styles.css';
+
+/**
+ * JustListen's own palette: ink for anything the app itself does, and exactly
+ * one accent, reserved for playback.
+ *
+ * The app's job is pointing at other services, so the four provider colours are
+ * the only chroma that carries meaning on a page — our own controls stay out of
+ * their way in near-black. The accent is a deep teal specifically because it is
+ * the one saturated hue none of the four services claims (Spotify green, Apple
+ * #FA243C, YouTube #FF0033, Deezer #A238FF), so a play button can never be
+ * misread as a platform's branding. Playback previously wore Deezer's purple,
+ * which implied exactly that.
+ *
+ * Values are chosen rather than taken from Tailwind's ramps; `accent-ink` and
+ * `ink` both clear 4.5:1 on white, and white clears 4.5:1 on `accent`.
+ */
+@theme {
+  --color-ink: #0f172a;
+  --color-ink-soft: #1e293b;
+  --color-accent: #0b7c74;
+  --color-accent-bright: #12a594;
+  --color-accent-ink: #0a5e58;
+}
+
+/**
+ * Radius by role, so rounding carries hierarchy instead of being uniform:
+ *
+ *   surfaces (cards, the search dropdown)  2xl
+ *   controls (buttons, list rows, media)   xl
+ *   inputs                                 lg
+ *   badges, chips and icon buttons         full
+ *
+ * Every one of those used the largest step before, which flattened four roles
+ * into one shape. Where full rounding survives it is the point — those lines
+ * carry `unslop-ignore`.
+ */

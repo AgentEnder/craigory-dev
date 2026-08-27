@@ -99,6 +99,17 @@ jobs:
           PR_NUMBER: ${{ github.event.number }}
           PATH_PREFIX: /pr/${{ github.event.number || github.sha }}
           SKIP_FIREBASE_DEPLOY: 'true'
+          # craigory-dev's deploy fans out over `apps/*` via `^deploy`, so this
+          # step also ships justlisten. `-c preview` routes it to
+          # `wrangler versions upload` (0% traffic, its own URL) instead of
+          # `wrangler deploy`, leaving production serving the live version.
+          # Without the token the app's deploy script skips with a note rather
+          # than failing the PR — see apps/justlisten/tools/deploy.mjs.
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          # wrangler appends one NDJSON record per action here; the comment
+          # step below reads the version's preview URL back out of it rather
+          # than scraping stdout or hardcoding the workers.dev subdomain.
+          WRANGLER_OUTPUT_FILE_PATH: ${{ github.workspace }}/tmp/wrangler-output.json
         # only if agentender/craigory-dev
         if: github.repository == 'agentender/craigory-dev'
 
@@ -109,5 +120,6 @@ jobs:
           PATH_PREFIX: /pr/${{ github.event.number || github.sha }}
           PR_NUMBER: ${{ github.event.number }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          WRANGLER_OUTPUT_FILE_PATH: ${{ github.workspace }}/tmp/wrangler-output.json
         # only if agentender/craigory-dev
         if: github.repository == 'agentender/craigory-dev'

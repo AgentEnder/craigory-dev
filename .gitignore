@@ -49,3 +49,5 @@ Thumbs.db
 .nx/migrate-runs
 .nx/polygraph
 .nx/self-healing
+# wrangler local dev state (justlisten)
+.wrangler
