@@ -1,3 +1,4 @@
+import { bsCvesAndMaintainerBurnout } from './bs-cves-and-maintainer-burnout/post';
 import { githubPagesPreviewEnv } from './github-pages-preview-env/post';
 import { githubUnlistedRepos } from './github-unlisted-repos/post';
 import { multifunctionExampleFiles } from './multifunctional-example-files/post';
@@ -25,6 +26,7 @@ function partition<T extends unknown[]>(arr: T, size: number): T[] {
 }
 
 const ALL_BLOG_POSTS = [
+  bsCvesAndMaintainerBurnout,
   nxConfigurationHistory,
   githubPagesPreviewEnv,
   superpoweredGitAliases,
