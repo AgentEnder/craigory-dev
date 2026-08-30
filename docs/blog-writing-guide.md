@@ -108,11 +108,61 @@ export const npmDocs = (
   </>
 );
 
-The setting is read from the project's `.npmrc`.<Cite n={1} href="https://docs.npmjs.com/cli/v11/using-npm/config#min-release-age">{npmDocs}</Cite>
+The setting is read from the project's `.npmrc`.<Cite href="https://docs.npmjs.com/cli/v11/using-npm/config#min-release-age">{npmDocs}</Cite>
 ```
 
-Number `n` sequentially through the post. Attach the `<Cite>` directly to the
-end of the claim, with no space before it.
+Attach the `<Cite>` directly to the end of the claim, with no space before it.
+
+**Do not number citations by hand.** The marker number comes from the order
+sources are first cited, keyed by `href`. Citing the same URL again reuses its
+number instead of adding a second entry, so a source quoted twice stays one
+footnote.
+
+End the post with `<Citations />`, which renders every source cited above it as
+a numbered list under a `Sources` heading. It takes an optional `title`.
+
+### Quotes
+
+For a quotation whose source should be visible on the quote itself, rather than
+trailing off the sentence that introduced it:
+
+```mdx
+<Quote
+  href="https://sethmlarson.dev/slop-security-reports"
+  by="Seth Larson"
+  work="Please stop submitting AI slop security reports"
+  cite={larsonSlop}
+>
+
+even if this is not their intent, the outcome is maintainers that are burnt out
+and more averse to legitimate security work.
+
+</Quote>
+```
+
+Renders a `figure`/`blockquote`/`figcaption`, with the attribution and citation
+marker below the quote. `cite` is the same fragment a `<Cite>` would take, and
+feeds both the marker's popover and the source list. Leave blank lines around
+the quoted text so it parses as Markdown.
+
+Plain `>` blockquotes still work, but prefer `<Quote>` whenever the words came
+from an identifiable source.
+
+### Callouts
+
+An editorial aside — a scope note, disclaimer, or correction — set apart from
+the body text:
+
+```mdx
+<Callout title="About the examples">
+
+Nothing below says Nx is unsafe.
+
+</Callout>
+```
+
+`title` is optional. Deliberately styled unlike `blockquote`, so a disclaimer
+does not read as something a source said.
 
 ### Tabs
 
@@ -151,11 +201,14 @@ takes no props and belongs at the end of a review.
 
 1. `#` title
 2. A short framing paragraph — the problem, or the misconception being corrected
-3. `## Table of Contents` for longer posts
-4. Body sections, working from concept to implementation
-5. `### Case Study: ...` for worked examples
-6. `## Some Caveats` — where the approach breaks down
-7. `## Conclusion`
+3. Body sections, working from concept to implementation
+4. `### Case Study: ...` for worked examples
+5. `## Some Caveats` — where the approach breaks down
+6. `## Conclusion`
+
+Do not add a `## Table of Contents` heading. The post page builds its own
+contents list in the sidebar from the rendered `h2`/`h3`/`h4` headings, so an
+in-content one duplicates it and shows up as an entry inside it.
 
 ### Tiki reviews
 

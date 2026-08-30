@@ -1,9 +1,8 @@
 import { CSSProperties, ReactNode, useId } from 'react';
+import { useCitationPosition } from './citations';
 import classes from './cite.module.scss';
 
 export interface CiteProps {
-  /** Citation number rendered in the inline marker, e.g. [1] */
-  n: number;
   /** Source URL. The marker is an anchor that opens the URL in a new tab. */
   href: string;
   /**
@@ -13,7 +12,9 @@ export interface CiteProps {
   children?: ReactNode;
 }
 
-export function Cite({ n, href, children }: CiteProps) {
+export function Cite({ href, children }: CiteProps) {
+  // Numbered by first-cited order rather than by hand.
+  const n = useCitationPosition(href, children);
   // CSS dashed-idents only accept [a-zA-Z0-9_-]; useId returns identifiers
   // that include `:` and `«»` characters, so strip them.
   const cleanId = useId().replace(/[^a-zA-Z0-9]/g, '');
