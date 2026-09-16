@@ -8,7 +8,14 @@
 // workers-types ambient environment.
 import type { KVNamespace } from '@cloudflare/workers-types';
 
-export type ProviderId = 'spotify' | 'apple' | 'youtube' | 'deezer';
+export type ProviderId =
+  | 'spotify'
+  | 'apple'
+  | 'youtube'
+  | 'deezer'
+  | 'bandcamp'
+  | 'lastfm'
+  | 'pandora';
 
 /**
  * Every provider id, in canonical display order — the single source of truth
@@ -21,19 +28,37 @@ export const PROVIDER_IDS: readonly ProviderId[] = [
   'apple',
   'youtube',
   'deezer',
+  'bandcamp',
+  'lastfm',
+  'pandora',
 ];
 
 /**
- * Catalogs queried by search. YouTube is deliberately absent: its Data API
- * `search.list` costs 100 of a 10,000-unit daily quota, so it can never back
- * a search box (see providers/youtube.ts). Deezer leads because it needs no
- * credentials, indexes independent releases the other catalogs miss, and
- * returns an ISRC on every row — which feeds the ISRC-first match path.
+ * Catalogs queried by search.
+ *
+ * Deezer leads because it needs no credentials, indexes independent releases
+ * the other catalogs miss, and returns an ISRC on every row — which feeds the
+ * ISRC-first match path.
+ *
+ * Two are deliberately absent:
+ * - **YouTube**, whose Data API `search.list` costs 100 of a 10,000-unit daily
+ *   quota, so it can never back a search box (see providers/youtube.ts).
+ * - **Pandora**, which publishes no search API at all. It can only ever be
+ *   reached by a pasted link or by the match cache a paste leaves behind
+ *   (see providers/pandora.ts).
+ *
+ * Bandcamp is here for the opposite reason to Deezer's: it carries the
+ * self-released long tail none of the licensed catalogs index, and it is
+ * keyless. Last.fm is last because it is the only keyed entry and its rows
+ * carry the least metadata — no ISRC, no duration, no album — so it
+ * contributes availability rather than a description.
  */
 export const SEARCH_CATALOG_IDS: readonly ProviderId[] = [
   'deezer',
   'spotify',
   'apple',
+  'bandcamp',
+  'lastfm',
 ];
 
 export interface ProviderLink {
@@ -150,6 +175,12 @@ export interface Env {
   SPOTIFY_CLIENT_ID?: string;
   SPOTIFY_CLIENT_SECRET?: string;
   YOUTUBE_API_KEY?: string;
+  /**
+   * Last.fm needs a key for every call — it publishes no keyless endpoint the
+   * way Deezer, iTunes and Bandcamp do — so without this Last.fm degrades to
+   * search links like Spotify and YouTube do.
+   */
+  LASTFM_API_KEY?: string;
   /**
    * Namespaces every KV key this Worker touches (see `kv-scope.ts`). Set only
    * on preview versions, which share production's KV bindings; unset in

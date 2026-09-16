@@ -269,6 +269,14 @@ async function readCachedMatch(
  */
 export async function seedSourceMatch(env: Env, track: Track): Promise<void> {
   if (!track.id || normalizeArtist(track.artist) === '') return;
+  // Three providers name a track with a packed tuple rather than an opaque
+  // token (see the id codecs in links.ts), and `exactTrackLink` refuses to
+  // build an "exact" URL from one it cannot parse. Seeding that search link
+  // would write a row `readCachedMatch` then ignores — and, because the
+  // net-new check below only recognises an exact entry, would rewrite it on
+  // every visit rather than costing nothing the second time.
+  const link = exactTrackLink(track.provider, track.id);
+  if (link.kind !== 'exact') return;
   const key = matchCacheKey(`norm:${normKey(track)}`, track.provider);
   try {
     // Net-new only. A read costs from a pool ten times larger and ten times
@@ -283,12 +291,7 @@ export async function seedSourceMatch(env: Env, track: Track): Promise<void> {
     if (existing?.link?.kind === 'exact' && typeof existing.link.url === 'string') {
       return;
     }
-    await kvPutJson(
-      env,
-      key,
-      { link: exactTrackLink(track.provider, track.id), matched: track },
-      MATCH_TTL_SECONDS
-    );
+    await kvPutJson(env, key, { link, matched: track }, MATCH_TTL_SECONDS);
   } catch {
     // Best-effort.
   }

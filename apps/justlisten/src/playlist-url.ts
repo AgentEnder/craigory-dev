@@ -17,6 +17,9 @@ const HOSTS: [RegExp, ProviderId][] = [
   [/(^|\.)apple\.com$/, 'apple'],
   [/(^|\.)youtube\.com$|(^|\.)youtu\.be$/, 'youtube'],
   [/(^|\.)deezer\.com$|(^|\.)deezer\.page\.link$/, 'deezer'],
+  [/(^|\.)bandcamp\.com$/, 'bandcamp'],
+  [/(^|\.)last\.fm$/, 'lastfm'],
+  [/(^|\.)pandora\.com$/, 'pandora'],
 ];
 
 export interface PastedLink {

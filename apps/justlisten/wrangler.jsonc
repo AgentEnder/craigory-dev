@@ -6,9 +6,9 @@
 // `.wrangler/deploy/config.json` here pointing at it — so `wrangler deploy`
 // runs from this directory and is redirected.
 //
-// Secrets (SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, YOUTUBE_API_KEY) are all
-// OPTIONAL and live in 1Password, pushed with `pnpm --filter justlisten
-// secrets:push` (see README) — never inline here.
+// Secrets (SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, YOUTUBE_API_KEY,
+// LASTFM_API_KEY) are all OPTIONAL and live in 1Password, pushed with
+// `pnpm --filter justlisten secrets:push` (see README) — never inline here.
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   "name": "justlisten",

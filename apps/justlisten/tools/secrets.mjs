@@ -14,14 +14,19 @@
  * rather than from this process's environment, so there is no dev mode to
  * inject into.
  *
- * Every credential is optional: JustListen falls back to the keyless iTunes API
- * and to per-provider search links. An unresolved key is skipped with a note
- * rather than failing the run.
+ * Every credential is optional: JustListen falls back to the keyless catalogs
+ * (Deezer, iTunes, Bandcamp) and to per-provider search links. An unresolved
+ * key is skipped with a note rather than failing the run.
  */
 import { spawn } from 'node:child_process';
 
 /** The only keys this app reads; anything else in the env is ignored. */
-const KEYS = ['SPOTIFY_CLIENT_ID', 'SPOTIFY_CLIENT_SECRET', 'YOUTUBE_API_KEY'];
+const KEYS = [
+  'SPOTIFY_CLIENT_ID',
+  'SPOTIFY_CLIENT_SECRET',
+  'YOUTUBE_API_KEY',
+  'LASTFM_API_KEY',
+];
 
 const passthrough = process.argv.slice(3).filter((arg) => arg !== '--');
 
@@ -41,7 +46,9 @@ if (skipped.length > 0) {
   console.log(`[secrets] skipping unset ${skipped.join(', ')}`);
 }
 if (resolved.size === 0) {
-  console.log('[secrets] nothing to push — JustListen will run on iTunes alone');
+  console.log(
+    '[secrets] nothing to push — JustListen will run on its keyless catalogs'
+  );
   process.exit(0);
 }
 

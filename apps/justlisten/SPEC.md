@@ -1,9 +1,20 @@
 # JustListen — Spec
 
 JustListen is "JustWatch, but for music": search for a song, see where you can
-listen to it (YouTube / YouTube Music, Spotify, Apple Music, Deezer), and
-import a playlist from any supported platform to get listen links for every
-track plus ways to open the playlist on the other platforms.
+listen to it (YouTube / YouTube Music, Spotify, Apple Music, Deezer, Bandcamp,
+Last.fm, Pandora), and import a playlist from any supported platform to get
+listen links for every track plus ways to open the playlist on the other
+platforms.
+
+The seven are not seven of a kind, and the differences are load-bearing:
+**Spotify, Apple Music, YouTube Music and Deezer** are licensed catalogs that
+can be searched and resolved against. **Bandcamp** is artist-uploaded, so it
+carries a long tail none of the four index — and almost none of what they do.
+**Last.fm** is not a streaming service at all; it is the scrobble ledger the
+others report into, so it knows a recording whether or not anyone licenses it.
+**Pandora** publishes no public API of any kind, so it is link-only: it can be
+pasted, and it can be learned from a paste (see `seedSourceMatch`), but it can
+never be searched.
 
 This document is the single source of truth for architecture, contracts, and
 file ownership. All implementation must conform to it.
@@ -69,6 +80,9 @@ worker/
     apple.ts          # iTunes Search API (no auth)
     youtube.ts
     deezer.ts         # Deezer public API (no auth) — lead search catalog
+    bandcamp.ts       # keyless search endpoint + public-page scrape
+    lastfm.ts         # ws.audioscrobbler.com (needs LASTFM_API_KEY)
+    pandora.ts        # link-only: no API exists; pure URL <-> track naming
     matching.ts       # ISRC + normalized-title cross-provider matching
     aggregate.ts      # cross-catalog search merging (pure functions)
     links.ts          # deep-link / search-link builders + Deezer embed
@@ -94,7 +108,7 @@ src/
 - KV: `CACHE`, `PLAYLISTS` (placeholder ids + README instructions;
   `wrangler dev` uses local simulations automatically).
 - Secrets (all OPTIONAL — app must degrade gracefully): `SPOTIFY_CLIENT_ID`,
-  `SPOTIFY_CLIENT_SECRET`, `YOUTUBE_API_KEY`. They live in 1Password
+  `SPOTIFY_CLIENT_SECRET`, `YOUTUBE_API_KEY`, `LASTFM_API_KEY`. They live in 1Password
   (`Dev Secrets` → `justlisten-production`); `.env.example` holds
   `secret://op/...` references that `secreq run` materializes, and
   `tools/secrets.mjs` pushes them via `wrangler secret bulk`.
@@ -102,18 +116,28 @@ src/
     links become search links.
   - No YouTube key → YouTube links are `https://music.youtube.com/search?q=…`
     search links. Playlist import still works via the public page scrape.
-  - Deezer and Apple/iTunes need no credentials, so the app works with zero
-    secrets — including full search, since Deezer leads the catalog order.
+  - No Last.fm key → Last.fm is skipped as a search catalog and its links
+    become search links. It has no keyless tier at all: every
+    `ws.audioscrobbler.com` method requires `api_key`.
+  - Deezer, Apple/iTunes and Bandcamp need no credentials, so the app works
+    with zero secrets — including full search, since Deezer leads the catalog
+    order.
+  - Pandora needs no credentials and cannot use any: there is no public API to
+    authenticate against.
 
 ## Shared types (`worker/types.ts`) — the contract
 
 ```ts
-export type ProviderId = 'spotify' | 'apple' | 'youtube' | 'deezer';
+export type ProviderId =
+  | 'spotify' | 'apple' | 'youtube' | 'deezer'
+  | 'bandcamp' | 'lastfm' | 'pandora';
 
 /** Runtime constants, exported from types.ts so the SPA can import them
  *  without pulling in provider implementations. */
 export const PROVIDER_IDS: readonly ProviderId[];        // canonical order
-export const SEARCH_CATALOG_IDS: readonly ProviderId[];  // deezer, spotify, apple
+// deezer, spotify, apple, bandcamp, lastfm — YouTube is excluded (search.list
+// costs 100 quota units) and Pandora is excluded (no search API exists).
+export const SEARCH_CATALOG_IDS: readonly ProviderId[];
 
 export interface ProviderLink {
   provider: ProviderId;
@@ -192,6 +216,7 @@ export interface Env {
   SPOTIFY_CLIENT_ID?: string;
   SPOTIFY_CLIENT_SECRET?: string;
   YOUTUBE_API_KEY?: string;
+  LASTFM_API_KEY?: string;
 }
 
 export interface MusicProvider {
@@ -209,6 +234,31 @@ export interface MusicProvider {
 }
 ```
 
+### Track ids
+
+Four providers name a track with an opaque token that drops into
+`/song/:provider/:id` unchanged. Three name it with a *tuple*, which
+`providers/links.ts` packs into one path segment (that route matches a single
+segment) and unpacks again:
+
+| Provider | `Track.id` | Example |
+|---|---|---|
+| bandcamp | `<host>:<slug>` | `radiohead.bandcamp.com:airbag` |
+| lastfm | `<artist>~<title>` | `Queen~Bohemian+Rhapsody` (URL-encoded) |
+| pandora | `<artist>:<album>:<track>` slugs | `queen:a-night-at-the-opera:bohemian-rhapsody` |
+
+Each part is URL-encoded and the separator is then percent-escaped explicitly,
+because `encodeURIComponent` leaves `~` alone — without that, an artist named
+"~" would re-split the id in the wrong place and produce a confident link to
+the wrong song. `parseBandcampTrackId` additionally rejects a host that is not
+`[a-z0-9.-]+`: the host is interpolated into the URL, so a decoded `/` or `@`
+would point an "exact" link at another origin. An id that will not parse
+degrades to a `kind: 'search'` link rather than building a broken "exact" one.
+
+Bandcamp carries the host rather than assuming `<artist>.bandcamp.com` because
+Bandcamp serves paying artists on their own domains, where the page — and the
+`data-tralbum` blob the parser reads — is byte-for-byte the same.
+
 Error convention: API errors are `{ error: string }` with proper HTTP status.
 Provider failures during aggregation must never 500 the whole response —
 degrade to `kind: 'search'` links.
@@ -217,8 +267,9 @@ degrade to `kind: 'search'` links.
 
 - `GET /api/search?q=<text>&limit=8` → `SearchResult[]`
   - Uses ONE metadata provider for autocomplete — the first available entry
-    of `SEARCH_CATALOG_IDS` (Deezer, then Spotify, then iTunes). Do not fan
-    out to all providers per keystroke (cost/quota).
+    of `SEARCH_CATALOG_IDS` (Deezer, then Spotify, iTunes, Bandcamp, Last.fm).
+    Do not fan out to all providers per keystroke (cost/quota). In practice
+    this is always Deezer, since it is keyless.
   - Deezer leads because it is keyless (autocomplete works in a zero-secret
     deploy), indexes independent releases the other catalogs miss, and
     returns an ISRC on every row — which the song page then resolves from
@@ -231,6 +282,11 @@ degrade to `kind: 'search'` links.
     fan-out: every available `SEARCH_CATALOG_IDS` entry is queried
     concurrently, and one catalog failing or being unconfigured must not deny
     the user the others' results (`catalogs[]` reports each outcome).
+  - Bandcamp and Last.fm rows carry no ISRC and no duration, so they can only
+    ever join a group on the normalized key — the duration guard abstains
+    rather than blocking (see `durationsCompatible`). They also score low on
+    `metadataRichness`, so they contribute *availability* to a row without
+    becoming the row's representative and dragging its artwork or album down.
   - Merged by `providers/aggregate.ts`: rows join when their ISRCs match, or
     when their `normKey` matches AND durations agree within
     `DURATION_BONUS_WINDOW_MS`. The duration guard is required —
@@ -257,12 +313,30 @@ degrade to `kind: 'search'` links.
     lookup and its own 404.
   - Supported collections: Spotify public playlists/albums, YouTube playlists,
     Deezer public playlists/albums, Apple Music public
-    playlists via the iTunes/Apple embed lookup —
+    playlists via the iTunes/Apple embed lookup, and Bandcamp albums —
     if Apple playlist fetch proves infeasible without a MusicKit token,
     return a clear 422 explaining it and document in README.
+    Last.fm and Pandora have **no** importable collections and their
+    `parsePlaylistUrl` always returns null: Last.fm's playlist API was retired
+    and what remains is a personal feed behind a session; a Pandora station is
+    an algorithm rather than a track list, and `pandora.com/playlist/PL:…`
+    needs a signed-in session to enumerate. Returning null routes those to the
+    422 that names what *is* supported, rather than to a "could not import"
+    that implies it might work next time.
   - Supported tracks: `open.spotify.com/track/…`, Apple `…/song/…` and album
     URLs carrying `?i=`, `youtube.com/watch?v=…` / `youtu.be/…` /
-    `music.youtube.com/watch?v=…`, and `deezer.com/track/…`.
+    `music.youtube.com/watch?v=…`, `deezer.com/track/…`, any `…/track/<slug>`
+    Bandcamp page, `last.fm/music/<artist>/_/<track>`, and
+    `pandora.com/artist/<artist>/<album>/<track>` (with or without the
+    trailing `TR…` share token, which is dropped so two links to one track
+    produce one id).
+  - **Bandcamp's parsers are host-permissive**, matching `/track/<slug>` and
+    `/album/<slug>` on *any* host, because custom domains are a real Bandcamp
+    deployment and only the host distinguishes them. That is safe because
+    every earlier provider's parser is host-locked and the registry is tried
+    in `PROVIDER_IDS` order, so Bandcamp can never claim a link that belongs
+    to one of them; a `/track/…` URL on some unrelated host parses, then fails
+    to yield a `data-tralbum` blob, and the song page 404s.
 - `POST /api/playlists/:id/resolve` body `{ from: number }` →
   `{ tracks, from, done }`
   - Finishes cross-provider links for the next 8 rows and writes them back to
@@ -343,6 +417,25 @@ existed for.
     often.
   - Skipped when the track has no id, or an artist that normalizes to empty:
     `norm:~<title>` would collide across every artist with that song title.
+- **Two providers resolve unlike the rest.**
+  - **Bandcamp raises its match threshold to 0.8** (default 0.6). The licensed
+    catalogs mostly carry the same recording under near-identical metadata;
+    Bandcamp mostly does not carry the mainstream recording at all, and what
+    it does carry under that title is a cover, a bedroom remix, or an
+    unrelated song, filed under whatever artist string the uploader chose. At
+    0.6 those clear the bar and the row gets a confident link to the wrong
+    song — the one failure mode this app cannot degrade out of, since a wrong
+    "exact" link is indistinguishable from a right one.
+  - **Pandora never resolves at all.** Its `resolve` returns a search link
+    without a request, because there is nothing to request. The *only* way an
+    exact Pandora link is ever produced for a track sourced elsewhere is the
+    KV match cache, which `resolveTrackOnProvider` consults before calling any
+    provider — so Pandora is the clearest case in the registry for
+    `seedSourceMatch`: one person's paste is the whole supply.
+  - Last.fm resolves with `track.getInfo` (its identity *is* artist + title)
+    before falling back to `track.search`. `autocorrect=1` is on, so the
+    answer is verified against the normalized source artist and title before
+    it is trusted — autocorrect can walk far enough to name a different act.
 - Cross-provider resolution returns `ResolvedMatch`, not just a link. The
   matched track is cached alongside it, and the importer and song loader copy
   its `artworkUrl`, `isrc`, and `album` onto their own row — a Spotify embed
@@ -390,20 +483,28 @@ existed for.
 - **PlaylistPage**: title, source badge, "Open on …" buttons, per-track rows
   (artwork, title, artist + three provider link icons), copyable share URL,
   expiry note. Handle 404/expired gracefully.
-- **The mark keeps its four colours** — one stop per service, the one place the
-  app is allowed chroma. Its stops are chosen values, not Tailwind ramp steps,
-  and none is a provider's actual brand colour.
+- **The mark keeps its four gradient stops** — the one place the app is allowed
+  chroma. They were one-per-service when there were four providers and were
+  deliberately *not* grown when Bandcamp, Last.fm and Pandora arrived: a mark
+  that must be redrawn whenever the registry changes is a mark doing the wrong
+  job. The stops are chosen values, not Tailwind ramp steps, and none is a
+  provider's actual brand colour.
 - **Palette: ink plus one accent** (`src/styles.css` `@theme`). The app points
-  at other services, so the four provider colours are the only chroma that
+  at other services, so the provider colours are the only chroma that
   carries meaning; our own controls stay near-black (`--color-ink`). Exactly
-  one accent, a deep teal, is reserved for playback — chosen because it is the
-  one saturated hue no provider claims, so a play button can never be misread
-  as a platform's branding. Playback previously wore Deezer's purple and
+  one accent, a deep teal, is reserved for playback — chosen because it is a
+  saturated hue no provider claims, so a play button can never be misread
+  as a platform's branding. Bandcamp's `#408294` is the near miss, which is
+  why the accent is the darker and more saturated of the two and why nothing
+  renders the pair adjacent at the same weight. Playback previously wore Deezer's purple and
   primary actions wore Tailwind's default blue.
 - **Radius by role**: surfaces 2xl, controls xl, inputs lg, badges and icon
   buttons full. Uniform rounding flattened those roles into one shape.
 - Provider branding: each service's real brand hex, with an `ink` variant that
-  clears 4.5:1 for text, everywhere a label fits. The playback
+  clears 4.5:1 for text, everywhere a label fits. Bandcamp's `#408294` is the
+  one that misses unaided (4.3:1), so its ink is two steps darker rather than
+  one. Marks: `SiBandcamp`, `SiLastdotfm` and `SiPandora` join the existing
+  four. The playback
   banner is the exception — it uses each service's brand mark via `react-icons`
   (`SiSpotify`, `SiApplemusic`, `SiYoutubemusic`, and `FaDeezer`, since Simple
   Icons carries no Deezer mark), because at that size a word does not survive.
@@ -427,7 +528,9 @@ Dependencies pinned to versions compatible with the workspace catalog
 ## Keyless playlist import (scraping)
 
 Spotify and YouTube playlist import each have two tiers: the credentialed API
-when a key exists, and a public-page scrape when it does not. Verified
+when a key exists, and a public-page scrape when it does not. **Bandcamp has
+only the second tier** — there is no credentialed path to fall back to, so its
+scrape is not a fallback but the only route in. Verified
 end-to-end with zero credentials on 2026-08-19 — both imported, and the
 Spotify tracks still resolved Apple and Deezer links off title/artist/duration.
 
@@ -445,6 +548,20 @@ Spotify tracks still resolved Apple and Deezer links off title/artist/duration.
   the new one finds 100. This tier matters more than Spotify's, because
   `playlistItems.list` costs 50 quota units of a 10,000/day budget and the
   public page costs none.
+- **Bandcamp** — public album and track pages carry a `data-tralbum` attribute
+  holding the same JSON the page's own player is built from: `current.title`,
+  `artist`, `current.release_date`, and a `trackinfo` array with per-track
+  titles, float-second durations, and `title_link` (`/track/<slug>`). Cover art
+  is read from `og:image` rather than rebuilt from the blob's `art_id`, because
+  the id-to-URL mapping (zero-padding, the `_N` size suffix, which `fN.bcbits`
+  shard) is undocumented and has changed, while the meta tag is what Bandcamp
+  hands every link preview. A row with no `title_link` is dropped: it has no
+  page of its own, so no exact link could be built for it anyway. Ids are
+  filed under the blob's *own* `url` host rather than the host the page was
+  fetched from, so a custom-domain redirect cannot leave ids pointing
+  somewhere that does not serve the page. Bandcamp's search endpoint
+  (`api/bcsearch_public_api/1/autocomplete_elastic`, which backs the site's own
+  search box) is likewise unauthenticated JSON and carries the same caveats.
 - **Dead ends, so nobody re-explores them.** The embed blob also carries an
   anonymous bearer token at `props.pageProps.state.settings.session.accessToken`;
   `api.spotify.com` answers it with `429 QUOTA_EXCEEDED` immediately, so it
@@ -532,4 +649,15 @@ preview cannot offer.
 - YouTube Data API used only when key present, only for detail-page
   resolution and playlist import (search costs 100 quota units — never used
   for autocomplete).
-- Playlist import capped at 100 tracks; link resolution batched.
+- Playlist import capped at 100 tracks; link resolution batched. The live
+  batch is **15 tracks**, down from 20: the zero-secret ceiling is the binding
+  case (apple + deezer + bandcamp term searches = 3 fetches/track, one of which
+  is usually the source and costs nothing), and 15 × 3 = 45 leaves five of the
+  50-subrequest budget for the playlist fetch and its pagination. Adding
+  Bandcamp's search moved that ceiling, so the cap moved with it rather than
+  quietly overrunning.
+- Pandora costs **zero** subrequests, ever: its tracks are named from the URL's
+  own slugs and its links are built locally.
+- Last.fm costs one fetch per resolution and only when `LASTFM_API_KEY` is
+  set — its API is free but rate-limited per key, and every path into it is
+  already behind the Cache API or the KV match cache.
