@@ -8,14 +8,20 @@ interface WrapControlsProps {
 export function WrapControls({ settings, onChange }: WrapControlsProps) {
   return (
     <div className="flex items-center gap-3">
-      <label className="flex items-center gap-2 text-sm text-gray-600">
+      {/* Named for what it wraps. The source pane has a wrap toggle of its own,
+          and that one only changes how the input looks -- this one changes the
+          text that gets copied out. */}
+      <label
+        className="flex items-center gap-2 text-sm text-gray-600"
+        title="Reflow long annotations into aligned hanging blocks. Changes the rendered output."
+      >
         <input
           type="checkbox"
           checked={settings.wrap}
           onChange={(e) => onChange({ ...settings, wrap: e.target.checked })}
           className="rounded border-gray-300"
         />
-        Wrap
+        Wrap annotations
       </label>
       <label className="flex items-center gap-2 text-sm text-gray-600">
         <span className={settings.wrap ? '' : 'text-gray-400'}>Width</span>
