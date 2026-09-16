@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { parseTree } from './tree';
-import { renderTree, wrapText } from './render';
+import { measureTree, renderTree, wrapText } from './render';
 
 const render = (src: string, opts?: Parameters<typeof renderTree>[1]) =>
   renderTree(parseTree(src), opts);
@@ -185,9 +185,13 @@ describe('annotation wrapping', () => {
   it('overflows rather than shredding when nesting eats the width', () => {
     // The annotation column already sits past width 10 here. Running long beats
     // emitting one character per line.
-    const deep = ['a', ' b', '  c', '   d', '    e -- some annotation here'].join(
-      '\n'
-    );
+    const deep = [
+      'a',
+      ' b',
+      '  c',
+      '   d',
+      '    e -- some annotation here',
+    ].join('\n');
     const out = render(deep, { width: 10 });
     expect(out).toContain('some');
     expect(out).toContain('annotation');
@@ -284,7 +288,9 @@ describe('annotations on nodes that have children', () => {
   });
 
   it('leaves a childless node continuing only its own sibling guide', () => {
-    expect(render('root\n  a -- alpha beta gamma delta\n  b', { width: 26 })).toBe(
+    expect(
+      render('root\n  a -- alpha beta gamma delta\n  b', { width: 26 })
+    ).toBe(
       ['root/', '├── a -- alpha beta gamma', '│        delta', '└── b'].join(
         '\n'
       )
@@ -326,5 +332,31 @@ describe('whitespace inside annotations', () => {
     const spaced = render('a.ts -- keep  the   gaps', { width: 80 });
     const raw = render('a.ts -- keep  the   gaps', { wrap: false });
     expect(spaced).toBe(raw);
+  });
+});
+
+describe('measureTree', () => {
+  it('reports nothing for empty output', () => {
+    expect(measureTree('')).toEqual({ lines: 0, widest: 0 });
+  });
+
+  it('counts lines and the longest of them', () => {
+    expect(measureTree('abc\nab\nabcd')).toEqual({ lines: 3, widest: 4 });
+  });
+
+  it('counts a trailing blank line, since it is one the user copies', () => {
+    expect(measureTree('abc\n')).toEqual({ lines: 2, widest: 3 });
+  });
+
+  it('measures an astral character the way the wrap logic does', () => {
+    // Two UTF-16 units, which is what wrapText counts against the width, and
+    // roughly what a monospace font advances for it too.
+    expect(measureTree('\u{1F332}').widest).toBe(2);
+  });
+
+  it('measures the guide columns, not just the label', () => {
+    const tree = renderTree(parseTree('src/\n  a.ts'));
+    // '\u251c\u2500\u2500 a.ts' is four guide columns plus the label.
+    expect(measureTree(tree)).toEqual({ lines: 2, widest: 8 });
   });
 });

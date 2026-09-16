@@ -8,16 +8,32 @@ export interface TreeNode {
 /** Separates a node's label from its annotation. */
 export const ANNOTATION_DELIMITER = ' -- ';
 
-const TAB_WIDTH = 4;
+export const TAB_WIDTH = 4;
 
-function indentWidth(line: string): number {
+/**
+ * Indentation of a line in columns, with tabs advancing to the next tab stop.
+ * Exported because reordering has to reason about the same depths the parser
+ * derives parentage from -- two measures would drift apart.
+ */
+export function indentWidth(line: string): number {
   let width = 0;
-  for (const ch of line) {
+  for (const ch of indentPrefix(line)) {
     if (ch === ' ') width += 1;
-    else if (ch === '\t') width += TAB_WIDTH - (width % TAB_WIDTH);
-    else break;
+    else width += TAB_WIDTH - (width % TAB_WIDTH);
   }
   return width;
+}
+
+/**
+ * The leading run that counts as indentation: spaces and tabs, nothing else.
+ *
+ * Anything anyone else does to a line's indentation has to be bounded by this,
+ * or the two disagree. A line pasted out of a web page can start with a
+ * non-breaking space, which is not indentation by this measure -- so it is part
+ * of the label, and re-indenting the line must leave it alone.
+ */
+export function indentPrefix(line: string): string {
+  return /^[ \t]*/.exec(line)?.[0] ?? '';
 }
 
 function splitAnnotation(text: string): { label: string; annotation?: string } {

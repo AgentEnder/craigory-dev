@@ -42,7 +42,10 @@ function labelOf(node: TreeNode): string {
  * tree scannable.
  */
 function ordered(nodes: TreeNode[]): TreeNode[] {
-  return [...nodes.filter(isDirectory), ...nodes.filter((n) => !isDirectory(n))];
+  return [
+    ...nodes.filter(isDirectory),
+    ...nodes.filter((n) => !isDirectory(n)),
+  ];
 }
 
 /**
@@ -98,7 +101,12 @@ export function renderTree(
   const wrap = options.wrap ?? true;
   const out: string[] = [];
 
-  const emit = (node: TreeNode, guides: string, marker: string, last: boolean) => {
+  const emit = (
+    node: TreeNode,
+    guides: string,
+    marker: string,
+    last: boolean
+  ) => {
     const prefix = guides + marker;
     const isRoot = marker === '';
 
@@ -149,4 +157,31 @@ export function renderTree(
   for (const root of ordered(roots)) emit(root, '', '', true);
 
   return out.join('\n');
+}
+
+export interface TreeMeasurement {
+  lines: number;
+  /** Columns in the longest line. Zero for empty output. */
+  widest: number;
+}
+
+/**
+ * Measure rendered output so the pane can say how wide it actually came out.
+ *
+ * Worth surfacing because the rendered width is not the requested one:
+ * MIN_ANNOTATION_ROOM lets a deeply nested annotation overrun the target rather
+ * than be shredded a character at a time, and without a number on screen that
+ * looks like the wrap setting being ignored.
+ *
+ * Counted in UTF-16 units, because that is what wrapText and emit count when
+ * they decide where to break. Any other measure here would report a number the
+ * renderer never used, and the badge would disagree with the output beside it.
+ */
+export function measureTree(tree: string): TreeMeasurement {
+  if (!tree) return { lines: 0, widest: 0 };
+  const lines = tree.split('\n');
+  return {
+    lines: lines.length,
+    widest: lines.reduce((max, line) => Math.max(max, line.length), 0),
+  };
 }
