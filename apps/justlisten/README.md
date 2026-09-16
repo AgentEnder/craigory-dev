@@ -27,6 +27,11 @@ fuzzy. Pressing Enter (or the last row of the suggestions dropdown) opens
 `/search?q=…`, which fans out across every available catalog, merges
 duplicates, and shows which platforms carry each recording.
 
+Song pages also carry **audio features** (tempo, key, energy, danceability…)
+and **"more like this"** recommendations, from
+[ReccoBeats](https://reccobeats.com) — a metadata source rather than an eighth
+platform. See "Audio features and recommendations" below.
+
 See [SPEC.md](./SPEC.md) for the full architecture and contracts.
 
 ## Setup
@@ -171,6 +176,97 @@ first and *any* failure falls through rather than 404ing the song page. Losing
 duration costs only the +0.1 duration bonus in `scoreMatch`, so cross-provider
 matching stays good — and auto-generated YouTube music channels are named
 "<Artist> - Topic", which normalizes to the bare artist.
+
+## Audio features and recommendations
+
+ReccoBeats is wired in as a **metadata source, not a provider**. `MusicProvider`
+answers "where can I listen to this", and ReccoBeats has no player and no
+human-facing track page — so it gets no `PROVIDER_IDS` entry, no listen button,
+and no CSV column, all of which would be dead weight. It lives in
+`worker/reccobeats/` beside the registry and enriches what the registry
+produces.
+
+It supplies three things none of the seven platforms do.
+
+**Audio features.** Tempo, key, loudness, and seven 0–1 measures — energy,
+danceability, valence, acousticness, instrumentalness, liveness, speechiness —
+on Spotify's own field names and scales. Spotify deprecated its
+`/v1/audio-features` endpoint in November 2024 and shipped no replacement, which
+is largely why ReccoBeats exists. The numbers are ReccoBeats' *estimates*, not
+Spotify's originals, which is why the panel says so rather than presenting them
+as neutral fact.
+
+**An ISRC for a Spotify track id.** The quieter win, and the reason this runs
+*before* cross-provider resolution rather than after. The keyless Spotify path
+(the embed scrape) produces tracks carrying no ISRC at all — which is exactly
+why those fall back to fuzzy title/artist/duration matching on every other
+platform. One lookup turns six guesses into six exact identity matches.
+
+**Recommendations**, rendered as rows linking back to this app's own
+`/song/spotify/:id`. Resolving six recommendations across seven providers would
+be 42 lookups on a page that has already done one; linking inward defers that to
+the click, where exactly one of the six gets resolved and the other five cost
+nothing. It is also the better page — a recommendation you can only open on
+Spotify is useless to someone who doesn't use Spotify, which is the whole
+premise of this app.
+
+### The lookup key is always a Spotify id
+
+ReccoBeats is keyed on a Spotify track id (or its own UUID). That sounds like it
+limits this to Spotify-sourced songs and doesn't: the song page has already
+resolved a Spotify link for every track it renders, so a Deezer- or
+Bandcamp-sourced recording reaches ReccoBeats through the Spotify id sitting in
+its own resolved links. A track with no *exact* Spotify match gets no features,
+which is the honest outcome — a search link is a query, not a recording, and
+there is nothing to look up.
+
+What the key does constrain is *timing*, and that asymmetry is inherent: only a
+Spotify-sourced track has its id early enough for the ISRC to improve its own
+page's matching. Everything else is enriched after resolution, which still fills
+the KV entry that the next render of that recording reads.
+
+### Caching, because it is rate-limited
+
+No credentials and no quota to buy, but ReccoBeats rate-limits and does not
+publish the numbers. The UUID, ISRC and features are cached together in KV under
+`recco:<spotifyId>` for 30 days — one entry, because all three are immutable
+facts about a recording and all three are wanted at once. Keying on the
+**Spotify** id rather than the page's own provider/id is what makes it pay: the
+same recording is reachable from seven different `/song/:provider/:id` URLs, and
+this collapses all seven into one entry, so the second platform's page costs a
+KV read instead of two more HTTP calls.
+
+Misses are cached too, for 7 days rather than 30 — ReccoBeats' catalog grows, so
+today's miss is next month's hit. But only *durable* misses: a 404 is cached, a
+429 or an outage is not. Caching a rate-limit response would suppress features
+for a week over a five-minute limit.
+
+The `Retry-After` header on a 429 is deliberately ignored. A Worker cannot sit
+and wait inside a user's request, and a song page that hangs to be polite about
+somebody else's quota is a worse page than one without a tempo on it.
+
+### Unverified against the live API
+
+**This is the one upstream here that has never been called for real.** The
+network policy on the machine it was built on returns 403 for `reccobeats.com`
+and `api.reccobeats.com` alike, so the endpoint paths and field names come from
+ReccoBeats' published documentation and other public consumers of the API rather
+than from a response anybody here has seen.
+
+Two consequences are built into the code rather than left as a warning:
+
+- The **list envelope is accepted in any plausible shape** — a bare array, or
+  rows under `content`, `data` or `tracks`. Guessing wrong would mean every
+  lookup silently returning nothing; accepting all four costs a few lines.
+- **Every field is range-checked at the boundary.** An energy of 1.4 or a
+  loudness of +12 means a field was misread, not that the song is unusual, so it
+  is dropped rather than rendered.
+
+Everything returns null on any failure and every caller treats null as "no
+enrichment", so if a path is wrong the song page renders exactly as it did
+before ReccoBeats existed — no error, just no features. **The first live deploy
+should confirm the real shapes**, after which the envelope handling can be
+narrowed to whatever the service actually sends.
 
 ## The three that aren't streaming catalogs
 

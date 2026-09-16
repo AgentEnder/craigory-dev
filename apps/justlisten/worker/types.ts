@@ -86,10 +86,59 @@ export interface Track {
 /** Autocomplete rows. */
 export interface SearchResult extends Track {}
 
+/**
+ * Measured characteristics of a recording, from ReccoBeats.
+ *
+ * Spotify's field names and scales — ReccoBeats mirrors them deliberately,
+ * because Spotify deprecated its own `/v1/audio-features` in November 2024 and
+ * shipped no replacement. The values are ReccoBeats' estimates rather than
+ * Spotify's original numbers, and `time_signature` has no equivalent here
+ * because ReccoBeats does not return one.
+ *
+ * Every field is optional: this is the one upstream in the app whose response
+ * shape could not be verified against a live call (see `reccobeats/parse.ts`),
+ * so a field that does not arrive, or arrives outside its documented range, is
+ * dropped rather than rendered.
+ */
+export interface AudioFeatures {
+  /** Beats per minute. */
+  tempo?: number;
+  /** Pitch class, 0 = C through 11 = B. Absent when no key was detected. */
+  key?: number;
+  /** 1 = major, 0 = minor. */
+  mode?: number;
+  /** Full-scale dB, negative. */
+  loudness?: number;
+  /** The rest are 0–1. */
+  acousticness?: number;
+  danceability?: number;
+  energy?: number;
+  instrumentalness?: number;
+  liveness?: number;
+  speechiness?: number;
+  valence?: number;
+}
+
 export interface SongDetail {
   track: Track;
   /** one per provider in `PROVIDER_IDS`, always all of them present */
   links: ProviderLink[];
+  /**
+   * Audio features, when ReccoBeats knows this recording. Absent for a track
+   * with no exact Spotify match (ReccoBeats is keyed on Spotify ids), one it
+   * has never analyzed, or when it could not be reached — all three are the
+   * same thing to the page, which simply omits the section.
+   */
+  audioFeatures?: AudioFeatures;
+  /**
+   * "More like this", as Spotify-provider tracks.
+   *
+   * Filed under `spotify` because a recommendation's only durable id is its
+   * Spotify track id, and `/song/spotify/:id` already resolves one of those
+   * across every platform — so each row links back into this app rather than
+   * costing a cross-provider resolution of its own. Empty when there are none.
+   */
+  similar?: Track[];
 }
 
 /**

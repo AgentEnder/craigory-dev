@@ -89,6 +89,10 @@ worker/
                       # resolution (pure functions)
                       # (UI: src/components/DeezerPlayer.tsx holds the one
                       #  player shared by the playlist and search pages)
+  reccobeats/
+    index.ts          # ReccoBeats client: audio features, ISRC backfill,
+                      # recommendations. NOT a provider — see below.
+    parse.ts          # ReccoBeats response mapping (pure functions)
 worker/__tests__/     # vitest unit tests (pure logic only: matching, links,
                       # url parsing; no network)
 src/
@@ -96,6 +100,79 @@ src/
   components/         # SearchBox (autocomplete), PlaylistView, ProviderBadge, …
   styles.css          # tailwind + design-system import
 ```
+
+## ReccoBeats — a metadata source, not a provider
+
+[ReccoBeats](https://reccobeats.com) supplies three things the seven providers
+cannot, and is deliberately **not** a `ProviderId`.
+
+**Why not a provider.** `MusicProvider` answers "where can I listen to this".
+ReccoBeats has no player and no human-facing track page, so a "Listen on
+ReccoBeats" button would go nowhere, a `PROVIDER_IDS` entry would put a
+permanently-empty column in the CSV export, and `SEARCH_CATALOG_IDS` membership
+would offer rows nobody can play. It sits beside the registry in
+`worker/reccobeats/` and enriches what the registry produces.
+
+**What it supplies.**
+
+1. **Audio features** — tempo, key, mode, loudness, and seven 0–1 measures, on
+   Spotify's own field names and scales. Spotify deprecated `/v1/audio-features`
+   on 2024-11-27 with no replacement, which is largely why ReccoBeats exists.
+   The values are ReccoBeats' estimates, not Spotify's originals, and there is
+   no `time_signature` — ReccoBeats does not return one.
+2. **An ISRC for a Spotify track id.** The quieter win, and the reason this is
+   wired in *before* resolution rather than after. The keyless Spotify path
+   (the embed scrape) produces tracks carrying no ISRC, which this document
+   already names as why those fall back to fuzzy title/artist/duration matching
+   everywhere. An ISRC in hand before `resolveTrackOnProvider` runs turns six
+   fuzzy lookups into exact identity matches.
+3. **Recommendations** — "more like this", rendered as rows linking to this
+   app's own `/song/spotify/:id`.
+
+**Lookup key is always a Spotify track id** (or a ReccoBeats UUID). That reads
+like a Spotify-only restriction and is not: the song page has already resolved
+a Spotify link for every track it renders, so a Deezer- or Bandcamp-sourced
+recording reaches ReccoBeats through the Spotify id in its own resolved links
+(`spotifyIdFor` in `song.ts`). The asymmetry that remains is about *timing*, and
+it is inherent: only a Spotify-sourced track has its id early enough for the
+ISRC to improve its own page's matching. Everything else is enriched after
+resolution, which still fills the 30-day KV entry for the next render.
+
+**Cost.** Two requests for the bundle (track lookup, then audio features) plus
+one for recommendations, all inside the song page's 24h Cache-API memo. The
+bundle is additionally cached in KV under `recco:<spotifyId>` — one entry
+holding UUID, ISRC and features together, because all three are immutable facts
+about a recording and all three are wanted at once. Keying on the *Spotify* id
+rather than the page's own provider/id collapses the seven `/song/:provider/:id`
+URLs that reach one recording into a single KV entry, so the second platform's
+page costs a KV read instead of two more HTTP calls. Misses are cached too (7
+days, shorter than a hit's 30 — ReccoBeats' catalog grows), but only durable
+misses: a 404 is cached, a 429 or an outage is not, or a five-minute rate limit
+would suppress features for a week.
+
+**Recommendations are not KV-cached.** They are a model's answer rather than a
+fact about the recording, so they are allowed to move, and KV's ~1k-writes/day
+budget has a much stronger claimant in the match cache.
+
+**Rate limits and failure.** No credentials; free; rate-limited with limits
+ReccoBeats does not publish, answering 429 with `Retry-After`. That header is
+deliberately not honoured — a Worker cannot wait inside a user's request, and a
+song page that hangs to be polite about somebody else's quota is a worse page.
+Every function returns null rather than throwing and every caller treats null as
+"no enrichment", so a ReccoBeats outage renders the song page exactly as it
+looked before any of this existed.
+
+**UNVERIFIED AGAINST THE LIVE API.** Unlike every other upstream here, no call
+in `reccobeats/` has been executed against the real service: the network policy
+on the machine this was built on returns 403 for `reccobeats.com` and
+`api.reccobeats.com` alike. Endpoint paths and field names come from ReccoBeats'
+published docs and other public consumers. Two consequences are baked into the
+code rather than left as a warning: `listRows` accepts the list envelope in any
+of its plausible shapes (bare array, or rows under `content` / `data` /
+`tracks`) rather than betting on one and failing closed, and every field is
+range-checked at the boundary so a misread field is dropped instead of rendering
+as `NaN`. **First live deploy should confirm the shapes** and then this
+defensiveness can be narrowed to what the service actually sends.
 
 ## Environment / bindings (wrangler.jsonc)
 
@@ -181,6 +258,20 @@ export interface AggregatedSearch {
 export interface SongDetail {
   track: Track;
   links: ProviderLink[];       // one per PROVIDER_IDS entry, always all present
+  audioFeatures?: AudioFeatures;  // ReccoBeats; absent when unknown
+  similar?: Track[];              // ReccoBeats recommendations, as spotify tracks
+}
+
+/** ReccoBeats audio features — Spotify's names and scales, no time_signature.
+ *  Every field optional: the response shape is unverified (see above). */
+export interface AudioFeatures {
+  tempo?: number;              // BPM
+  key?: number;                // pitch class 0=C..11=B; absent when undetected
+  mode?: number;               // 1 major, 0 minor
+  loudness?: number;           // full-scale dB, negative
+  acousticness?: number; danceability?: number; energy?: number;
+  instrumentalness?: number; liveness?: number; speechiness?: number;
+  valence?: number;            // all 0–1
 }
 
 export interface Playlist {
@@ -467,7 +558,25 @@ existed for.
 - **SongPage**: artwork, title/artist/album/release date, prominent
   "Listen on" buttons for every provider (exact matches styled apart from
   "Search on …" fallbacks — the button labels carry that distinction, so no
-  explanatory caption), then the Deezer player. Server-rendered, so there is
+  explanatory caption), the Deezer player, then the two optional ReccoBeats
+  sections.
+  - **Audio features** splits by job rather than rendering ten identical bars:
+    tempo, key and loudness are single values on unrelated scales (BPM, a pitch
+    name, dB) and are **stat tiles**; the seven 0–1 measures share one scale and
+    are **bars**, which is what bars are for. One hue across all of them — there
+    is one series, so a second hue would encode nothing — and that hue is
+    **ink, not the accent**, because the accent is reserved for playback and
+    audio features are not playback. The unfilled track is a lighter step of the
+    same neutral ramp. A 0% bar renders **empty**, never a minimum-width stub: a
+    sliver of ink beside the number "0%" contradicts it. Every value is present
+    as text and the bar is `aria-hidden`, so the panel is its own table view and
+    a screen reader gets "Energy 40%" rather than a meter widget. Attribution is
+    required, not decorative — these are ReccoBeats' estimates, not Spotify's.
+  - **More like this** links each row to `/song/spotify/:id`, i.e. back into
+    this app. Six recommendations resolved across seven providers would be 42
+    lookups on a page that has already done one; linking inward defers that to
+    the click, where exactly one row gets resolved. Rows carry no artwork
+    because ReccoBeats returns none and fetching it is the cost being avoided. Server-rendered, so there is
   no loading skeleton; a miss aborts to the error page.
 - **Pasting lives in the search box**, not on its own page. Anything that
   parses as a URL is treated as a link to open rather than a search — no query
