@@ -1,4 +1,4 @@
-import type { InputHTMLAttributes, TextareaHTMLAttributes } from 'react';
+import type { ComponentPropsWithRef } from 'react';
 import { cx } from './cx';
 
 /**
@@ -18,7 +18,7 @@ interface MonoOption {
   mono?: boolean;
 }
 
-export type TextInputProps = InputHTMLAttributes<HTMLInputElement> & MonoOption;
+export type TextInputProps = ComponentPropsWithRef<'input'> & MonoOption;
 
 export function TextInput({ mono, className, ...rest }: TextInputProps) {
   return (
@@ -29,8 +29,10 @@ export function TextInput({ mono, className, ...rest }: TextInputProps) {
   );
 }
 
-export type TextAreaProps = TextareaHTMLAttributes<HTMLTextAreaElement> &
-  MonoOption;
+// ComponentPropsWithRef rather than the bare attribute type: callers that
+// have to measure the element -- the tree generator lines a gutter up against
+// its textarea -- need a ref, and React 19 passes one as an ordinary prop.
+export type TextAreaProps = ComponentPropsWithRef<'textarea'> & MonoOption;
 
 export function TextArea({ mono, className, ...rest }: TextAreaProps) {
   return (
