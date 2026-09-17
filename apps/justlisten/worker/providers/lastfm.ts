@@ -33,6 +33,7 @@ import {
   searchTrackLink,
 } from './links';
 import { normalizeArtist, normalizeTitle, pickBestMatch } from './matching';
+import { trace } from '../trace';
 
 const API_BASE = 'https://ws.audioscrobbler.com/2.0/';
 
@@ -129,6 +130,7 @@ async function lastfmGet<T>(
   const res = await fetch(`${API_BASE}?${query.toString()}`, {
     headers: { Accept: 'application/json' },
   });
+  trace('lastfm', 'http', { status: res.status, method: params['method'] });
   if (!res.ok) {
     throw new Error(`Last.fm API error ${res.status} for ${params['method']}`);
   }
@@ -224,7 +226,7 @@ export const lastfmProvider: MusicProvider = {
         `${track.artist} ${track.title}`.trim(),
         5
       );
-      const best = pickBestMatch(track, candidates);
+      const best = pickBestMatch(track, candidates, undefined, 'lastfm');
       if (best) {
         return { link: exactTrackLink('lastfm', best.id), matched: best };
       }

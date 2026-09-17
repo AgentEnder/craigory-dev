@@ -51,3 +51,8 @@ Thumbs.db
 .nx/self-healing
 # wrangler local dev state (justlisten)
 .wrangler
+
+# Local Worker secrets for `vike dev` (@cloudflare/vite-plugin reads these).
+# Real values, never references — see apps/justlisten/README.md.
+.dev.vars
+.dev.vars.*

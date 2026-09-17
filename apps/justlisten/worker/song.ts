@@ -31,6 +31,7 @@ import {
 } from './reccobeats/index';
 import type { Env, ProviderLink, ResolvedMatch, SongDetail, Track } from './types';
 import { PROVIDER_IDS } from './types';
+import { trace } from './trace';
 
 const SONG_CACHE_TTL_SECONDS = 24 * 60 * 60;
 
@@ -140,6 +141,13 @@ async function resolveDetail(env: Env, sourceTrack: Track): Promise<SongDetail> 
   // own answer, which is better sourced — it came with the matched track's
   // artwork and album, which a bare URL relationship does not carry.
   const unresolved = links.filter((link) => link.kind === 'search');
+  if (!track.isrc) {
+    trace('musicbrainz', 'skipped', {
+      reason: 'source track carries no ISRC, and the oracle is keyed on one',
+    });
+  } else if (unresolved.length === 0) {
+    trace('musicbrainz', 'skipped', { reason: 'every provider already resolved' });
+  }
   if (track.isrc && unresolved.length > 0) {
     const oracle = await musicbrainzLinksForIsrc(env, track.isrc);
     if (oracle.length > 0) {
@@ -163,6 +171,15 @@ async function resolveDetail(env: Env, sourceTrack: Track): Promise<SongDetail> 
   // resolution has just produced a Spotify id for it. A KV hit makes the
   // Spotify-sourced case above free rather than a repeat request.
   const spotifyId = spotifyIdFor(track, links);
+  if (!spotifyId) {
+    // The dominant reason the audio-features and recommendation sections are
+    // absent: ReccoBeats is keyed on a Spotify track id, and without Spotify
+    // credentials nothing produces an exact Spotify link to read one from.
+    trace('reccobeats', 'skipped', {
+      reason:
+        'no Spotify track id — needs an exact Spotify link, which needs credentials',
+    });
+  }
   // `spotifyId !== sourceSpotifyId` matters on the failure path: when
   // ReccoBeats is unreachable the call above returns null, and without this
   // guard a Spotify-sourced track would ask the same dead endpoint for the
@@ -203,7 +220,8 @@ async function resolveDetail(env: Env, sourceTrack: Track): Promise<SongDetail> 
 export async function loadSongDetail(
   env: Env,
   providerParam: string,
-  id: string
+  id: string,
+  options: { fresh?: boolean } = {}
 ): Promise<SongDetail | null> {
   if (!isProviderId(providerParam)) {
     throw new UnknownProviderError(providerParam);
@@ -213,18 +231,33 @@ export async function loadSongDetail(
     throw new UnknownProviderError(providerParam);
   }
 
+  const produce = async (): Promise<SongDetail> => {
+    const track = await provider.getTrack(env, id);
+    if (!track) {
+      throw new TrackNotFoundError();
+    }
+    trace('source', 'track', {
+      provider: track.provider,
+      title: track.title,
+      artist: track.artist,
+      isrc: track.isrc ?? null,
+      durationMs: track.durationMs ?? null,
+    });
+    return resolveDetail(env, track);
+  };
+
   try {
-    return await cacheJson<SongDetail>(
-      `song:${provider.id}:${id}`,
-      SONG_CACHE_TTL_SECONDS,
-      async () => {
-        const track = await provider.getTrack(env, id);
-        if (!track) {
-          throw new TrackNotFoundError();
-        }
-        return resolveDetail(env, track);
-      }
-    );
+    // `fresh` skips the 24h Cache-API memo. Only the trace endpoint sets it,
+    // and it has to: a trace of a cache hit records nothing, because none of
+    // the instrumented code runs. That is also exactly why the endpoint is
+    // credential-gated — it is an uncached ~15-subrequest request on demand.
+    return options.fresh
+      ? await produce()
+      : await cacheJson<SongDetail>(
+          `song:${provider.id}:${id}`,
+          SONG_CACHE_TTL_SECONDS,
+          produce
+        );
   } catch (err) {
     if (err instanceof TrackNotFoundError) return null;
     throw err;

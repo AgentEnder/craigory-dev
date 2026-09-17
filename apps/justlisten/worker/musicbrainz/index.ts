@@ -52,6 +52,7 @@
  * returning an empty result, and the mapping itself covered by fixture tests.
  */
 import { kvGetJson, kvPutJson } from '../cache';
+import { trace } from '../trace';
 import type { Env, ProviderLink } from '../types';
 import { linksFromIsrcLookup } from './parse';
 
@@ -102,7 +103,10 @@ export async function musicbrainzLinksForIsrc(
     const cached = await kvGetJson<CachedLinks>(env, key);
     // An empty array is a real answer — "MusicBrainz has nothing for this" —
     // and must not be retried until the miss TTL expires.
-    if (cached && Array.isArray(cached.links)) return cached.links;
+    if (cached && Array.isArray(cached.links)) {
+      trace('musicbrainz', 'cache-hit', { links: cached.links.length });
+      return cached.links;
+    }
   } catch {
     // Cache outage — ask upstream.
   }
@@ -118,6 +122,7 @@ export async function musicbrainzLinksForIsrc(
         signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
       }
     );
+    trace('musicbrainz', 'http', { status: res.status, isrc: code });
     if (res.status === 404) {
       // MusicBrainz does not know this ISRC. Durable enough to cache.
       await writeLinks(env, key, [], MB_MISS_TTL_SECONDS);
@@ -131,8 +136,13 @@ export async function musicbrainzLinksForIsrc(
       return [];
     }
     links = linksFromIsrcLookup(await res.json());
+    trace('musicbrainz', 'links', {
+      count: links.length,
+      providers: links.map((l) => l.provider),
+    });
   } catch (err) {
     console.error(`MusicBrainz lookup failed for ISRC ${code}:`, err);
+    trace('musicbrainz', 'error', { message: String(err) });
     return [];
   }
 

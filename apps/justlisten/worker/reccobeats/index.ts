@@ -48,6 +48,7 @@
  * handled under the same uncertainty.
  */
 import { kvGetJson, kvPutJson } from '../cache';
+import { trace } from '../trace';
 import type { AudioFeatures, Env, Track } from '../types';
 import {
   parseFirstAudioFeatures,
@@ -108,6 +109,7 @@ async function reccoGet<T>(path: string): Promise<Fetched<T>> {
       headers: { Accept: 'application/json' },
       signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
     });
+    trace('reccobeats', 'http', { status: res.status, path });
     if (res.status === 404) return { status: 'missing' };
     if (!res.ok) {
       // Includes 429. Transient by assumption: retrying is the caller's
@@ -119,6 +121,7 @@ async function reccoGet<T>(path: string): Promise<Fetched<T>> {
   } catch (err) {
     // Timeout, DNS, TLS, malformed JSON — all the same to the caller.
     console.error(`ReccoBeats request failed for ${path}:`, err);
+    trace('reccobeats', 'error', { path, message: String(err) });
     return { status: 'unavailable' };
   }
 }
@@ -143,7 +146,10 @@ export async function reccoBundleForSpotifyId(
   const key = bundleKey(spotifyId);
   try {
     const cached = await kvGetJson<CachedBundle>(env, key);
-    if (cached) return cached.found ? cached : null;
+    if (cached) {
+      trace('reccobeats', 'cache-hit', { found: cached.found });
+      return cached.found ? cached : null;
+    }
   } catch {
     // Cache outage — fall through and ask upstream.
   }

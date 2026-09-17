@@ -237,7 +237,9 @@ defensiveness can be narrowed to what the service actually sends.
 - KV: `CACHE`, `PLAYLISTS` (placeholder ids + README instructions;
   `wrangler dev` uses local simulations automatically).
 - Secrets (all OPTIONAL — app must degrade gracefully): `SPOTIFY_CLIENT_ID`,
-  `SPOTIFY_CLIENT_SECRET`, `YOUTUBE_API_KEY`, `LASTFM_API_KEY`. They live in 1Password
+  `SPOTIFY_CLIENT_SECRET`, `YOUTUBE_API_KEY`, `LASTFM_API_KEY`, plus
+  `TRACE_TOKEN` (not a provider credential — it gates the debug trace endpoint).
+  They live in 1Password
   (`Dev Secrets` → `justlisten-production`); `.env.example` holds
   `secret://op/...` references that `secreq run` materializes, and
   `tools/secrets.mjs` pushes them via `wrangler secret bulk`.
@@ -498,6 +500,29 @@ degrade to `kind: 'search'` links.
     platform accepts a file as a write path (Apple's native import matches
     only your local library), so the CSV is the handoff to transfer services
     that do hold per-user credentials. 404 when expired/unknown.
+
+- `GET /api/song/:provider/:id/trace?token=…` → per-provider resolution report
+  - Debug only, and **absent unless `TRACE_TOKEN` is set** — it 404s exactly as
+    an unregistered path does, so its presence is not discoverable by probing.
+  - Answers "why is this a search link?", which currently has five
+    indistinguishable causes: no credentials, no such recording, a 403 from a
+    shared-IP rate limit, a below-threshold score, or a request shape that was
+    never verified live. Reports each provider's outcome plus its raw events,
+    and the `musicbrainz` / `reccobeats` layers separately.
+  - **Bypasses the 24h song memo**, necessarily: a trace of a cache hit records
+    nothing, because none of the instrumented code runs. That is also why it is
+    gated — an uncached fan-out across every upstream, on demand, is how a
+    Worker's shared egress IP gets throttled by iTunes and MusicBrainz.
+  - Instrumentation is `worker/trace.ts`, an `AsyncLocalStorage` collector, so
+    it costs one property read per call when off and `MusicProvider.resolve`
+    never grew a debug parameter. Chokepoints: `pickBestMatch` (every provider
+    scores through it), `resolveTrackOnProvider` (availability + match cache),
+    and each provider's HTTP helper.
+  - `summarize()` ranks causes most-upstream-first, which is load-bearing: a
+    403 explains a zero-candidate result, so reporting "no candidates" there
+    would send someone to fix the scorer for a rate-limit problem. `skipped` is
+    only conclusive when the scope did nothing else — YouTube reports no
+    credentials and *still* resolves via its keyless page scrape.
 
 ### Page data (SSR, not endpoints)
 

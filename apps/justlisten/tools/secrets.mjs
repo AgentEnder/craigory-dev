@@ -26,6 +26,7 @@ const KEYS = [
   'SPOTIFY_CLIENT_SECRET',
   'YOUTUBE_API_KEY',
   'LASTFM_API_KEY',
+  'TRACE_TOKEN',
 ];
 
 const passthrough = process.argv.slice(3).filter((arg) => arg !== '--');

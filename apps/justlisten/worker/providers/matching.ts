@@ -15,6 +15,7 @@ import type {
   Track,
 } from '../types';
 import { kvGetJson, kvPutJson, matchCacheKey } from '../cache';
+import { trace } from '../trace';
 import { exactTrackLink, searchTrackLink } from './links';
 import { getProvider } from './index';
 
@@ -190,7 +191,13 @@ export function scoreMatch(
 export function pickBestMatch<T extends Track>(
   source: Pick<Track, 'title' | 'artist' | 'durationMs'>,
   candidates: readonly T[],
-  threshold: number = DEFAULT_MATCH_THRESHOLD
+  threshold: number = DEFAULT_MATCH_THRESHOLD,
+  /**
+   * Which provider is asking, for tracing. Inferred from the candidates when
+   * omitted — but an *empty* candidate list has no provider to infer from, and
+   * "this catalog returned nothing" is precisely the outcome worth attributing.
+   */
+  scope?: ProviderId
 ): T | null {
   let best: T | null = null;
   let bestScore = 0;
@@ -201,7 +208,21 @@ export function pickBestMatch<T extends Track>(
       bestScore = score;
     }
   }
-  return bestScore >= threshold ? best : null;
+  const accepted = bestScore >= threshold ? best : null;
+
+  // Every provider scores through here, so one instrumentation point answers
+  // "did the upstream have nothing, or did we reject what it sent?" for all of
+  // them. The candidate's own provider names the scope — candidates always
+  // come from the target catalog.
+  trace(scope ?? candidates[0]?.provider ?? 'match', 'candidates', {
+    count: candidates.length,
+    bestScore: Number(bestScore.toFixed(3)),
+    threshold,
+    accepted: Boolean(accepted),
+    ...(best ? { bestTitle: best.title, bestArtist: best.artist } : {}),
+  });
+
+  return accepted;
 }
 
 /**
@@ -392,6 +413,13 @@ export async function resolveTrackOnProvider(
   const provider = getProvider(target);
   if (!provider) return { link: searchTrackLink(target, track) };
 
+  // Recorded before anything else, because "this deployment holds no
+  // credentials for X" is the single most common reason a link is a search
+  // link and the one that looks identical to every other reason.
+  if (!provider.available(env)) {
+    trace(target, 'skipped', { reason: 'provider reports no credentials' });
+  }
+
   const cacheKey = matchCacheKey(matchKeyForTrack(track), target);
   // Same-provider links are derived directly from the id — skip the cache.
   // Tracks whose match key would be title-only (no ISRC, empty-normalized
@@ -403,7 +431,10 @@ export async function resolveTrackOnProvider(
     // supplies the artwork and ISRC the importer copies onto its own row —
     // otherwise a warm cache would produce worse rows than a cold one.
     const cached = await readCachedMatch(env, track, target);
-    if (cached) return cached;
+    if (cached) {
+      trace(target, 'cache-hit', { url: cached.link.url });
+      return cached;
+    }
   }
 
   let resolved: ResolvedMatch;

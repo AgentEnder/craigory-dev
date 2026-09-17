@@ -242,14 +242,50 @@ The above is what code can do. The rest is credentials, and they are free:
 Spotify is the one worth doing first — not for its own link, but because its
 ISRCs feed the ISRC-first path in `matching.ts` for *everything else*.
 
-### One thing to check on the deployed site
+### Finding out why a link is a search link
 
-Apple is keyless and should already be exact. If it isn't, suspect throttling
-rather than matching: the iTunes Search API allows roughly **20 calls per minute
-per IP**, it is unauthenticated so the budget is per *egress IP*, Workers share
-those per PoP, and it signals throttling with a **403** — which `itunes()`
-throws on and `resolve` swallows into a search link. A throttled PoP is
-indistinguishable from "no match found" without looking at the logs.
+"Search on X" means five completely different things — no credentials, no such
+recording, a 403 from a shared-IP rate limit, a match that scored below
+threshold, or a request shape that was written against documentation and never
+verified against a live response. They need different fixes and look identical,
+which made every diagnosis here a guess.
+
+`GET /api/song/:provider/:id/trace?token=…` reports which one actually happened:
+
+```sh
+curl 'https://…/api/song/deezer/3135556/trace?token=…' | jq
+```
+
+```
+spotify   search  skipped: provider reports no credentials
+apple     search  upstream returned 403 (rate limited? shared Worker egress IP)
+youtube   exact   matched: Queen — Bohemian Rhapsody (score 1.05 of 5 candidate(s))
+deezer    exact   source provider — link built from the id, no request made
+bandcamp  search  12 candidate(s), best score 0.71 — below threshold 0.8
+lastfm    search  skipped: provider reports no credentials
+pandora   search  not attempted
+```
+
+Each row also carries its raw events (HTTP statuses, candidate counts, timings),
+and the two enrichment layers are reported separately under `oracles` — so
+"why is there no audio-features panel" gets an answer too.
+
+**It needs `TRACE_TOKEN` set**, and 404s identically to an unknown path when it
+is not. That gate is not decoration: the trace has to bypass the song page's
+24-hour memo, because a trace of a cache hit records nothing — none of the
+instrumented code runs. That makes it an uncached fan-out across every upstream
+on demand, which is exactly the request shape that would get this Worker's
+shared egress IP throttled by iTunes and MusicBrainz if anyone looped it. Set it
+to any random string, the same way as the provider credentials.
+
+Tracing costs nothing when it is off: `AsyncLocalStorage` carries the collector
+down the call tree, so instrumented code does one property read per call and
+`MusicProvider.resolve` never grew a debug argument.
+
+**The first thing to check with it** is Apple, which is keyless and should
+already be exact. If it reports a 403, that is the iTunes Search API's ~20
+calls/minute *per IP* — unauthenticated, so the budget is per egress address,
+and Workers share those per PoP.
 
 ## Audio features and recommendations
 

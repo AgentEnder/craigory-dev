@@ -33,6 +33,7 @@ import {
   searchTrackLink,
 } from './links';
 import { pickBestMatch } from './matching';
+import { trace } from '../trace';
 import { fetchPublicPage } from './scrape/fetch-page';
 import {
   parseBandcampAlbum,
@@ -122,7 +123,8 @@ async function fetchTrackPage(
   const parsed = parseBandcampTrackId(id);
   if (!parsed) return null;
   const html = await fetchPublicPage(
-    `https://${parsed.host}/track/${encodeURIComponent(parsed.slug)}`
+    `https://${parsed.host}/track/${encodeURIComponent(parsed.slug)}`,
+    'bandcamp'
   );
   return html ? { html, host: parsed.host } : null;
 }
@@ -149,15 +151,20 @@ export const bandcampProvider: MusicProvider = {
         fan_id: null,
       }),
     });
+    trace('bandcamp', 'http', { status: res.status, endpoint: 'autocomplete' });
     if (!res.ok) {
       throw new Error(`Bandcamp search error ${res.status}`);
     }
     const data = (await res.json()) as { auto?: { results?: BcSearchRow[] } };
     const rows = Array.isArray(data.auto?.results) ? data.auto.results : [];
-    return rows
+    // Rows-before-mapping vs rows-after tells apart "Bandcamp has nothing" from
+    // "this parser is reading the wrong fields" — the open question, since this
+    // endpoint has no published contract and was never verified live.
+    const mapped = rows
       .map(mapSearchRow)
-      .filter((track): track is SearchResult => Boolean(track))
-      .slice(0, limit);
+      .filter((track): track is SearchResult => Boolean(track));
+    trace('bandcamp', 'rows', { returned: rows.length, usable: mapped.length });
+    return mapped.slice(0, limit);
   },
 
   async getTrack(_env: Env, id: string): Promise<Track | null> {
@@ -176,7 +183,7 @@ export const bandcampProvider: MusicProvider = {
     if (!q) return fallback;
     try {
       const candidates = await this.search(env, q, 5);
-      const best = pickBestMatch(track, candidates, BANDCAMP_MATCH_THRESHOLD);
+      const best = pickBestMatch(track, candidates, BANDCAMP_MATCH_THRESHOLD, 'bandcamp');
       if (best) {
         return { link: exactTrackLink('bandcamp', best.id), matched: best };
       }

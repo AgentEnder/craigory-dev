@@ -231,6 +231,14 @@ export interface Env {
    */
   LASTFM_API_KEY?: string;
   /**
+   * Enables `GET /api/song/:provider/:id/trace`, which reports why each
+   * provider produced the link it did. Absent in a normal deployment, and the
+   * endpoint 404s without it: the trace bypasses the song cache, so it is an
+   * uncached fan-out across every upstream that anybody could otherwise run in
+   * a loop and burn this Worker's shared rate-limit budget with.
+   */
+  TRACE_TOKEN?: string;
+  /**
    * Namespaces every KV key this Worker touches (see `kv-scope.ts`). Set only
    * on preview versions, which share production's KV bindings; unset in
    * production, so production keys keep their bare names.

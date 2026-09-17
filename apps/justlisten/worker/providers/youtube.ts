@@ -231,10 +231,10 @@ export const youtubeProvider: MusicProvider = {
     // a lyric video or a cover is rejected the same way.
     if (!this.available(env)) {
       try {
-        const html = await fetchPublicPage(youtubeSearchUrl(q));
+        const html = await fetchPublicPage(youtubeSearchUrl(q), 'youtube');
         if (!html) return fallback;
         const candidates = parseYouTubeSearchResults(html, 5);
-        const best = pickBestMatch(track, candidates);
+        const best = pickBestMatch(track, candidates, undefined, 'youtube');
         if (best) {
           return { link: exactTrackLink('youtube', best.id), matched: best };
         }
@@ -265,7 +265,7 @@ export const youtubeProvider: MusicProvider = {
       const candidates = (details.items ?? [])
         .filter((i) => i.id)
         .map(mapVideo);
-      const best = pickBestMatch(track, candidates);
+      const best = pickBestMatch(track, candidates, undefined, 'youtube');
       if (best) return { link: exactTrackLink('youtube', best.id), matched: best };
     } catch {
       // Degrade to a search link — never throw from resolve.
