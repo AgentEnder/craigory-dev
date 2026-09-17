@@ -1,0 +1,7 @@
+.nx
+node_modules
+tmp
+dist
+package-lock.json
+package.json
+.env
