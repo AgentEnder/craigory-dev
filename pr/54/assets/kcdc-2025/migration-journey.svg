@@ -1,0 +1,85 @@
+<svg viewBox="0 0 800 600" xmlns="http://www.w3.org/2000/svg">
+  <!-- Background -->
+  <rect width="800" height="600" fill="#1a1a2e"/>
+  
+  <!-- Title -->
+  <text x="400" y="40" font-family="Arial, sans-serif" font-size="26" font-weight="bold" fill="whitesmoke" text-anchor="middle">The Migration Journey</text>
+  
+  <!-- Timeline line -->
+  <line x1="100" y1="300" x2="700" y2="300" stroke="#4fbdba" stroke-width="3"/>
+  
+  <!-- Week 1-2: Planning -->
+  <g id="week1">
+    <circle cx="150" cy="300" r="25" fill="#143055" stroke="#4fbdba" stroke-width="3"/>
+    <text x="150" y="305" font-family="Arial" font-size="12" font-weight="bold" fill="white" text-anchor="middle">W1-2</text>
+    
+    <rect x="100" y="200" width="100" height="60" fill="#16213e" stroke="#4fbdba" stroke-width="2" rx="5"/>
+    <text x="150" y="225" font-family="Arial" font-size="14" font-weight="bold" fill="#4fbdba" text-anchor="middle">Planning</text>
+    <text x="150" y="245" font-family="Arial" font-size="11" fill="#7ec8e3" text-anchor="middle">Structure</text>
+    
+    <line x1="150" y1="275" x2="150" y2="260" stroke="#4fbdba" stroke-width="2"/>
+  </g>
+  
+  <!-- Week 3-4: Libraries -->
+  <g id="week3">
+    <circle cx="300" cy="300" r="25" fill="#2a3f5f" stroke="#4fbdba" stroke-width="3"/>
+    <text x="300" y="305" font-family="Arial" font-size="12" font-weight="bold" fill="white" text-anchor="middle">W3-4</text>
+    
+    <rect x="250" y="350" width="100" height="60" fill="#16213e" stroke="#4fbdba" stroke-width="2" rx="5"/>
+    <text x="300" y="375" font-family="Arial" font-size="14" font-weight="bold" fill="#4fbdba" text-anchor="middle">Libraries</text>
+    <text x="300" y="395" font-family="Arial" font-size="11" fill="#7ec8e3" text-anchor="middle">Shared code</text>
+    
+    <line x1="300" y1="325" x2="300" y2="350" stroke="#4fbdba" stroke-width="2"/>
+  </g>
+  
+  <!-- Week 5-8: Apps -->
+  <g id="week5">
+    <circle cx="450" cy="300" r="25" fill="#3a4f6f" stroke="#4fbdba" stroke-width="3"/>
+    <text x="450" y="305" font-family="Arial" font-size="12" font-weight="bold" fill="white" text-anchor="middle">W5-8</text>
+    
+    <rect x="400" y="200" width="100" height="60" fill="#16213e" stroke="#4fbdba" stroke-width="2" rx="5"/>
+    <text x="450" y="225" font-family="Arial" font-size="14" font-weight="bold" fill="#4fbdba" text-anchor="middle">Apps</text>
+    <text x="450" y="245" font-family="Arial" font-size="11" fill="#7ec8e3" text-anchor="middle">Migration</text>
+    
+    <line x1="450" y1="275" x2="450" y2="260" stroke="#4fbdba" stroke-width="2"/>
+  </g>
+  
+  <!-- Week 9-10: CI/CD -->
+  <g id="week9">
+    <circle cx="550" cy="300" r="25" fill="#4a5f8f" stroke="#4fbdba" stroke-width="3"/>
+    <text x="550" y="305" font-family="Arial" font-size="12" font-weight="bold" fill="white" text-anchor="middle">W9-10</text>
+    
+    <rect x="500" y="350" width="100" height="60" fill="#16213e" stroke="#4fbdba" stroke-width="2" rx="5"/>
+    <text x="550" y="375" font-family="Arial" font-size="14" font-weight="bold" fill="#4fbdba" text-anchor="middle">CI/CD</text>
+    <text x="550" y="395" font-family="Arial" font-size="11" fill="#7ec8e3" text-anchor="middle">Pipelines</text>
+    
+    <line x1="550" y1="325" x2="550" y2="350" stroke="#4fbdba" stroke-width="2"/>
+  </g>
+  
+  <!-- Week 11-12: Training -->
+  <g id="week11">
+    <circle cx="650" cy="300" r="25" fill="#571452" stroke="#4fbdba" stroke-width="3"/>
+    <text x="650" y="305" font-family="Arial" font-size="12" font-weight="bold" fill="white" text-anchor="middle">W11-12</text>
+    
+    <rect x="600" y="200" width="100" height="60" fill="#16213e" stroke="#4fbdba" stroke-width="2" rx="5"/>
+    <text x="650" y="225" font-family="Arial" font-size="14" font-weight="bold" fill="#4fbdba" text-anchor="middle">Training</text>
+    <text x="650" y="245" font-family="Arial" font-size="11" fill="#7ec8e3" text-anchor="middle">Team docs</text>
+    
+    <line x1="650" y1="275" x2="650" y2="260" stroke="#4fbdba" stroke-width="2"/>
+  </g>
+  
+  <!-- Results section -->
+  <rect x="150" y="450" width="500" height="120" fill="#0f1620" stroke="#27c93f" stroke-width="2" rx="10"/>
+  <text x="400" y="480" font-family="Arial" font-size="18" font-weight="bold" fill="#27c93f" text-anchor="middle">🎯 Results</text>
+  
+  <text x="200" y="510" font-family="Arial" font-size="14" fill="#7ec8e3">Build time:</text>
+  <text x="350" y="510" font-family="Arial" font-size="14" fill="whitesmoke">45 min → 8 min</text>
+  
+  <text x="200" y="530" font-family="Arial" font-size="14" fill="#7ec8e3">Test runs:</text>
+  <text x="350" y="530" font-family="Arial" font-size="14" fill="whitesmoke">30 min → 5 min</text>
+  
+  <text x="200" y="550" font-family="Arial" font-size="14" fill="#7ec8e3">Releases:</text>
+  <text x="350" y="550" font-family="Arial" font-size="14" fill="whitesmoke">2 days → 2 hours</text>
+  
+  <text x="500" y="530" font-family="Arial" font-size="40" text-anchor="middle">📈</text>
+</svg>
