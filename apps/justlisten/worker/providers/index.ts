@@ -8,12 +8,18 @@ import { spotifyProvider } from './spotify';
 import { appleProvider } from './apple';
 import { youtubeProvider } from './youtube';
 import { deezerProvider } from './deezer';
+import { bandcampProvider } from './bandcamp';
+import { lastfmProvider } from './lastfm';
+import { pandoraProvider } from './pandora';
 
 const BY_ID: Record<ProviderId, MusicProvider> = {
   spotify: spotifyProvider,
   apple: appleProvider,
   youtube: youtubeProvider,
   deezer: deezerProvider,
+  bandcamp: bandcampProvider,
+  lastfm: lastfmProvider,
+  pandora: pandoraProvider,
 };
 
 /** All providers, in canonical display order (`PROVIDER_IDS`). */
@@ -22,7 +28,8 @@ export const providers: MusicProvider[] = PROVIDER_IDS.map((id) => BY_ID[id]);
 /**
  * Providers whose catalogs back search, in preference order. Derived from
  * `SEARCH_CATALOG_IDS` — YouTube is excluded there because `search.list`
- * costs 100 of a 10,000-unit daily quota.
+ * costs 100 of a 10,000-unit daily quota, and Pandora because it publishes no
+ * search API at all.
  */
 export const searchCatalogs: MusicProvider[] = SEARCH_CATALOG_IDS.map(
   (id) => BY_ID[id]

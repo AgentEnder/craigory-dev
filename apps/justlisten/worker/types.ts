@@ -8,7 +8,14 @@
 // workers-types ambient environment.
 import type { KVNamespace } from '@cloudflare/workers-types';
 
-export type ProviderId = 'spotify' | 'apple' | 'youtube' | 'deezer';
+export type ProviderId =
+  | 'spotify'
+  | 'apple'
+  | 'youtube'
+  | 'deezer'
+  | 'bandcamp'
+  | 'lastfm'
+  | 'pandora';
 
 /**
  * Every provider id, in canonical display order — the single source of truth
@@ -21,19 +28,37 @@ export const PROVIDER_IDS: readonly ProviderId[] = [
   'apple',
   'youtube',
   'deezer',
+  'bandcamp',
+  'lastfm',
+  'pandora',
 ];
 
 /**
- * Catalogs queried by search. YouTube is deliberately absent: its Data API
- * `search.list` costs 100 of a 10,000-unit daily quota, so it can never back
- * a search box (see providers/youtube.ts). Deezer leads because it needs no
- * credentials, indexes independent releases the other catalogs miss, and
- * returns an ISRC on every row — which feeds the ISRC-first match path.
+ * Catalogs queried by search.
+ *
+ * Deezer leads because it needs no credentials, indexes independent releases
+ * the other catalogs miss, and returns an ISRC on every row — which feeds the
+ * ISRC-first match path.
+ *
+ * Two are deliberately absent:
+ * - **YouTube**, whose Data API `search.list` costs 100 of a 10,000-unit daily
+ *   quota, so it can never back a search box (see providers/youtube.ts).
+ * - **Pandora**, which publishes no search API at all. It can only ever be
+ *   reached by a pasted link or by the match cache a paste leaves behind
+ *   (see providers/pandora.ts).
+ *
+ * Bandcamp is here for the opposite reason to Deezer's: it carries the
+ * self-released long tail none of the licensed catalogs index, and it is
+ * keyless. Last.fm is last because it is the only keyed entry and its rows
+ * carry the least metadata — no ISRC, no duration, no album — so it
+ * contributes availability rather than a description.
  */
 export const SEARCH_CATALOG_IDS: readonly ProviderId[] = [
   'deezer',
   'spotify',
   'apple',
+  'bandcamp',
+  'lastfm',
 ];
 
 export interface ProviderLink {
@@ -61,10 +86,59 @@ export interface Track {
 /** Autocomplete rows. */
 export interface SearchResult extends Track {}
 
+/**
+ * Measured characteristics of a recording, from ReccoBeats.
+ *
+ * Spotify's field names and scales — ReccoBeats mirrors them deliberately,
+ * because Spotify deprecated its own `/v1/audio-features` in November 2024 and
+ * shipped no replacement. The values are ReccoBeats' estimates rather than
+ * Spotify's original numbers, and `time_signature` has no equivalent here
+ * because ReccoBeats does not return one.
+ *
+ * Every field is optional: this is the one upstream in the app whose response
+ * shape could not be verified against a live call (see `reccobeats/parse.ts`),
+ * so a field that does not arrive, or arrives outside its documented range, is
+ * dropped rather than rendered.
+ */
+export interface AudioFeatures {
+  /** Beats per minute. */
+  tempo?: number;
+  /** Pitch class, 0 = C through 11 = B. Absent when no key was detected. */
+  key?: number;
+  /** 1 = major, 0 = minor. */
+  mode?: number;
+  /** Full-scale dB, negative. */
+  loudness?: number;
+  /** The rest are 0–1. */
+  acousticness?: number;
+  danceability?: number;
+  energy?: number;
+  instrumentalness?: number;
+  liveness?: number;
+  speechiness?: number;
+  valence?: number;
+}
+
 export interface SongDetail {
   track: Track;
   /** one per provider in `PROVIDER_IDS`, always all of them present */
   links: ProviderLink[];
+  /**
+   * Audio features, when ReccoBeats knows this recording. Absent for a track
+   * with no exact Spotify match (ReccoBeats is keyed on Spotify ids), one it
+   * has never analyzed, or when it could not be reached — all three are the
+   * same thing to the page, which simply omits the section.
+   */
+  audioFeatures?: AudioFeatures;
+  /**
+   * "More like this", as Spotify-provider tracks.
+   *
+   * Filed under `spotify` because a recommendation's only durable id is its
+   * Spotify track id, and `/song/spotify/:id` already resolves one of those
+   * across every platform — so each row links back into this app rather than
+   * costing a cross-provider resolution of its own. Empty when there are none.
+   */
+  similar?: Track[];
 }
 
 /**
@@ -150,6 +224,20 @@ export interface Env {
   SPOTIFY_CLIENT_ID?: string;
   SPOTIFY_CLIENT_SECRET?: string;
   YOUTUBE_API_KEY?: string;
+  /**
+   * Last.fm needs a key for every call — it publishes no keyless endpoint the
+   * way Deezer, iTunes and Bandcamp do — so without this Last.fm degrades to
+   * search links like Spotify and YouTube do.
+   */
+  LASTFM_API_KEY?: string;
+  /**
+   * Enables `GET /api/song/:provider/:id/trace`, which reports why each
+   * provider produced the link it did. Absent in a normal deployment, and the
+   * endpoint 404s without it: the trace bypasses the song cache, so it is an
+   * uncached fan-out across every upstream that anybody could otherwise run in
+   * a loop and burn this Worker's shared rate-limit budget with.
+   */
+  TRACE_TOKEN?: string;
   /**
    * Namespaces every KV key this Worker touches (see `kv-scope.ts`). Set only
    * on preview versions, which share production's KV bindings; unset in

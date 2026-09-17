@@ -5,13 +5,17 @@
  * JustListen's own palette: ink for anything the app itself does, and exactly
  * one accent, reserved for playback.
  *
- * The app's job is pointing at other services, so the four provider colours are
- * the only chroma that carries meaning on a page — our own controls stay out of
+ * The app's job is pointing at other services, so the provider colours are the
+ * only chroma that carries meaning on a page — our own controls stay out of
  * their way in near-black. The accent is a deep teal specifically because it is
- * the one saturated hue none of the four services claims (Spotify green, Apple
- * #FA243C, YouTube #FF0033, Deezer #A238FF), so a play button can never be
- * misread as a platform's branding. Playback previously wore Deezer's purple,
- * which implied exactly that.
+ * a saturated hue no provider claims (Spotify green #1DB954, Apple #FA243C,
+ * YouTube #FF0033, Deezer #A238FF, Bandcamp #408294, Last.fm #BA0000, Pandora
+ * #224099), so a play button can never be misread as a platform's branding.
+ * Playback previously wore Deezer's purple, which implied exactly that.
+ *
+ * Bandcamp's teal is the near miss: it sits in the same family as the accent,
+ * which is why the accent is the darker and more saturated of the two and why
+ * nothing renders the pair adjacent at the same weight.
  *
  * Values are chosen rather than taken from Tailwind's ramps; `accent-ink` and
  * `ink` both clear 4.5:1 on white, and white clears 4.5:1 on `accent`.

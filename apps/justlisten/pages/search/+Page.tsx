@@ -274,7 +274,8 @@ function CatalogSummary({
           ? `Searched ${names(searched)}.`
           : 'No catalogs could be searched.'}{' '}
         YouTube Music links are resolved when you open a song — its search API
-        is too quota-expensive to query here.
+        is too quota-expensive to query here. Pandora too: it publishes no
+        search API, so its links come from the match cache or from a paste.
       </p>
       {unconfigured.length > 0 && (
         <p className="mt-1 text-xs text-gray-400">

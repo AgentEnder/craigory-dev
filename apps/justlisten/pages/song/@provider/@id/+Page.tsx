@@ -2,7 +2,9 @@ import { Card } from '@new-personal-monorepo/small-app-design-system';
 import { useData } from 'vike-react/useData';
 
 import { Artwork } from '../../../../src/components/Artwork';
+import { AudioFeaturePanel } from '../../../../src/components/AudioFeaturePanel';
 import { DeezerEmbed } from '../../../../src/components/DeezerEmbed';
+import { SimilarTracks } from '../../../../src/components/SimilarTracks';
 import { ProviderLinkButton } from '../../../../src/components/ProviderBadge';
 import { deezerEmbedFromLinks } from '../../../../worker/providers/links';
 import type { ProviderLink, SongDetail } from '../../../../worker/types';
@@ -51,7 +53,7 @@ export function Page() {
 }
 
 function SongDetailCard({ song }: { song: SongDetail }) {
-  const { track, links } = song;
+  const { track, links, audioFeatures, similar } = song;
   const orderedLinks = PROVIDER_IDS.map((p) =>
     links.find((link) => link.provider === p)
   ).filter((link): link is ProviderLink => link !== undefined);
@@ -106,6 +108,14 @@ function SongDetailCard({ song }: { song: SongDetail }) {
             <DeezerEmbed target={embed} title={`Deezer player for ${trackLabel}`} />
           </div>
         </section>
+      )}
+
+      {/* Both sections come from ReccoBeats and both are optional: a track it
+          has never analyzed, or one with no exact Spotify match to look up by,
+          renders the page exactly as it did before. */}
+      {audioFeatures && <AudioFeaturePanel features={audioFeatures} className="mt-8" />}
+      {similar && similar.length > 0 && (
+        <SimilarTracks tracks={similar} className="mt-8" />
       )}
     </Card>
   );

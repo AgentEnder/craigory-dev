@@ -104,6 +104,9 @@ describe('playlistOpenLinks', () => {
       'apple',
       'youtube',
       'deezer',
+      'bandcamp',
+      'lastfm',
+      'pandora',
     ]);
   });
 
