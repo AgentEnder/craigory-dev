@@ -1,4 +1,5 @@
 import { INDENT } from './edits';
+import { compilePatterns } from './glob';
 
 /**
  * Reading a repository's file tree off GitHub.
@@ -75,6 +76,68 @@ export function treeUrl({ owner, repo, ref }: RepoRef): string {
 export interface TreeEntry {
   path: string;
   type: string;
+}
+
+export interface Selection {
+  /** Keep only paths matching one of these. Empty keeps everything. */
+  only?: string[];
+  /** Drop paths matching one of these, whatever `only` said. */
+  except?: string[];
+}
+
+/**
+ * The top-level names in a tree, for offering them as keep-or-drop choices.
+ *
+ * Directories first, the way the renderer orders a group, because those are
+ * what an import is usually narrowed by.
+ */
+export function topLevelPaths(entries: TreeEntry[]): TreeEntry[] {
+  const roots = entries.filter((entry) => !entry.path.includes('/'));
+  const byName = (a: TreeEntry, b: TreeEntry) => a.path.localeCompare(b.path);
+
+  return [
+    ...roots.filter((entry) => entry.type === 'tree').sort(byName),
+    ...roots.filter((entry) => entry.type !== 'tree').sort(byName),
+  ];
+}
+
+/**
+ * Narrow a repository tree to the paths worth importing.
+ *
+ * Exclusion wins, so unticking a directory still drops it when a pattern would
+ * have kept it. That is the order people expect from every other tool, and the
+ * alternative makes an untick look broken.
+ *
+ * Directories above a kept path come back whether they matched or not. Without
+ * that, `only: apps/**` keeps `apps/web` and drops `apps`, and since indent
+ * comes from the segment count the child would arrive two levels deep under a
+ * parent that is no longer there.
+ */
+export function selectEntries(
+  entries: TreeEntry[],
+  { only = [], except = [] }: Selection
+): TreeEntry[] {
+  const included = compilePatterns(only);
+  const excluded = compilePatterns(except);
+
+  const kept = entries.filter(
+    (entry) => !excluded(entry.path) && (!only.length || included(entry.path))
+  );
+
+  const keptPaths = new Set(kept.map((entry) => entry.path));
+  const wanted = new Set<string>();
+  for (const entry of kept) {
+    const segments = entry.path.split('/');
+    for (let depth = 1; depth < segments.length; depth++) {
+      wanted.add(segments.slice(0, depth).join('/'));
+    }
+  }
+
+  const ancestors = entries.filter(
+    (entry) => wanted.has(entry.path) && !keptPaths.has(entry.path)
+  );
+
+  return [...kept, ...ancestors];
 }
 
 export interface Conversion {

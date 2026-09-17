@@ -3,6 +3,8 @@ import {
   DEFAULT_REF,
   entriesToSource,
   parseRepoRef,
+  selectEntries,
+  topLevelPaths,
   treeUrl,
   type TreeEntry,
 } from './github';
@@ -127,5 +129,77 @@ describe('entriesToSource', () => {
 
   it('survives an empty repository', () => {
     expect(entriesToSource([], 2)).toEqual({ source: '', omitted: 0 });
+  });
+});
+
+describe('selectEntries', () => {
+  const entries: TreeEntry[] = [
+    { path: '.github', type: 'tree' },
+    { path: '.github/workflows', type: 'tree' },
+    { path: '.github/workflows/ci.yml', type: 'blob' },
+    { path: 'README.md', type: 'blob' },
+    { path: 'apps', type: 'tree' },
+    { path: 'apps/web', type: 'tree' },
+    { path: 'apps/web/main.ts', type: 'blob' },
+    { path: 'libs', type: 'tree' },
+    { path: 'libs/util.ts', type: 'blob' },
+  ];
+
+  const paths = (result: TreeEntry[]) =>
+    result.map((entry) => entry.path).sort();
+
+  it('keeps everything when nothing is asked for', () => {
+    expect(selectEntries(entries, {})).toHaveLength(entries.length);
+  });
+
+  it('drops a directory and everything inside it', () => {
+    expect(paths(selectEntries(entries, { except: ['.github'] }))).toEqual([
+      'README.md',
+      'apps',
+      'apps/web',
+      'apps/web/main.ts',
+      'libs',
+      'libs/util.ts',
+    ]);
+  });
+
+  it('keeps only what was asked for', () => {
+    expect(paths(selectEntries(entries, { only: ['libs'] }))).toEqual([
+      'libs',
+      'libs/util.ts',
+    ]);
+  });
+
+  it('brings back the directories above whatever survived', () => {
+    // apps/** never matches apps itself, and without it apps/web arrives one
+    // level deep with nothing above it.
+    expect(paths(selectEntries(entries, { only: ['apps/**'] }))).toEqual([
+      'apps',
+      'apps/web',
+      'apps/web/main.ts',
+    ]);
+  });
+
+  it('lets an exclusion beat an inclusion', () => {
+    expect(
+      paths(selectEntries(entries, { only: ['**'], except: ['.github'] }))
+    ).not.toContain('.github');
+  });
+
+  it('can come back empty', () => {
+    expect(selectEntries(entries, { only: ['nothing-here'] })).toEqual([]);
+  });
+});
+
+describe('topLevelPaths', () => {
+  it('lists the names an import can be narrowed by, directories first', () => {
+    expect(
+      topLevelPaths([
+        { path: 'libs', type: 'tree' },
+        { path: 'apps/web', type: 'tree' },
+        { path: 'apps', type: 'tree' },
+        { path: 'README.md', type: 'blob' },
+      ]).map((entry) => entry.path)
+    ).toEqual(['apps', 'libs', 'README.md']);
   });
 });

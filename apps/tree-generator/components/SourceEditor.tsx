@@ -245,7 +245,10 @@ export function SourceEditor({
   // child of the frame is absolutely positioned, so flex-1 on its own would
   // resolve to no height at all.
   return (
-    <div ref={frameRef} className="group relative flex-1 min-h-[18rem]">
+    <div
+      ref={frameRef}
+      className="group relative flex-1 min-h-[18rem] md:min-h-0"
+    >
       <TextArea
         mono
         value={value}
