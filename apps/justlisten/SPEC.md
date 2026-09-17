@@ -89,6 +89,9 @@ worker/
                       # resolution (pure functions)
                       # (UI: src/components/DeezerPlayer.tsx holds the one
                       #  player shared by the playlist and search pages)
+  musicbrainz/
+    index.ts          # keyless ISRC → streaming-URL oracle (see below)
+    parse.ts          # url-rels → ProviderLink[] (pure)
   reccobeats/
     index.ts          # ReccoBeats client: audio features, ISRC backfill,
                       # recommendations. NOT a provider — see below.
@@ -100,6 +103,55 @@ src/
   components/         # SearchBox (autocomplete), PlaylistView, ProviderBadge, …
   styles.css          # tailwind + design-system import
 ```
+
+## MusicBrainz — the keyless fallback oracle
+
+**The problem.** In a zero-credential deployment five of the seven providers
+cannot produce an exact link *by construction*: Spotify, YouTube and Last.fm
+each return a search link the moment `available(env)` is false, Pandora has no
+API at all, and Bandcamp's 0.8 threshold means it rarely claims a mainstream
+recording. That leaves Apple and Deezer — and on a page reached from a Deezer
+search, Deezer's link is built from the id with no network at all. The result a
+user actually sees is one real link and six search boxes, which reads as the app
+not working.
+
+**Why MusicBrainz and not another search.** Every other resolution path searches
+a platform and then has to decide whether the result is the same recording —
+the fuzzy scoring in `matching.ts`. MusicBrainz is looked up **by ISRC**, so
+identity is asserted by the recording code rather than guessed, and its URL
+relationships are exactly the cross-platform mapping the other providers are
+being asked to infer. No key, no scoring, no threshold.
+
+**How a URL becomes a link.** `musicbrainz/parse.ts` runs each relationship URL
+through the registry's own `parseTrackUrl` implementations rather than adding a
+second set of patterns — so a MusicBrainz link and a pasted link are understood
+identically, including Apple's `?i=` album URLs, Deezer's locale prefix and
+Bandcamp's custom domains. Providers are tried in `PROVIDER_IDS` order and the
+first claim wins, which is what stops Bandcamp's host-permissive parser taking a
+URL belonging to a host-locked provider. A URL nothing claims (Tidal, Amazon,
+SoundCloud, Wikipedia) is dropped, as is any relationship marked `ended: true` —
+a delisted URL looks exact and goes nowhere, which is worse than a search link.
+
+**Only the gaps.** `song.ts` calls the oracle solely for providers that already
+came back `kind: 'search'`, and only when the track carries an ISRC. A provider
+that resolved on its own keeps its own answer: that one arrived with the matched
+track's artwork and album, which a bare URL relationship does not carry.
+Whatever the oracle does supply is written into the match cache via
+`seedResolvedLink`, so playlist rows and later views of the same recording get
+it without a second lookup.
+
+**Coverage is uneven and that is expected.** The relationships are
+editor-contributed: good on well-known releases, thin on the long tail, and
+better for free streaming (YouTube) than for the subscription services. It is a
+supplement, never a replacement.
+
+**Rate limit.** ~1 request/second per IP, and a descriptive User-Agent naming
+the application and a contact is *required* — this is the opposite of the
+browser-impersonating UA `scrape/fetch-page.ts` sends, and must not be replaced
+with one. Volume is tiny in practice: one request per recording per 30 days,
+behind the KV cache and the song page's 24h memo. A 503 (how MusicBrainz reports
+throttling) caches nothing, so a momentary burst cannot suppress the oracle for
+a month; a 404 caches an empty result for 7 days.
 
 ## ReccoBeats — a metadata source, not a provider
 
@@ -651,6 +703,17 @@ Spotify tracks still resolved Apple and Deezer links off title/artist/duration.
   exactly — which is why the API is still preferred when credentials exist. A
   private or missing playlist renders with `data: null`, so a miss is
   detectable rather than silently empty.
+- **YouTube track resolution** — `youtube.com/results?search_query=…&sp=EgIQAQ%3D%3D`
+  (the `sp` parameter is YouTube's "Type: Video" filter, keeping channels,
+  playlists and Shorts shelves out of the blob). Same `ytInitialData` technique
+  as the playlist page, and the single highest-value keyless addition: without
+  it a keyless deployment could never produce an exact YouTube link, and
+  YouTube is the platform most people can reliably play something on. Two
+  renderers are read — the long-standing `videoRenderer` and the newer
+  `lockupViewModel` — because YouTube is mid-migration and which one a request
+  gets is not stable. Results are *candidates*: they go through `pickBestMatch`
+  exactly like the API path's, because YouTube search happily returns a lyric
+  video, a cover, or something unrelated for a title it does not have.
 - **YouTube** — `youtube.com/playlist?list={id}`, parse `var ytInitialData`.
   YouTube migrated playlist rows from `playlistVideoRenderer` to
   **`lockupViewModel`**; against today's HTML the old selector finds 0 rows and
@@ -759,12 +822,13 @@ preview cannot offer.
   resolution and playlist import (search costs 100 quota units — never used
   for autocomplete).
 - Playlist import capped at 100 tracks; link resolution batched. The live
-  batch is **15 tracks**, down from 20: the zero-secret ceiling is the binding
-  case (apple + deezer + bandcamp term searches = 3 fetches/track, one of which
-  is usually the source and costs nothing), and 15 × 3 = 45 leaves five of the
-  50-subrequest budget for the playlist fetch and its pagination. Adding
-  Bandcamp's search moved that ceiling, so the cap moved with it rather than
-  quietly overrunning.
+  batch is **11 tracks**: the zero-secret ceiling is the binding case (apple +
+  deezer + bandcamp + youtube = 4 fetches/track, one of which is usually the
+  source and costs nothing), and 11 × 4 = 44 leaves six of the 50-subrequest
+  budget for the playlist fetch and its pagination. The cap was 20 with four
+  providers, 15 when Bandcamp's search arrived, and 11 now that YouTube
+  resolves keylessly — each step trades rows-resolved-at-import for a better
+  page, and the remainder is finished by `POST /:id/resolve` anyway.
 - Pandora costs **zero** subrequests, ever: its tracks are named from the URL's
   own slugs and its links are built locally.
 - Last.fm costs one fetch per resolution and only when `LASTFM_API_KEY` is

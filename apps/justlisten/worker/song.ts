@@ -17,7 +17,12 @@
  */
 import { cacheJson } from './cache';
 import { exactTrackLink, searchTrackLink } from './providers/links';
-import { resolveTrackOnProvider, seedSourceMatch } from './providers/matching';
+import {
+  resolveTrackOnProvider,
+  seedResolvedLink,
+  seedSourceMatch,
+} from './providers/matching';
+import { musicbrainzLinksForIsrc } from './musicbrainz/index';
 import { getProvider, isProviderId } from './providers/index';
 import { spotifyProvider } from './providers/spotify';
 import {
@@ -120,7 +125,39 @@ async function resolveDetail(env: Env, sourceTrack: Track): Promise<SongDetail> 
     .map((result) => result.matched)
     .filter((match): match is Track => Boolean(match));
 
-  const links = results.map((result) => result.link);
+  let links = results.map((result) => result.link);
+
+  // Last resort for whatever is still a search link: ask MusicBrainz.
+  //
+  // Five of the seven providers cannot resolve at all without credentials —
+  // Spotify, YouTube and Last.fm bail on `available(env)`, Pandora has no API,
+  // and Bandcamp rarely carries a mainstream recording — so a zero-secret
+  // deployment can otherwise show a single real link and six search boxes.
+  // MusicBrainz answers by ISRC, which means it needs no key *and* no scoring:
+  // identity comes from the recording code rather than from a title guess.
+  //
+  // Only the gaps are filled. A provider that resolved on its own keeps its
+  // own answer, which is better sourced — it came with the matched track's
+  // artwork and album, which a bare URL relationship does not carry.
+  const unresolved = links.filter((link) => link.kind === 'search');
+  if (track.isrc && unresolved.length > 0) {
+    const oracle = await musicbrainzLinksForIsrc(env, track.isrc);
+    if (oracle.length > 0) {
+      const byProvider = new Map(oracle.map((link) => [link.provider, link]));
+      links = links.map((link) =>
+        link.kind === 'search'
+          ? (byProvider.get(link.provider) ?? link)
+          : link
+      );
+      // Keep what it found, so playlist rows and later views of this recording
+      // get the link without a second lookup.
+      await Promise.all(
+        links
+          .filter((link) => link.kind === 'exact' && byProvider.has(link.provider))
+          .map((link) => seedResolvedLink(env, track, link))
+      );
+    }
+  }
 
   // Second chance at ReccoBeats for everything that was not Spotify-sourced:
   // resolution has just produced a Spotify id for it. A KV hit makes the

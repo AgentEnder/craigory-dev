@@ -62,17 +62,27 @@ const MAX_TRACKS = 100;
  *   apple     1  term search
  *   deezer    1  term search
  *   bandcamp  1  autocomplete search
+ *   youtube   1  public search page (the keyless tier)
  *   spotify   0  unconfigured → search link, no request
- *   youtube   0  unconfigured → search link, no request
  *   lastfm    0  unconfigured → search link, no request
  *   pandora   0  no API at all → search link, no request
  *
  * One of apple/deezer/bandcamp is usually the source provider and costs
- * nothing, so 3 fetches/track is the ceiling rather than the mean. 15 × 3 = 45
- * leaves five for the playlist fetch and its pagination. The cap was 20 when
- * there were four providers and the ceiling was 2/track; adding Bandcamp's
- * search moved the ceiling, so the cap moves with it rather than quietly
- * overrunning the budget.
+ * nothing, so 4 fetches/track is the ceiling rather than the mean. 11 × 4 = 44
+ * leaves six for the playlist fetch and its pagination.
+ *
+ * The cap has moved twice, each time because a provider gained a keyless path
+ * rather than because the budget changed: 20 when there were four providers and
+ * the ceiling was 2/track, 15 when Bandcamp's search arrived, 11 now that
+ * YouTube resolves without a key. Each of those is a strictly better *page* in
+ * exchange for fewer rows resolved during the import request — and the rows
+ * beyond the cap are not lost, they are finished by the resolve endpoint below,
+ * which gets its own budget per call.
+ *
+ * YouTube's is the expensive one: a full HTML page and a large JSON parse
+ * rather than a JSON row. If import latency becomes the complaint rather than
+ * link quality, skipping just that tier here (while keeping it on the song
+ * page, which resolves one track) is the next move.
  *
  * With every credential configured a track costs more (an ISRC lookup *and* a
  * term search on the providers that support both), and the cap does not cover
@@ -85,7 +95,7 @@ const MAX_TRACKS = 100;
  * built search links, and the client resolves the remainder in batches through
  * POST /:id/resolve — each of those is its own invocation with its own 50.
  */
-const MAX_LIVE_RESOLVED_TRACKS = 15;
+const MAX_LIVE_RESOLVED_TRACKS = 11;
 
 /** Extra tracks resolved from the KV match cache only (no provider HTTP). */
 const MAX_CACHE_ONLY_RESOLVED_TRACKS = 20;

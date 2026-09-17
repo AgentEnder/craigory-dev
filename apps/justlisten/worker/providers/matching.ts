@@ -10,6 +10,7 @@ import type {
   AggregatedSearchResult,
   Env,
   ProviderId,
+  ProviderLink,
   ResolvedMatch,
   Track,
 } from '../types';
@@ -294,6 +295,40 @@ export async function seedSourceMatch(env: Env, track: Track): Promise<void> {
     await kvPutJson(env, key, { link, matched: track }, MATCH_TTL_SECONDS);
   } catch {
     // Best-effort.
+  }
+}
+
+/**
+ * File an exact link somebody else established for this recording.
+ *
+ * `seedSourceMatch` records the link a track has to its *own* provider;
+ * this records one to a *different* provider that resolution did not find —
+ * today that means the MusicBrainz oracle, which answers by ISRC and so knows
+ * nothing about our scoring. Filing it means the next page view, and every
+ * playlist row for the same recording, gets the link without asking again.
+ *
+ * Filed under every key the track answers to (ISRC *and* normalized), unlike
+ * `seedSourceMatch`'s single normalized write: this link cost a real request to
+ * an outside service rather than being free in hand, so it is worth the extra
+ * write to make sure both kinds of reader find it.
+ *
+ * Net-new only, and never throws.
+ */
+export async function seedResolvedLink(
+  env: Env,
+  track: Track,
+  link: ProviderLink
+): Promise<void> {
+  if (link.kind !== 'exact') return;
+  for (const keyPart of matchKeysForTrack(track)) {
+    const key = matchCacheKey(keyPart, link.provider);
+    try {
+      const existing = await kvGetJson<ResolvedMatch>(env, key);
+      if (existing?.link?.kind === 'exact') continue;
+      await kvPutJson(env, key, { link }, MATCH_TTL_SECONDS);
+    } catch {
+      // Best-effort.
+    }
   }
 }
 

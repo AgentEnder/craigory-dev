@@ -1,6 +1,8 @@
 /**
  * YouTube / YouTube Music provider — YouTube Data API v3.
- * OPTIONAL: without YOUTUBE_API_KEY, links degrade to
+ * OPTIONAL: with no YOUTUBE_API_KEY, track resolution reads the public search
+ * results page instead (see scrape/youtube-search.ts) — no quota, no key. Only
+ * when that finds nothing do links degrade to
  * https://music.youtube.com/search?q=…. Playlist import still works without
  * one by reading the public playlist page — see scrape/youtube-initial-data.ts.
  * The Data API is used only for detail-page resolution and playlist import —
@@ -11,6 +13,10 @@
 
 import { fetchPublicPage } from './scrape/fetch-page';
 import { parseYouTubeInitialData } from './scrape/youtube-initial-data';
+import {
+  parseYouTubeSearchResults,
+  youtubeSearchUrl,
+} from './scrape/youtube-search';
 import type {
   Env,
   MusicProvider,
@@ -211,10 +217,34 @@ export const youtubeProvider: MusicProvider = {
       return { link: exactTrackLink('youtube', track.id) }; // music.youtube.com/watch?v=…
     }
     const fallback = { link: searchTrackLink('youtube', track) };
-    if (!this.available(env)) return fallback;
+    const q = `${track.artist} ${track.title}`.trim();
+    if (!q) return fallback;
+
+    // No key: read the public search results page instead of giving up.
+    //
+    // This is the keyless tier that was missing. `search.list` costs 100 of a
+    // 10,000-unit daily quota, so a deployment without a key could previously
+    // never produce an exact YouTube link at all — and YouTube is the platform
+    // most people can definitely play something on, which made it the most
+    // expensive absence. Reading the page costs no quota and no credentials.
+    // Candidates are scored by `pickBestMatch` exactly like the API path's, so
+    // a lyric video or a cover is rejected the same way.
+    if (!this.available(env)) {
+      try {
+        const html = await fetchPublicPage(youtubeSearchUrl(q));
+        if (!html) return fallback;
+        const candidates = parseYouTubeSearchResults(html, 5);
+        const best = pickBestMatch(track, candidates);
+        if (best) {
+          return { link: exactTrackLink('youtube', best.id), matched: best };
+        }
+      } catch {
+        // Degrade to a search link — never throw from resolve.
+      }
+      return fallback;
+    }
+
     try {
-      const q = `${track.artist} ${track.title}`.trim();
-      if (!q) return fallback;
       // search.list — allowed here (resolve path), never for autocomplete.
       const found = await apiGet<{ items?: YtSearchItem[] }>(env, 'search', {
         part: 'snippet',

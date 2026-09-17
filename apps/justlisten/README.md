@@ -13,7 +13,7 @@ follows directly from what it publishes:
 | Deezer | ✅ lead catalog | ISRC, then title/artist | playlists + albums | no |
 | Apple Music | ✅ | ISRC, then title/artist | public playlists | no |
 | Spotify | ✅ | ISRC, then title/artist | playlists + albums | optional |
-| YouTube Music | ❌ quota | title/artist | playlists | optional |
+| YouTube Music | ❌ quota | title/artist (keyless page scrape, or the API) | playlists | optional |
 | **Bandcamp** | ✅ | title/artist, stricter | albums | no |
 | **Last.fm** | ✅ | exact name lookup | ❌ none exist | **yes** |
 | **Pandora** | ❌ no API | ❌ cache only | ❌ none exist | n/a |
@@ -74,12 +74,13 @@ credentials) and degrades per provider:
   still opens a real song page, via the embed page — and, once opened, seeds
   the match cache so later visitors get that exact Spotify track too (see
   "Every pasted link teaches the cache" below).
-- No YouTube key → YouTube links are `https://music.youtube.com/search?q=…`
-  search links. Playlist import still works — it falls back to reading the
-  public playlist page, which also costs no quota — and so does opening a
-  pasted `watch?v=…` link, via the keyless `oembed` endpoint. YouTube never
-  backs search either way: its `search.list` costs 100 of a 10,000-unit daily
-  quota, so it is only used to resolve a link on the song detail page.
+- No YouTube key → track resolution reads the public search results page
+  instead (no quota, no key), and only falls back to a
+  `https://music.youtube.com/search?q=…` link when that finds no convincing
+  match. Playlist import likewise falls back to the public playlist page, and a
+  pasted `watch?v=…` link opens via the keyless `oembed` endpoint. YouTube never
+  backs the search box either way: its `search.list` costs 100 of a 10,000-unit
+  daily quota, so the API is only ever used to resolve a single link.
 - No Last.fm key → Last.fm is skipped as a search catalog and its links become
   search links. Unlike the others it has no keyless tier at all: every
   `ws.audioscrobbler.com` method requires an `api_key`. Keys are free and
@@ -176,6 +177,79 @@ first and *any* failure falls through rather than 404ing the song page. Losing
 duration costs only the +0.1 duration bonus in `scoreMatch`, so cross-provider
 matching stays good — and auto-generated YouTube music channels are named
 "<Artist> - Topic", which normalizes to the bare artist.
+
+## Getting more than one real link
+
+The honest failure mode of a zero-secret deployment: **five of the seven
+providers cannot produce an exact link at all.** Spotify, YouTube and Last.fm
+each bail out the moment `available(env)` is false; Pandora has no API to call;
+Bandcamp's raised threshold means it rarely claims a mainstream recording. That
+leaves Apple and Deezer — and on a page you reached from a Deezer search,
+Deezer's link is built from the id it already has, costing no network at all. So
+the page can show one real link and six search boxes, which reads as broken even
+though every part is behaving as designed.
+
+Two things close most of that gap without asking anyone for a credential.
+
+**YouTube now resolves without a key.** `search.list` costs 100 of a
+10,000-unit daily quota, which is why YouTube can never back the search box —
+but it also meant a keyless deployment could never link to a specific YouTube
+video, only to a search. Reading the public search results page uses the same
+`ytInitialData` technique the playlist importer already relies on, costs no
+quota and no key, and the rows it returns go through the same `pickBestMatch`
+scoring as the API path, so a lyric video or a cover is rejected the same way.
+For most people YouTube is the one platform they can definitely play something
+on, which made this the most expensive absence in the set.
+
+**MusicBrainz fills the rest.** Every other resolution path searches a platform
+and then has to *decide* whether the result is the same recording. MusicBrainz
+is looked up by **ISRC**, so identity comes from the recording code rather than
+a title guess, and the URL relationships its editors attach to a recording are
+exactly the cross-platform mapping everything else is trying to infer. It is
+keyless, documented, and stable — not a scrape.
+
+The mapping step reuses the providers' *own* `parseTrackUrl` implementations
+rather than adding a second set of URL patterns, so a MusicBrainz link and a
+pasted link are understood identically. Anything nothing claims is dropped, as
+is any relationship MusicBrainz marks `ended` — a delisted URL looks exact and
+goes nowhere, which is worse than a search link.
+
+It runs only for providers that came back with a search link, and only for
+tracks carrying an ISRC (every Deezer row has one). A provider that resolved on
+its own keeps its own answer — that one arrived with artwork and an album, which
+a bare URL relationship doesn't carry. Whatever the oracle finds is written into
+the match cache, so playlist rows and later views get it for free.
+
+Coverage is uneven and that's expected: the relationships are
+editor-contributed, so they're good on well-known releases, thin on the long
+tail, and better for YouTube than for the subscription services.
+
+MusicBrainz allows about one request per second per IP and **requires** a
+descriptive User-Agent naming the app and a contact — the opposite of the
+browser-impersonating header the page scrapers send, and it must not be
+replaced with one. Real volume is one request per recording per 30 days.
+
+### If you want all seven
+
+The above is what code can do. The rest is credentials, and they are free:
+
+| Credential | Unlocks | Cost |
+|---|---|---|
+| `SPOTIFY_CLIENT_ID` / `_SECRET` | exact Spotify links, **plus ISRCs** that make every other provider's match exact rather than fuzzy | free app registration |
+| `YOUTUBE_API_KEY` | the API path (durations, better ranking) instead of the page scrape | free, 10k units/day |
+| `LASTFM_API_KEY` | exact Last.fm links and Last.fm as a search catalog | free, instant |
+
+Spotify is the one worth doing first — not for its own link, but because its
+ISRCs feed the ISRC-first path in `matching.ts` for *everything else*.
+
+### One thing to check on the deployed site
+
+Apple is keyless and should already be exact. If it isn't, suspect throttling
+rather than matching: the iTunes Search API allows roughly **20 calls per minute
+per IP**, it is unauthenticated so the budget is per *egress IP*, Workers share
+those per PoP, and it signals throttling with a **403** — which `itunes()`
+throws on and `resolve` swallows into a search link. A throttled PoP is
+indistinguishable from "no match found" without looking at the logs.
 
 ## Audio features and recommendations
 
