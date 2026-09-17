@@ -1,0 +1,419 @@
+@import url('https://fonts.googleapis.com/css2?family=Rubik:wght@400;500;600&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Fira+Code&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Maiden+Orange&display=swap');
+
+// The sheet is styled once, in print units, and screen only adds the paper
+// around it. Screen and print share every rule below the toolbar.
+
+$sheet-width: 8.5in;
+$sheet-margin: 0.6in;
+$aside-width: 2in;
+$ink: #000;
+$muted: #444;
+$rule: #ddd;
+$link: #7a4a00;
+$desk: #dfe2e6;
+$mobile: 880px;
+
+// This page drops the site shell, so it carries its own reset.
+:global {
+  html {
+    scroll-behavior: smooth;
+  }
+
+  body {
+    margin: 0;
+  }
+}
+
+.page {
+  font-family: 'Rubik', sans-serif;
+  color: $ink;
+  background: $desk;
+  min-height: 100vh;
+  padding: 1.25rem 1rem 3rem;
+
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
+
+  h1,
+  h2,
+  h3,
+  h4,
+  p,
+  ul,
+  dl,
+  dd {
+    margin: 0;
+  }
+
+  a {
+    color: inherit;
+  }
+
+  code {
+    font-family: 'Fira Code', monospace;
+    font-size: 0.85em;
+  }
+}
+
+// Toolbar
+
+.toolbar {
+  max-width: $sheet-width;
+  margin: 0 auto 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.back {
+  color: #333;
+  text-decoration: none;
+
+  &:hover {
+    text-decoration: underline;
+  }
+}
+
+.print {
+  font: inherit;
+  color: #fff;
+  background: #1d2329;
+  border: 0;
+  border-radius: 4px;
+  padding: 0.35rem 0.9rem;
+  cursor: pointer;
+
+  &:hover {
+    background: #3a444d;
+  }
+}
+
+// Sheet
+
+.sheet {
+  max-width: $sheet-width;
+  margin: 0 auto;
+  padding: $sheet-margin;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12), 0 10px 30px rgba(0, 0, 0, 0.12);
+  font-size: 9.5pt;
+  line-height: 1.4;
+}
+
+// Contact links sit bottom-right, on the header's rule.
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 4pt 16pt;
+  padding-bottom: 8pt;
+  border-bottom: 1.5pt solid $ink;
+}
+
+.name {
+  font-family: 'Maiden Orange', serif;
+  font-weight: 400;
+  font-size: 26pt;
+  line-height: 1.1;
+}
+
+.headline {
+  font-size: 11pt;
+  color: #333;
+}
+
+.contact {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+
+  a {
+    text-decoration: none;
+  }
+}
+
+// Columns. Grid rows do not split cleanly across printed pages; floats do.
+
+.body {
+  display: flow-root;
+}
+
+.summary,
+.aside {
+  float: left;
+  clear: left;
+  width: $aside-width;
+  padding: 10pt 12pt 0 0;
+}
+
+.main {
+  float: right;
+  width: calc(100% - #{$aside-width} - 0.2in);
+  padding-top: 4pt;
+}
+
+// Aside
+
+.asideSection {
+  padding-top: 14pt;
+}
+
+.asideHeading {
+  font-size: 9pt;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-bottom: 3pt;
+}
+
+.summary p,
+.aside p,
+.aside li {
+  font-size: 8.5pt;
+}
+
+.technologies,
+.talks {
+  list-style: none;
+  padding: 0;
+}
+
+.technology,
+.talk {
+  display: flex;
+  flex-direction: column;
+  padding: 2.5pt 0;
+  border-top: 1px solid $rule;
+  break-inside: avoid;
+}
+
+.technologyName,
+.talkTitle {
+  font-weight: 500;
+}
+
+.technologyItems,
+.talkEvents {
+  color: $muted;
+  font-size: 8pt;
+}
+
+.talkLinks {
+  display: flex;
+  gap: 8pt;
+  font-size: 8pt;
+
+  a {
+    color: $link;
+  }
+}
+
+// Main
+
+.section + .section {
+  margin-top: 10pt;
+}
+
+.sectionHeading {
+  font-size: 9pt;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-bottom: 1pt solid $ink;
+  padding-bottom: 2pt;
+}
+
+.more {
+  font-size: 8.5pt;
+  margin-top: 2pt;
+  color: $muted;
+
+  a:hover {
+    color: $link;
+  }
+}
+
+.entry {
+  padding: 5pt 0;
+  border-bottom: 1px solid $rule;
+  break-inside: avoid;
+
+  &:last-child {
+    border-bottom: 0;
+  }
+}
+
+// The Nx entry is longer than a page, so it has to be allowed to split.
+#nx {
+  break-inside: auto;
+}
+
+.entryHeader {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0 1rem;
+}
+
+.entryName {
+  font-size: 11pt;
+  font-weight: 600;
+
+  a {
+    text-decoration: none;
+
+    &:hover {
+      color: $link;
+      text-decoration: underline;
+    }
+  }
+}
+
+.tag {
+  font-size: 6.5pt;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: $muted;
+  border: 1px solid #999;
+  border-radius: 999px;
+  padding: 0 0.4em;
+  margin-left: 0.5em;
+  vertical-align: middle;
+}
+
+.dates,
+.role {
+  font-size: 9pt;
+  color: $muted;
+}
+
+.lead {
+  margin-top: 2pt;
+}
+
+.groupHeading {
+  font-size: 7.5pt;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: $muted;
+  margin-top: 7pt;
+}
+
+.bullets {
+  padding-left: 1.2rem;
+  margin-top: 2pt;
+
+  li + li {
+    margin-top: 1pt;
+  }
+}
+
+.entryLinks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 1rem;
+  font-size: 8.5pt;
+  margin-top: 2pt;
+  color: $muted;
+}
+
+.asideHeading,
+.sectionHeading,
+.groupHeading,
+.entryHeader {
+  break-after: avoid;
+}
+
+// Phones get one reflowed column instead of a shrunken sheet.
+
+@media screen and (max-width: $mobile) {
+  .page {
+    padding: 0;
+  }
+
+  .toolbar {
+    margin: 0;
+    padding: 0.75rem 1rem;
+  }
+
+  .contact {
+    align-items: flex-start;
+  }
+
+  .sheet {
+    padding: 1.25rem 1rem 2rem;
+    box-shadow: none;
+    font-size: 11pt;
+  }
+
+  .summary,
+  .aside,
+  .main {
+    float: none;
+    width: auto;
+    padding: 0;
+  }
+
+  .summary {
+    padding-top: 10pt;
+  }
+
+  .main {
+    padding-top: 12pt;
+  }
+
+  .summary p,
+  .aside p,
+  .aside li {
+    font-size: 10pt;
+  }
+}
+
+// Print
+
+@page {
+  size: letter;
+  margin: 0.6in 0.6in 0.75in;
+
+  @bottom-center {
+    content: 'Available at craigory.dev/resume';
+    font-family: 'Rubik', sans-serif;
+    font-size: 8pt;
+    color: #666;
+  }
+
+  @bottom-right {
+    content: 'Page ' counter(page) ' of ' counter(pages);
+    font-family: 'Rubik', sans-serif;
+    font-size: 8pt;
+    color: #666;
+  }
+}
+
+@media print {
+  .page {
+    background: none;
+    min-height: 0;
+    padding: 0;
+  }
+
+  .toolbar,
+  .talkLinks {
+    display: none;
+  }
+
+  .sheet {
+    max-width: none;
+    padding: 0;
+    box-shadow: none;
+  }
+}
