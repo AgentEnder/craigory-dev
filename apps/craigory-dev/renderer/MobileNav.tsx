@@ -169,6 +169,9 @@ const MobileDrawer = React.forwardRef<HTMLElement, { isOpen: boolean }>(
           <Link className="mobile-navitem" href="/projects">
             Projects
           </Link>
+          <Link className="mobile-navitem" href="/resume">
+            Resume
+          </Link>
           <Link className="mobile-navitem" href="/tools">
             Tools
           </Link>

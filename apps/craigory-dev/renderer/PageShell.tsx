@@ -27,6 +27,9 @@ export function PageShell({ children }: { children: React.ReactNode }) {
               <Link className="navitem" href="/projects">
                 Projects
               </Link>
+              <Link className="navitem" href="/resume">
+                Resume
+              </Link>
               <Link className="navitem" href="/tools">
                 Tools
               </Link>
