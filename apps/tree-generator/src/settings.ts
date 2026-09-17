@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { DEFAULT_TOKEN } from './delimiter';
 import { clampFraction, DEFAULT_FRACTION } from './split';
 
 const KEY = 'tree-generator:settings';
@@ -19,6 +20,11 @@ export interface Settings {
   sourceWrap: boolean;
   /** Share of the split row given to the source pane. */
   split: number;
+  /**
+   * Token written between a label and its annotation, without the spaces that
+   * pad it in the text. See delimiter.ts for why the padding is derived.
+   */
+  token: string;
 }
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -26,6 +32,7 @@ export const DEFAULT_SETTINGS: Settings = {
   width: 80,
   sourceWrap: false,
   split: DEFAULT_FRACTION,
+  token: DEFAULT_TOKEN,
 };
 
 /**
@@ -45,6 +52,7 @@ function field<K extends keyof Settings>(
 
 const isBoolean = (v: unknown) => typeof v === 'boolean';
 const isNumber = (v: unknown) => typeof v === 'number' && Number.isFinite(v);
+const isString = (v: unknown) => typeof v === 'string';
 
 function read(): Settings {
   // Prerendered on the server, so there is no storage on the first pass.
@@ -60,6 +68,7 @@ function read(): Settings {
       // Clamped rather than merely validated: a stored fraction outside the
       // range would leave one pane too small to grab the divider back from.
       split: clampFraction(field(parsed, 'split', isNumber)),
+      token: field(parsed, 'token', isString),
     };
   } catch {
     return DEFAULT_SETTINGS;

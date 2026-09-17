@@ -7,31 +7,42 @@ import {
 import '../src/style.css';
 import { parseTree } from '../src/tree';
 import { renderTree } from '../src/render';
-import { duplicateLines, moveLines, shiftIndent } from '../src/edits';
+import {
+  duplicateLines,
+  moveLines,
+  openChild,
+  shiftIndent,
+} from '../src/edits';
 import { useSettings } from '../src/settings';
 import { looksRendered, unrenderTree } from '../src/unrender';
+import { changeDelimiter, delimiterFor } from '../src/delimiter';
 import { WrapControls } from '../components/WrapControls';
 import { TreeOutput } from '../components/TreeOutput';
 import { SourceEditor } from '../components/SourceEditor';
 import { SplitPane } from '../components/SplitPane';
 import { ToggleChip } from '../components/ToggleChip';
+import { GithubImport } from '../components/GithubImport';
 
-const PLACEHOLDER = [
-  'src/',
-  '  components/',
-  '    Button.tsx -- every variant lives here, so restyling is one file',
-  '    Card.tsx',
-  '  utils/',
-  '    format.ts',
-  'README.md',
-].join('\n');
+const placeholderFor = (token: string) =>
+  [
+    'src/',
+    '  components/',
+    `    Button.tsx${delimiterFor(
+      token
+    )}every variant lives here, so restyling is one file`,
+    '    Card.tsx',
+    '  utils/',
+    '    format.ts',
+    'README.md',
+  ].join('\n');
 
 export default function Page() {
   const [source, setSource] = useState('');
   const [settings, setSettings] = useSettings();
-  // Set when a paste was rewritten, so the change is announced rather than
-  // just happening to the user's clipboard behind their back.
-  const [unformatted, setUnformatted] = useState(false);
+  // One transient line for anything that rewrote the field without being
+  // typed, so it is announced rather than just happening to the user.
+  const [notice, setNotice] = useState<string | null>(null);
+  const [importing, setImporting] = useState(false);
 
   // Where the selection should land once React has committed a Tab-driven
   // edit. Holding the element here avoids guessing at commit timing.
@@ -61,6 +72,18 @@ export default function Page() {
       start: el.selectionStart,
       end: el.selectionEnd,
     };
+
+    // Typing the slash that says "this is a directory" also opens the line
+    // under it. Modified slashes are somebody else's shortcut.
+    if (e.key === '/' && !e.metaKey && !e.ctrlKey && !e.altKey) {
+      const opened = openChild(selection, delimiterFor(settings.token));
+      // null means the guards said to let the slash type itself.
+      if (!opened) return;
+      e.preventDefault();
+      pendingSelection.current = { el, start: opened.start, end: opened.end };
+      setSource(opened.value);
+      return;
+    }
 
     const arrow = e.key === 'ArrowUp' ? -1 : e.key === 'ArrowDown' ? 1 : 0;
 
@@ -113,7 +136,7 @@ export default function Page() {
     const at = el.selectionStart;
     const next = source.slice(0, at) + text + source.slice(el.selectionEnd);
     const caret = at + text.length;
-    setUnformatted(true);
+    setNotice('Un-formatted a pasted tree');
 
     if (next === source) {
       // Pasting the identical thing over itself: React skips the re-render, so
@@ -127,23 +150,38 @@ export default function Page() {
   };
 
   useEffect(() => {
-    if (!unformatted) return;
-    const timer = setTimeout(() => setUnformatted(false), 3000);
+    if (!notice) return;
+    const timer = setTimeout(() => setNotice(null), 4000);
     return () => clearTimeout(timer);
-  }, [unformatted]);
+  }, [notice]);
 
-  const options = { width: settings.width, wrap: settings.wrap };
+  /**
+   * Changing the token rewrites the text as well as the setting. Without that
+   * the document would still say `--` while the parser looked for `#`, and
+   * every annotation in it would quietly fold back into its label.
+   */
+  const handleTokenChange = (token: string) => {
+    setSource((current) => changeDelimiter(current, settings.token, token));
+    setSettings({ ...settings, token });
+  };
+
+  const options = {
+    width: settings.width,
+    wrap: settings.wrap,
+    token: settings.token,
+  };
 
   const tree = useMemo(
-    () => renderTree(parseTree(source), options),
-    [source, settings.width, settings.wrap]
+    () => renderTree(parseTree(source, settings.token), options),
+    [source, settings.width, settings.wrap, settings.token]
   );
 
   // Rendered with the live wrap settings, so changing them while the field is
   // empty still demonstrates what they do.
+  const placeholder = placeholderFor(settings.token);
   const placeholderTree = useMemo(
-    () => renderTree(parseTree(PLACEHOLDER), options),
-    [settings.width, settings.wrap]
+    () => renderTree(parseTree(placeholder, settings.token), options),
+    [placeholder, settings.width, settings.wrap, settings.token]
   );
 
   return (
@@ -151,7 +189,13 @@ export default function Page() {
       <AppHeader
         title="Tree Generator"
         tagline="Turn indented text into a copyable ASCII tree"
-        actions={<WrapControls settings={settings} onChange={setSettings} />}
+        actions={
+          <WrapControls
+            settings={settings}
+            onChange={setSettings}
+            onTokenChange={handleTokenChange}
+          />
+        }
       />
       <SplitPane
         fraction={settings.split}
@@ -169,14 +213,22 @@ export default function Page() {
               <h2 className="text-sm font-medium text-gray-700 mr-auto">
                 Source
               </h2>
-              {unformatted && (
+              {notice && (
                 <span
                   role="status"
                   className="text-xs text-gray-400 truncate animate-fade-in"
                 >
-                  Un-formatted a pasted tree
+                  {notice}
                 </span>
               )}
+              <button
+                type="button"
+                onClick={() => setImporting((open) => !open)}
+                aria-expanded={importing}
+                className="px-2.5 py-1 rounded-lg border border-gray-200 bg-white text-xs font-medium text-gray-500 hover:text-gray-800 hover:border-gray-300 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-blue-500 active:scale-[0.98]"
+              >
+                Import
+              </button>
               <ToggleChip
                 label="Wrap"
                 pressed={settings.sourceWrap}
@@ -186,12 +238,23 @@ export default function Page() {
                 title="Soft-wrap long lines in this field. Only changes how the source looks -- it does not affect the rendered tree."
               />
             </div>
+            {importing && (
+              <GithubImport
+                replacing={source.trim().length > 0}
+                onClose={() => setImporting(false)}
+                onImport={(imported, message) => {
+                  setSource(imported);
+                  setNotice(message);
+                  setImporting(false);
+                }}
+              />
+            )}
             <SourceEditor
               value={source}
               onChange={setSource}
               onKeyDown={handleKeyDown}
               onPaste={handlePaste}
-              placeholder={PLACEHOLDER}
+              placeholder={placeholder}
               wrap={settings.sourceWrap}
               describedBy="source-hint"
             />
@@ -214,7 +277,7 @@ export default function Page() {
       >
         Indent to nest a node. Annotate one with{' '}
         <code className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">
-          --
+          {delimiterFor(settings.token).trim()}
         </code>
         .{' '}
         <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">
@@ -237,7 +300,23 @@ export default function Page() {
           Esc
         </kbd>{' '}
         leaves the field. Drag the grip beside a line to move it and everything
-        under it.
+        under it. Typing{' '}
+        <kbd className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">/</kbd>{' '}
+        at the end of a name opens a line inside it. Mark a line added, changed
+        or deleted by putting{' '}
+        <code className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">
+          +
+        </code>
+        ,{' '}
+        <code className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">
+          ~
+        </code>{' '}
+        or{' '}
+        <code className="px-1.5 py-0.5 bg-gray-100 rounded text-gray-600">
+          -
+        </code>{' '}
+        before its name, on either side of the indentation. Folders follow what
+        is inside them, and a deleted folder takes its contents with it.
       </p>
     </PageShell>
   );

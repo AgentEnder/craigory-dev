@@ -1,13 +1,27 @@
 import type { Settings } from '../src/settings';
+import { DelimiterPicker } from './DelimiterPicker';
 
 interface WrapControlsProps {
   settings: Settings;
   onChange: (next: Settings) => void;
+  /**
+   * Separate from onChange because changing the token also rewrites the source
+   * text, which is the page's to hold.
+   */
+  onTokenChange: (next: string) => void;
 }
 
-export function WrapControls({ settings, onChange }: WrapControlsProps) {
+export function WrapControls({
+  settings,
+  onChange,
+  onTokenChange,
+}: WrapControlsProps) {
+  // Three controls is enough to overflow the header's right cell on a narrow
+  // desktop window, so they are allowed to wrap onto a second row rather than
+  // squeezing the title.
   return (
-    <div className="flex items-center gap-3">
+    <div className="flex items-center justify-end gap-x-4 gap-y-2 flex-wrap">
+      <DelimiterPicker token={settings.token} onTokenChange={onTokenChange} />
       {/* Named for what it wraps. The source pane has a wrap toggle of its own,
           and that one only changes how the input looks -- this one changes the
           text that gets copied out. */}
