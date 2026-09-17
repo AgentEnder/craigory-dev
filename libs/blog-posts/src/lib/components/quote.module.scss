@@ -1,0 +1,43 @@
+// The figure owns the visual chrome so the attribution sits inside the same
+// block as the quote. Doubled class beats `.blog-content blockquote` (0,1,1)
+// in view.page.scss, which would otherwise re-apply its standalone styling to
+// the nested blockquote.
+.quote.quote {
+  margin: 2rem 0;
+  background: linear-gradient(to right, #f9f9f9 0%, #ffffff 100%);
+  border-left: 4px solid #667eea;
+
+  blockquote {
+    margin: 0;
+    padding: 1.5rem 1.5rem 0 2rem;
+    background: none;
+    border-left: none;
+  }
+
+  .attribution {
+    padding: 0.75rem 1.5rem 1.25rem 2rem;
+    font-size: 0.875rem;
+    font-style: normal;
+    line-height: 1.5;
+    color: #666;
+
+    a {
+      color: #4c51bf;
+      text-decoration: none;
+      font-weight: 500;
+
+      &:hover,
+      &:focus-visible {
+        text-decoration: underline;
+      }
+    }
+
+    cite {
+      font-style: italic;
+    }
+  }
+
+  .dash {
+    color: #999;
+  }
+}

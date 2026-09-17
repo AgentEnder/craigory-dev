@@ -7,7 +7,6 @@ import rehypeMdxCodeProps from 'rehype-mdx-code-props';
 import rehypeSlug from 'rehype-slug';
 import remarkRehype from 'remark-rehype';
 import remarkSmartypants from 'remark-smartypants';
-import remarkToc from 'remark-toc';
 
 const rehypeAutolinkHeadingsOptions: RehypeAutolinkOptions = {
   behavior: 'append',
@@ -23,21 +22,12 @@ const rehypeAutolinkHeadingsOptions: RehypeAutolinkOptions = {
     className: 'heading-link',
   },
   test: (el) => {
-    if (el.type === 'element') {
-      if (el.tagName === 'h1') return false;
-      if (
-        el.tagName === 'h2' &&
-        el.children?.find(
-          (el) => el.type === 'text' && el.value === 'Table of Contents'
-        )
-      )
-        return false;
-    }
+    if (el.type === 'element' && el.tagName === 'h1') return false;
     return true;
   },
 };
 
-export const REMARK_PLUGINS = [remarkToc, remarkSmartypants, remarkRehype];
+export const REMARK_PLUGINS = [remarkSmartypants, remarkRehype];
 
 export const REHYPE_PLUGINS = [
   rehypeSlug,

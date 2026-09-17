@@ -1,0 +1,394 @@
+export const nxGenerateFiles = (
+  <>
+    Nx source,{' '}
+    <a href="https://github.com/nrwl/nx/blob/master/packages/devkit/src/generators/generate-files.ts">
+      <code>packages/devkit/src/generators/generate-files.ts</code>
+    </a>
+    . The only <code>ejs.render</code> call in the repository.
+  </>
+);
+
+export const ejsClosedelimiterCve = (
+  <>
+    GitHub advisory{' '}
+    <a href="https://github.com/advisories/GHSA-j5pp-6f4w-r5r6">
+      GHSA-j5pp-6f4w-r5r6
+    </a>{' '}
+    (CVE-2023-29827), CVSS 9.8. Server-side template injection through the{' '}
+    <code>closeDelimiter</code> option. Still listed as Unreviewed.
+  </>
+);
+
+export const ejsEscapefunctionIssue = (
+  <>
+    EJS issue <a href="https://github.com/mde/ejs/issues/735">#735</a>. The same
+    shape through <code>opts.escapeFunction</code> when <code>opts.client</code>{' '}
+    is set, with the reporter's vector being an option merged in from a query
+    string.
+  </>
+);
+
+export const nxEjsBump = (
+  <>
+    Nx pull request <a href="https://github.com/nrwl/nx/pull/35157">#35157</a>,{' '}
+    <code>fix(core): update and pin ejs to 5.0.1</code>, merged 2 April 2026 and
+    first released in{' '}
+    <a href="https://github.com/nrwl/nx/releases/tag/22.7.0">Nx 22.7.0</a>.
+  </>
+);
+
+export const nxFindMatchingProjects = (
+  <>
+    Nx source,{' '}
+    <a href="https://github.com/nrwl/nx/blob/master/packages/nx/src/utils/find-matching-projects.ts">
+      <code>packages/nx/src/utils/find-matching-projects.ts</code>
+    </a>
+    . Compiles each project pattern once and caches the resulting regex.
+  </>
+);
+
+export const minimatchRedos = (
+  <>
+    GitHub advisory{' '}
+    <a href="https://github.com/advisories/GHSA-f8q6-p94x-37v3">
+      GHSA-f8q6-p94x-37v3
+    </a>{' '}
+    (CVE-2022-3517), High, CVSS 7.5, vector{' '}
+    <code>AV:N/AC:L/PR:N/UI:N/S:U/C:N/I:N/A:H</code>. ReDoS in{' '}
+    <code>braceExpand</code> for minimatch below 3.0.5.
+  </>
+);
+
+export const nxBraceExpansionBump = (
+  <>
+    Nx pull requests <a href="https://github.com/nrwl/nx/pull/36507">#36507</a>{' '}
+    (merged 29 July 2026, <code>brace-expansion</code> 5.0.6 to 5.0.8) and{' '}
+    <a href="https://github.com/nrwl/nx/pull/36577">#36577</a> (merged 5 August
+    2026, 5.0.8 to 5.0.9), both of them pins in the <code>overrides</code> block
+    of <code>pnpm-workspace.yaml</code> rather than a declared dependency. GitHub
+    advisory{' '}
+    <a href="https://github.com/advisories/GHSA-rgw5-rvv9-x895">
+      GHSA-rgw5-rvv9-x895
+    </a>{' '}
+    (CVE-2026-69152, High, CVSS 7.5), published 30 July 2026, records that the{' '}
+    <code>maxLength</code> mitigation added in 5.0.8 for CVE-2026-14257 was
+    incomplete. Both pins sit in 23.2.0 prereleases; the newest stable release is
+    23.1.2.
+  </>
+);
+
+export const socketNxAlerts = (
+  <>
+    Socket,{' '}
+    <a href="https://socket.dev/npm/package/nx/alerts/23.1.2">
+      package alerts for <code>nx</code> 23.1.2
+    </a>
+    , read 29 August 2026. Every alert quoted here is filed under the same
+    "supply chain risk" category.
+  </>
+);
+
+export const ejsSecurityPolicy = (
+  <>
+    EJS{' '}
+    <a href="https://github.com/mde/ejs/blob/main/SECURITY.md">
+      <code>SECURITY.md</code>
+    </a>
+    , which scopes out reports arising from passing unsanitized user input to
+    the render method.
+  </>
+);
+
+export const nvdDisputed = (
+  <>
+    NVD record for{' '}
+    <a href="https://nvd.nist.gov/vuln/detail/CVE-2023-29827">CVE-2023-29827</a>
+    , status <code>Analyzed</code>. The description carries the vendor's
+    dispute; the record still carries a Primary CVSS of 9.8 Critical assigned by{' '}
+    <code>nvd@nist.gov</code>.
+  </>
+);
+
+export const ghAdvisoryReview = (
+  <>
+    GitHub Docs,{' '}
+    <a href="https://docs.github.com/en/code-security/security-advisories/working-with-global-security-advisories-from-the-github-advisory-database/about-the-github-advisory-database">
+      About the GitHub Advisory Database
+    </a>
+    . Unreviewed advisories are published automatically from the NVD feed and do
+    not raise Dependabot alerts.
+  </>
+);
+
+export const csafVex = (
+  <>
+    OASIS,{' '}
+    <a href="https://docs.oasis-open.org/csaf/csaf/v2.0/csaf-v2.0.html">
+      CSAF 2.0
+    </a>
+    , which defines the VEX profile a publisher uses to state that a product is
+    not affected by an advisory.
+  </>
+);
+
+export const npmAuditBrokenByDesign = (
+  <>
+    Dan Abramov,{' '}
+    <a href="https://overreacted.io/npm-audit-broken-by-design/">
+      npm audit: Broken by Design
+    </a>
+    , July 2021. Walks five advisories reported against a fresh Create React App
+    and finds none of them exploitable in that context.
+  </>
+);
+
+export const npmAuditLevel = (
+  <>
+    npm CLI documentation,{' '}
+    <a href="https://docs.npmjs.com/cli/v11/commands/npm-audit">
+      <code>npm audit</code>
+    </a>
+    . <code>--audit-level</code> sets the minimum severity that exits non-zero;{' '}
+    <code>--omit=dev</code> drops devDependencies from the report.
+  </>
+);
+
+export const curlSlop = (
+  <>
+    Daniel Stenberg,{' '}
+    <a href="https://daniel.haxx.se/blog/2025/07/14/death-by-a-thousand-slops/">
+      Death by a thousand slops
+    </a>
+    , July 2025. Roughly 20% of 2025 submissions were AI slop, at about two
+    security reports a week.
+  </>
+);
+
+export const curlBountyEnd = (
+  <>
+    Daniel Stenberg,{' '}
+    <a href="https://daniel.haxx.se/blog/2026/01/26/the-end-of-the-curl-bug-bounty/">
+      The end of the curl bug-bounty
+    </a>
+    , January 2026. Seven years, 87 confirmed vulnerabilities, over 100,000 USD
+    paid, closed to GitHub private disclosure and email on 31 January 2026.
+  </>
+);
+
+export const larsonSlop = (
+  <>
+    Seth Larson,{' '}
+    <a href="https://sethmlarson.dev/slop-security-reports">
+      Please stop submitting AI slop security reports
+    </a>
+    , December 2024. Larson triages security reports for CPython, pip, urllib3
+    and Requests.
+  </>
+);
+
+export const xzMaintainerThread = (
+  <>
+    xz-devel mailing list,{' '}
+    <a href="https://www.mail-archive.com/xz-devel@tukaani.org/msg00567.html">
+      message from Lasse Collin
+    </a>
+    , 8 June 2022, answering an account posting under the name Jigar Kumar.
+  </>
+);
+
+export const xzBackdoor = (
+  <>
+    <a href="https://nvd.nist.gov/vuln/detail/CVE-2024-3094">CVE-2024-3094</a>.
+    Malicious code introduced into the xz upstream releases by an account that
+    had spent roughly two years gaining commit access.
+  </>
+);
+
+# BS CVEs and Maintainer Burnout
+
+A Critical advisory lands against a package in your dependency tree. The gate goes red, a ticket opens somewhere downstream, and somebody has to work out whether it means anything.
+
+Most of the time it does not. Finding that out is the expensive part, the fix ships anyway, and nothing about the software is safer than it was before.
+
+<Callout title="About the examples">
+
+Nx is the open source repository I work in every day, which makes it the one I can show you call sites from. The same alerts land on any task runner, bundler or test framework.
+
+Nothing here says Nx is unsafe, or that the Nx team mishandles security. We read every report, work out whether it reaches us, and bump so nobody downstream carries something we could have taken off them. The complaint is about what the process costs to run, not whether to run it.
+
+</Callout>
+
+## Where the number comes from
+
+Almost every advisory arrives with conditions attached. Something has to be handed a particular option, or reached from a request, before the bug is a bug at all.
+
+CVSS scores the worst context anyone can construct, which is the right question for a library that renders web responses for strangers. The database stores one score, and every consumer downstream reads that one. A CLI running on your laptop against files you wrote has a different threat model than an Express handler, and there is no field for that.
+
+## What the scanner does with it
+
+`npm audit`, Socket and Dependabot do not check the conditions either. They check whether an installed version falls inside the affected range, because checking conditions would mean resolving your call graph. For a library reached over the network, installed and reachable mostly coincide. For developer tooling they come apart, in two different ways.
+
+### Installed is not reachable
+
+Nx uses EJS to expand generator templates, and that is the only thing it uses EJS for. The call site is three lines:<Cite href="https://github.com/nrwl/nx/blob/master/packages/devkit/src/generators/generate-files.ts">{nxGenerateFiles}</Cite>
+
+```ts filename="packages/devkit/src/generators/generate-files.ts"
+newContent = ejs.render(template, substitutions, {
+  filename: filePath,
+});
+```
+
+CVE-2023-29827 is rated 9.8 Critical: template injection through the `closeDelimiter` option, which lets you break out of the template and run arbitrary code.<Cite href="https://github.com/advisories/GHSA-j5pp-6f4w-r5r6">{ejsClosedelimiterCve}</Cite> A newer report does the same through `escapeFunction`.<Cite href="https://github.com/mde/ejs/issues/735">{ejsEscapefunctionIssue}</Cite>
+
+Both need an attacker to control the options object. Here it is a literal in the source with one key, and the key is the path of the file being rendered. The templates ship inside the generator package the developer installed, and `substitutions` are answers they typed into their own terminal. Editing any of that means already having write access to the developer's disk, and anyone who has that has better options than EJS.
+
+The pin reads `"ejs": "5.0.1"` anyway, a bump that landed in Nx 22.7.0.<Cite href="https://github.com/nrwl/nx/pull/35157">{nxEjsBump}</Cite>
+
+### Reachable is not exploitable
+
+This one is different: the path is reachable and the bug fires exactly as written up. Nx works out which projects a command applies to by compiling patterns with minimatch:<Cite href="https://github.com/nrwl/nx/blob/master/packages/nx/src/utils/find-matching-projects.ts">{nxFindMatchingProjects}</Cite>
+
+```ts filename="packages/nx/src/utils/find-matching-projects.ts"
+const regex = minimatch.makeRe(pattern, { dot: true });
+```
+
+Compiling a pattern runs brace expansion, which is where CVE-2022-3517 lives. A crafted pattern sends `braceExpand` into catastrophic backtracking and pins a core, scored 7.5 High for an attacker who reaches it over the network with no privileges and no user interaction.<Cite href="https://github.com/advisories/GHSA-f8q6-p94x-37v3">{minimatchRedos}</Cite>
+
+The pattern comes from `nx.json` or a `--projects` flag somebody typed. Exploiting it means putting a pathological glob in your own config on your own laptop and waiting while your own build hangs. You are the only victim, and you find out in the ten seconds before you kill the process and fix the glob.
+
+Every build tool that has ever expanded `src/**/*.ts` gets handed the same 7.5. minimatch delegates brace expansion to `brace-expansion`, which Nx pins by override, and that pin moved twice in a week when the version it took on 29 July was called incomplete the next day.<Cite href="https://github.com/nrwl/nx/pull/36577">{nxBraceExpansionBump}</Cite>
+
+## What lands on the maintainer
+
+Both of those took reading a call site to settle. A scanner that does read the code hands over a different problem, and not a smaller one.
+
+### The alerts that describe the product
+
+Nx is a task runner. Running the commands in your config is the entire product, and Socket's alert page is a fair summary of what a scanner makes of that:
+
+<Quote href="https://socket.dev/npm/package/nx/alerts/23.1.2" by="Socket" work="package alerts for nx 23.1.2" cite={socketNxAlerts}>
+
+Shell access. This module accesses the system shell. Accessing the system shell increases the risk of executing arbitrary code.
+
+</Quote>
+
+Accurate, and load-bearing. `Install scripts`, `Network access`, `Dynamic require` and `Debug access` sit beside it, each describing something a build tool does on purpose. A developer installs Nx precisely so that it will access the system shell, and there is no version to bump to. The finding recurs on every scan for as long as the package does what it says on the tin.
+
+### The alerts that need an afternoon
+
+Above all of those, at the top of the list:
+
+<Quote href="https://socket.dev/npm/package/nx/alerts/23.1.2" by="Socket" work="package alerts for nx 23.1.2">
+
+AI-detected potential security risk. AI has determined that this package may contain potential security issues or vulnerabilities. Found 4 instances.
+
+</Quote>
+
+Behind that summary, each instance carries a confidence score, an impact score, the file it fired on, and a paragraph of reasoning. One flags `v8.deserialize` on socket payloads. Another flags `execSync` on a command string assembled from CLI arguments. That is a good deal more than the summary line suggests, and the summary line is what reaches a dashboard.
+
+Working out whether any of it reaches you means finding each call site and reasoning about who can supply the input.
+
+For those four that was an afternoon, and most of the threat models did not survive contact with the code: the socket is a unix socket the daemon chmods to `0600`, and the commands come from config files in your own repository. That afternoon is not free, and nothing in the pipeline that raised the alert helps you spend it.
+
+## What you cannot do about it
+
+Having spent the afternoon, a maintainer has three moves, and all three are worth roughly nothing.
+
+### Draw a boundary
+
+The EJS maintainers wrote their position down. Their security policy says that giving end users unfettered access to the render method is "using EJS in an inherently un-secure way", and that "EJS is effectively a JavaScript runtime. Its entire job is to execute JavaScript."<Cite href="https://github.com/mde/ejs/blob/main/SECURITY.md">{ejsSecurityPolicy}</Cite> That is a boundary drawn in public, in the file the process tells you to read, and reports keep arriving anyway.
+
+### File a dispute
+
+Disputing is allowed and accomplishes very little. NVD records the dispute for CVE-2023-29827 in the description itself:
+
+{/* vale proselint.Annotations = NO */}
+
+<Quote href="https://nvd.nist.gov/vuln/detail/CVE-2023-29827" by="NVD" work="record for CVE-2023-29827" cite={nvdDisputed}>
+
+NOTE: this is disputed by the vendor because the render function is not intended to be used with untrusted input.
+
+</Quote>
+
+{/* vale proselint.Annotations = YES */}
+
+That same record carries a Primary CVSS of 9.8 Critical, assigned by NVD. The dispute is prose. The score is a field. GitHub marks the advisory Unreviewed so Dependabot skips it, and every scanner pulling from NVD directly still reports the 9.8.<Cite href="https://docs.github.com/en/code-security/security-advisories/working-with-global-security-advisories-from-the-github-advisory-database/about-the-github-advisory-database">{ghAdvisoryReview}</Cite>
+
+### Publish a VEX
+
+VEX and CSAF let a publisher declare a product unaffected by an advisory, which is exactly the statement a maintainer wants to make.<Cite href="https://docs.oasis-open.org/csaf/csaf/v2.0/csaf-v2.0.html">{csafVex}</Cite> Consuming-side adoption is thin enough that publishing one gets you out of nothing today.
+
+## What ships
+
+A published advisory naming your package is permanent, and most people who meet it will never read your explanation. "Critical RCE in your-package" travels further than any threat model you write down.
+
+Nobody is penalized for over-reporting, and a maintainer who declines to bump inherits every downstream user's compliance ticket. Those users are not filing because they read the advisory and disagreed. They are filing because their scanner failed their pipeline and you are the name attached to it.
+
+You bump, and most of the time it is cheap: the fixed version already sits inside the declared range, so it costs a lockfile line and a patch release. Sometimes there is nothing to bump to, as with GHSA-j5pp-6f4w-r5r6, which lists no patched version at all. Either way the release buys no security. It buys a green scanner.
+
+## Some caveats
+
+Bump anyway, most of the time. The release is cheap, and a reachability argument that turns out to be wrong costs more than a version number you did not need. Mine has a shelf life: one pull request threading a caller-supplied options object into that render call makes me wrong, and nothing will tell me.
+
+## Who pays
+
+### The user learns to ignore it
+
+Dan Abramov went through five advisories against a fresh Create React App in 2021. None were exploitable there, and he named the real damage:
+
+<Quote href="https://overreacted.io/npm-audit-broken-by-design/" by="Dan Abramov" work="npm audit: Broken by Design" cite={npmAuditBrokenByDesign}>
+
+Someday, it will make our users miserable because we have trained an entire generation of developers to either not understand the warnings due to being overwhelmed, or to simply ignore them because they always show up but the experienced developers (correctly) tell them there is no real issue.
+
+</Quote>
+
+The training worked, and the tooling shipped the evidence:
+
+- `--audit-level`, so a team can pick a severity beneath which the output stops failing the build.
+- `--omit=dev`, so build-time packages stop counting at all.
+
+Those flags exist because the output was unusable without them.<Cite href="https://docs.npmjs.com/cli/v11/commands/npm-audit">{npmAuditLevel}</Cite> Past that come the local habits: the audit step piped to `true`, the allowlist entry that outlives everyone who understood why it was added. Every one of those is a rational response to a channel that has never carried anything worth reading.
+
+### The maintainer goes quiet
+
+The other half of the bill goes to whoever answers. Through 2025 about a fifth of curl's security submissions were AI slop, at roughly two a week, and the share that turned out to be real fell from north of 15% to under 5%.<Cite href="https://daniel.haxx.se/blog/2025/07/14/death-by-a-thousand-slops/">{curlSlop}</Cite>
+
+Each one has to be read by somebody who can tell, and Stenberg puts the cost at three or four people per report, thirty minutes to three hours each, on a submission that describes nothing.
+
+<Quote href="https://daniel.haxx.se/blog/2025/07/14/death-by-a-thousand-slops/" by="Daniel Stenberg" work="Death by a thousand slops">
+
+The never-ending slop submissions take a serious mental toll to manage and sometimes also a long time to debunk.
+
+</Quote>
+
+In January 2026 curl ended its bug bounty. Seven years, 87 confirmed vulnerabilities, more than 100,000 USD paid out, shut down because the reports stopped being worth reading.<Cite href="https://daniel.haxx.se/blog/2026/01/26/the-end-of-the-curl-bug-bounty/">{curlBountyEnd}</Cite> The program did not end because curl ran out of bugs. It ended because finding them stopped being possible at a price anyone would pay.
+
+Seth Larson, who triages security reports for CPython, pip, urllib3 and Requests, named where that ends:
+
+<Quote href="https://sethmlarson.dev/slop-security-reports" by="Seth Larson" work="Please stop submitting AI slop security reports" cite={larsonSlop}>
+
+even if this is not their intent, the outcome is maintainers that are burnt out and more averse to legitimate security work.
+
+</Quote>
+
+Attention is the scarce resource in maintenance, and every part of this spends it on reports that turn out to be nothing. People go quiet, or hand the keys to whoever volunteers. The handover is the dangerous one. In June 2022 the maintainer of xz was being told in public that he had "lost interest or doesn't care to maintain anymore", and answered:
+
+{/* vale Vale.Spelling = NO */}
+
+<Quote href="https://www.mail-archive.com/xz-devel@tukaani.org/msg00567.html" by="Lasse Collin" work="xz-devel mailing list, 8 June 2022" cite={xzMaintainerThread}>
+
+I haven't lost interest but my ability to care has been fairly limited mostly due to longterm mental health issues but also due to some other things.
+
+</Quote>
+
+{/* vale Vale.Spelling = YES */}
+
+The account applying that pressure is widely assessed to have belonged to the operation that put a backdoor in xz two years later, as CVE-2024-3094.<Cite href="https://nvd.nist.gov/vuln/detail/CVE-2024-3094">{xzBackdoor}</Cite> That campaign was about release velocity rather than advisory noise, so I am not claiming `npm audit` produced it. The resource it drained is the same one. A maintainer's attention is a security property of the package, and the current process treats it as free.
+
+## Conclusion
+
+Socket and Snyk both sell reachability analysis, which asks a better question than `npm audit` does. It is not what most CI gates run.
+
+The scanner asks whether a version is installed. The maintainer has to answer whether anyone can actually do the thing. Until the second question is as cheap as the first, the difference gets paid in releases that change nothing and in the people who stop answering. The advisories that do apply arrive through the same channel, at whoever is left.
+
+<Citations />
