@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { duplicateLines, moveLines, shiftIndent } from './edits';
+import { duplicateLines, moveLines, openChild, shiftIndent } from './edits';
 
 /**
  * Writes a fixture as text with the selection marked by pipes, so the
@@ -22,7 +22,11 @@ function sel(marked: string) {
 function show({ value, start, end }: ReturnType<typeof sel>) {
   return start === end
     ? value.slice(0, start) + '|' + value.slice(start)
-    : value.slice(0, start) + '|' + value.slice(start, end) + '|' + value.slice(end);
+    : value.slice(0, start) +
+        '|' +
+        value.slice(start, end) +
+        '|' +
+        value.slice(end);
 }
 
 const indent = (marked: string) => show(shiftIndent(sel(marked)));
@@ -183,5 +187,93 @@ describe('duplicateLines', () => {
 
   it('copies the last line without needing a trailing newline', () => {
     expect(dupDown('a\nb|')).toBe('a\nb\nb|');
+  });
+});
+
+describe('indenting past a status marker', () => {
+  const at = (value: string, caret: number) => ({
+    value,
+    start: caret,
+    end: caret,
+  });
+
+  it('indents behind a marker rather than in front of it', () => {
+    // Putting the indent first would bury the marker in the indentation.
+    expect(shiftIndent(at('+ a.ts', 6)).value).toBe('+   a.ts');
+  });
+
+  it('outdents behind a marker', () => {
+    expect(shiftIndent(at('+   a.ts', 8), true).value).toBe('+ a.ts');
+  });
+
+  it('walks a front-marked line all the way back out', () => {
+    expect(shiftIndent(at('+ a.ts', 6), true).value).toBe('+ a.ts');
+  });
+
+  it('leaves a marker written after the indentation where it is', () => {
+    expect(shiftIndent(at('  + a.ts', 8)).value).toBe('    + a.ts');
+    expect(shiftIndent(at('  + a.ts', 8), true).value).toBe('+ a.ts');
+  });
+
+  it('does not mistake a filename for a marker', () => {
+    expect(shiftIndent(at('-legacy.ts', 10)).value).toBe('  -legacy.ts');
+  });
+});
+
+describe('openChild', () => {
+  const DELIMITER = ' -- ';
+  /** Fixtures read better with the caret written in than counted out. */
+  const at = (marked: string) => {
+    const caret = marked.indexOf('|');
+    const value = marked.replace('|', '');
+    return { value, start: caret, end: caret };
+  };
+  const open = (marked: string) => openChild(at(marked), DELIMITER);
+
+  it('closes the name and opens a line one level in', () => {
+    expect(open('src|')).toEqual({ value: 'src/\n  ', start: 7, end: 7 });
+  });
+
+  it('opens at the depth of the line it was typed on', () => {
+    expect(open('src/\n  components|')?.value).toBe(
+      'src/\n  components/\n    '
+    );
+  });
+
+  it('measures depth past a status marker', () => {
+    expect(open('  + components|')?.value).toBe('  + components/\n    ');
+  });
+
+  it('leaves the rest of the document alone', () => {
+    expect(open('src|\nREADME.md')?.value).toBe('src/\n  \nREADME.md');
+  });
+
+  it('declines mid-line, where it would break the line in two', () => {
+    expect(open('sr|c')).toBeNull();
+  });
+
+  it('declines when a selection would be replaced instead of extended', () => {
+    expect(openChild({ value: 'src', start: 0, end: 3 }, DELIMITER)).toBeNull();
+  });
+
+  it('declines on a line with no name on it yet', () => {
+    expect(open('|')).toBeNull();
+    expect(open('    |')).toBeNull();
+  });
+
+  it('declines on a name that already ends in a slash', () => {
+    // Which is also how a literal second slash still gets typed.
+    expect(open('src/|')).toBeNull();
+  });
+
+  it('declines inside an annotation, where a path is just a path', () => {
+    expect(open('a.ts -- see src|')).toBeNull();
+    expect(open('a.ts -- see http:|')).toBeNull();
+  });
+
+  it('follows the delimiter in use rather than assuming one', () => {
+    expect(openChild(at('a.ts # see src|'), ' # ')).toBeNull();
+    // With a different delimiter in force, the same text is all name.
+    expect(openChild(at('a.ts # see src|'), ' -- ')).not.toBeNull();
   });
 });

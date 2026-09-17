@@ -31,6 +31,12 @@ describe('PageShell', () => {
     expect(container.querySelector('.max-w-4xl')).toBeNull();
   });
 
+  it('honours the full width', () => {
+    const { container } = render(<PageShell width="full">x</PageShell>);
+    expect(container.querySelector('.max-w-\\[110rem\\]')).not.toBeNull();
+    expect(container.querySelector('.max-w-4xl')).toBeNull();
+  });
+
   it('keeps the shared page background', () => {
     const { container } = render(<PageShell>x</PageShell>);
     const shell = container.firstElementChild;

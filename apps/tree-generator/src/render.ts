@@ -1,9 +1,19 @@
-import { ANNOTATION_DELIMITER, type TreeNode } from './tree';
+import { DEFAULT_TOKEN, delimiterFor } from './delimiter';
+import { type TreeNode } from './tree';
+import {
+  BLANK_GUTTER,
+  coversContents,
+  gutterFor,
+  rollUp,
+  type NodeStatus,
+} from './status';
 
 export interface RenderOptions {
   /** Total line width, guide columns included. Ignored when wrap is false. */
   width?: number;
   wrap?: boolean;
+  /** Token written between a label and its annotation, unpadded. */
+  token?: string;
 }
 
 export const DEFAULT_WIDTH = 80;
@@ -15,6 +25,30 @@ export const DEFAULT_WIDTH = 80;
  * is a target that deep nesting is allowed to overflow.
  */
 export const MIN_ANNOTATION_ROOM = 16;
+
+/** Whether anything in the forest is marked, at any depth. */
+function anyStatus(nodes: TreeNode[]): boolean {
+  return nodes.some((node) => node.status || anyStatus(node.children));
+}
+
+/**
+ * Settle every node's status in one pass up from the leaves, so the render walk
+ * coming back down can read a folder's status without re-walking beneath it.
+ *
+ * A folder deleted from above is not handled here. Its own marker is explicit,
+ * so whatever its children resolved to never reaches its parent, and the
+ * render walk paints the covering downward as it goes.
+ */
+function resolve(
+  nodes: TreeNode[],
+  into: Map<TreeNode, NodeStatus | undefined>
+): void {
+  for (const node of nodes) {
+    resolve(node.children, into);
+    const children = node.children.map((child) => into.get(child));
+    into.set(node, node.status ?? rollUp(children));
+  }
+}
 
 const BRANCH = '├── ';
 const LAST_BRANCH = '└── ';
@@ -42,7 +76,10 @@ function labelOf(node: TreeNode): string {
  * tree scannable.
  */
 function ordered(nodes: TreeNode[]): TreeNode[] {
-  return [...nodes.filter(isDirectory), ...nodes.filter((n) => !isDirectory(n))];
+  return [
+    ...nodes.filter(isDirectory),
+    ...nodes.filter((n) => !isDirectory(n)),
+  ];
 }
 
 /**
@@ -96,10 +133,31 @@ export function renderTree(
 ): string {
   const width = options.width ?? DEFAULT_WIDTH;
   const wrap = options.wrap ?? true;
+  const delimiter = delimiterFor(options.token ?? DEFAULT_TOKEN);
+  // Only a tree that actually describes a change pays for the status column.
+  // With nothing marked, output is byte for byte what it was before there was
+  // one.
+  const showGutter = anyStatus(roots);
+  const resolved = new Map<TreeNode, NodeStatus | undefined>();
+  resolve(roots, resolved);
   const out: string[] = [];
 
-  const emit = (node: TreeNode, guides: string, marker: string, last: boolean) => {
-    const prefix = guides + marker;
+  const emit = (
+    node: TreeNode,
+    guides: string,
+    marker: string,
+    last: boolean,
+    covered?: NodeStatus
+  ) => {
+    // A folder being deleted settles everything inside it. Failing that, the
+    // node resolved to its own marker or to whatever rolled up to it.
+    const status = covered ?? resolved.get(node);
+    const passDown =
+      covered ??
+      (node.status && coversContents(node.status) ? node.status : undefined);
+
+    const gutter = showGutter ? gutterFor(status) : '';
+    const prefix = gutter + guides + marker;
     const isRoot = marker === '';
 
     const label = labelOf(node);
@@ -109,7 +167,7 @@ export function renderTree(
     if (node.annotation === undefined) {
       out.push(prefix + label);
     } else {
-      const head = `${prefix}${label}${ANNOTATION_DELIMITER}`;
+      const head = `${prefix}${label}${delimiter}`;
       const column = head.length;
 
       if (!wrap) {
@@ -133,7 +191,12 @@ export function renderTree(
           const stem = children.length
             ? childGuides + '│'
             : guides + (isRoot ? '' : last ? ' ' : '│');
-          const continuation = stem + ' '.repeat(column - stem.length);
+          // The status column goes blank on continuation lines. The marker
+          // names the node once, and repeating it down a wrapped annotation
+          // would read as several changed things rather than one.
+          const runOn = showGutter ? BLANK_GUTTER : '';
+          const continuation =
+            runOn + stem + ' '.repeat(column - runOn.length - stem.length);
           for (const chunk of chunks.slice(1)) out.push(continuation + chunk);
         }
       }
@@ -141,7 +204,13 @@ export function renderTree(
 
     children.forEach((child, i) => {
       const childLast = i === children.length - 1;
-      emit(child, childGuides, childLast ? LAST_BRANCH : BRANCH, childLast);
+      emit(
+        child,
+        childGuides,
+        childLast ? LAST_BRANCH : BRANCH,
+        childLast,
+        passDown
+      );
     });
   };
 
@@ -149,4 +218,31 @@ export function renderTree(
   for (const root of ordered(roots)) emit(root, '', '', true);
 
   return out.join('\n');
+}
+
+export interface TreeMeasurement {
+  lines: number;
+  /** Columns in the longest line. Zero for empty output. */
+  widest: number;
+}
+
+/**
+ * Measure rendered output so the pane can say how wide it actually came out.
+ *
+ * Worth surfacing because the rendered width is not the requested one:
+ * MIN_ANNOTATION_ROOM lets a deeply nested annotation overrun the target rather
+ * than be shredded a character at a time, and without a number on screen that
+ * looks like the wrap setting being ignored.
+ *
+ * Counted in UTF-16 units, because that is what wrapText and emit count when
+ * they decide where to break. Any other measure here would report a number the
+ * renderer never used, and the badge would disagree with the output beside it.
+ */
+export function measureTree(tree: string): TreeMeasurement {
+  if (!tree) return { lines: 0, widest: 0 };
+  const lines = tree.split('\n');
+  return {
+    lines: lines.length,
+    widest: lines.reduce((max, line) => Math.max(max, line.length), 0),
+  };
 }
