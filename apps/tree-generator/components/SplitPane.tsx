@@ -88,6 +88,12 @@ export function SplitPane({
       className={cx(
         'grid gap-6 md:gap-2',
         'md:[grid-template-columns:minmax(0,var(--split-start))_auto_minmax(0,var(--split-end))]',
+        // An implicit row is `auto`, which sizes to the tallest item's
+        // max-content. A pane holding a thousand-line tree would grow the row
+        // past whatever height the caller set, the panes would never scroll
+        // inside themselves, and they would paint over what follows them on
+        // the page. One 1fr row floored at zero never consults the content.
+        'md:[grid-template-rows:minmax(0,1fr)]',
         // The cursor has to persist across the whole row: mid-drag the pointer
         // is nowhere near the divider it is still controlling.
         dragging && 'cursor-col-resize select-none',

@@ -206,7 +206,7 @@ export default function Page() {
         // short window does not squeeze it to nothing.
         className="md:h-[calc(100vh-15rem)] md:min-h-[26rem]"
         start={
-          <Card className="flex flex-col min-w-0">
+          <Card className="flex flex-col min-w-0 min-h-0 overflow-hidden">
             {/* h-9 matches the output pane's header, whose height is set by the
                 Copy button -- otherwise the two titles sit 8px apart. */}
             <div className="flex items-center h-9 mb-4 gap-3">
@@ -261,7 +261,7 @@ export default function Page() {
           </Card>
         }
         end={
-          <Card className="flex flex-col min-w-0">
+          <Card className="flex flex-col min-w-0 min-h-0 overflow-hidden">
             <TreeOutput
               tree={tree}
               placeholder={placeholderTree}
