@@ -167,3 +167,72 @@ README.md
     stable('a/\n  b/\n    c/\n      d/\n        e.ts -- leaf', { width: 40 });
   });
 });
+
+describe('status gutter', () => {
+  it('recognises a marked tree as rendered', () => {
+    expect(looksRendered(['  src/', '+ └── a.ts'].join('\n'))).toBe(true);
+  });
+
+  it('puts the markers back into source form', () => {
+    expect(
+      unrenderTree(
+        ['  src/', '+ ├── a.ts', '  ├── b.ts', '- └── c.ts'].join('\n')
+      )
+    ).toBe(['src/', '  + a.ts', '  b.ts', '  - c.ts'].join('\n'));
+  });
+
+  it('marks a root, which renders bare but still has a column', () => {
+    expect(unrenderTree(['- old/', '- └── a.ts'].join('\n'))).toBe(
+      ['- old/', '  - a.ts'].join('\n')
+    );
+  });
+
+  it('does not read a blank gutter as indentation', () => {
+    // Two leading spaces on an unmarked root would otherwise look like a
+    // nested node with nothing above it.
+    expect(unrenderTree(['  src/', '+ └── a.ts'].join('\n'))).toBe(
+      ['src/', '  + a.ts'].join('\n')
+    );
+  });
+
+  it('folds a wrapped annotation whose continuation has a blank gutter', () => {
+    expect(
+      unrenderTree(
+        [
+          '  src/',
+          '~ └── main.ts -- now mounts the',
+          '                 new shell',
+        ].join('\n')
+      )
+    ).toBe(['src/', '  ~ main.ts -- now mounts the new shell'].join('\n'));
+  });
+});
+
+describe('round trip with status', () => {
+  const stable = (source: string, options = {}) => {
+    const once = renderTree(parseTree(source), options);
+    const again = renderTree(parseTree(unrenderTree(once)), options);
+    expect(again).toBe(once);
+  };
+
+  it('survives a marked tree', () => {
+    stable(
+      ['src/', '  + components/', '      Button.tsx', '  - legacy.ts'].join(
+        '\n'
+      )
+    );
+  });
+
+  it('survives a marked tree with wrapping annotations', () => {
+    stable(
+      [
+        'src/',
+        '  + components/',
+        '      Button.tsx -- every variant lives here, so restyling the set is one file',
+        '  ~ main.ts -- now mounts the new shell instead of the old root component',
+        '  - legacy.ts',
+      ].join('\n'),
+      { width: 56 }
+    );
+  });
+});

@@ -1,3 +1,6 @@
+import { indentWidth } from './tree';
+import { extractStatus } from './status';
+
 /** One level of nesting. Matches the indent the placeholder text uses. */
 export const INDENT = '  ';
 
@@ -10,13 +13,36 @@ export interface Selection {
 /** True when the line holds nothing but whitespace. */
 const isBlank = (line: string) => line.trim() === '';
 
-function outdentLine(line: string): string {
-  if (line.startsWith(INDENT)) return line.slice(INDENT.length);
-  if (line.startsWith('\t')) return line.slice(1);
+/**
+ * A status marker written at the very front of a line, which Tab has to step
+ * over. Indenting in front of it would leave the marker buried in the
+ * indentation, and outdenting would find the marker instead of a space and
+ * quietly do nothing.
+ */
+const FRONT_MARKER = /^[+~-][ \t]/;
+
+function splitFrontMarker(line: string): { head: string; rest: string } {
+  const head = FRONT_MARKER.exec(line)?.[0] ?? '';
+  return { head, rest: line.slice(head.length) };
+}
+
+function outdentBody(body: string): string {
+  if (body.startsWith(INDENT)) return body.slice(INDENT.length);
+  if (body.startsWith('\t')) return body.slice(1);
   // Fall back to a single space so a half-indented line can still be walked
   // back rather than getting stuck.
-  if (line.startsWith(' ')) return line.slice(1);
-  return line;
+  if (body.startsWith(' ')) return body.slice(1);
+  return body;
+}
+
+function outdentLine(line: string): string {
+  const { head, rest } = splitFrontMarker(line);
+  return head + outdentBody(rest);
+}
+
+function indentLine(line: string): string {
+  const { head, rest } = splitFrontMarker(line);
+  return head + INDENT + rest;
 }
 
 /**
@@ -60,7 +86,7 @@ export function shiftIndent(
     // alone avoids sprinkling trailing whitespace.
     if (isBlank(line) && !collapsed) return line;
 
-    const next = outdent ? outdentLine(line) : INDENT + line;
+    const next = outdent ? outdentLine(line) : indentLine(line);
     const delta = next.length - line.length;
     if (i === 0) firstDelta = delta;
     totalDelta += delta;
@@ -120,11 +146,7 @@ export function moveLines(
   const shift = below.length + 1;
   return {
     value:
-      value.slice(0, blockStart) +
-      below +
-      '\n' +
-      block +
-      value.slice(belowEnd),
+      value.slice(0, blockStart) + below + '\n' + block + value.slice(belowEnd),
     start: start + shift,
     end: end + shift,
   };
@@ -147,4 +169,54 @@ export function duplicateLines(
     ? { value: next, start: start + copy.length, end: end + copy.length }
     : // The original offsets now point at the upper copy.
       { value: next, start, end };
+}
+
+/**
+ * Typing `/` at the end of a name closes that node and opens its first child.
+ *
+ * Building a tree is mostly directory, child, directory, child, and the slash
+ * is already being typed to say "this one is a directory". Doing the newline
+ * and the indent off the back of it removes the other two keystrokes.
+ *
+ * Returns null when the keystroke should be left to type itself, which is most
+ * of the time. The guards matter more than the insertion does, because this
+ * fires in the middle of typing and a false positive breaks a line in half:
+ *
+ * - a selection would be replaced rather than extended, so it is left alone
+ * - the caret has to be at the end of its line, or the rest of the line would
+ *   be pushed onto the new one
+ * - a line with nothing on it yet has no name to close
+ * - a line already ending in `/` is already a directory, which also means a
+ *   second slash can still be typed literally
+ * - past the annotation delimiter the text is prose, and a path inside it is
+ *   just a path
+ */
+export function openChild(
+  { value, start, end }: Selection,
+  delimiter: string
+): Selection | null {
+  if (start !== end) return null;
+
+  const nextBreak = value.indexOf('\n', start);
+  const atLineEnd =
+    nextBreak === -1 ? start === value.length : nextBreak === start;
+  if (!atLineEnd) return null;
+
+  const lineStart = value.lastIndexOf('\n', start - 1) + 1;
+  const line = value.slice(lineStart, start);
+  if (!line.trim() || line.endsWith('/') || line.includes(delimiter)) {
+    return null;
+  }
+
+  // Measured past any status marker, so `+ components/` opens its child at the
+  // depth the tree will actually read it at rather than at the margin.
+  const indent = indentWidth(extractStatus(line).line) + INDENT.length;
+  const insert = `/\n${' '.repeat(indent)}`;
+  const caret = start + insert.length;
+
+  return {
+    value: value.slice(0, start) + insert + value.slice(start),
+    start: caret,
+    end: caret,
+  };
 }

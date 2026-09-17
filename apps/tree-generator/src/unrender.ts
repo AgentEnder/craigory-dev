@@ -1,4 +1,5 @@
 import { INDENT } from './edits';
+import { GUTTER_WIDTH, extractStatus, markerFor } from './status';
 
 /**
  * Turning a rendered tree back into source.
@@ -33,7 +34,26 @@ const NODE = new RegExp(`^(${GUIDE}*)(${MARKER})(.*)$`);
  * does not have to weigh how much of the paste is tree.
  */
 export function looksRendered(text: string): boolean {
-  return text.split('\n').some((line) => NODE.test(line));
+  const lines = text.split('\n');
+  // Whether there is a status column is a property of the whole paste, so it
+  // has to be settled before any single line is tested.
+  const gutter = hasGutter(lines);
+  return lines.some((line) => NODE.test(stripGutter(line, gutter)));
+}
+
+/**
+ * Whether the output carries a status column.
+ *
+ * One marked line is enough, because the renderer gives the column to the
+ * whole tree or to none of it. Asking per line would misread the blank gutter
+ * on an unmarked line as two spaces of indentation.
+ */
+function hasGutter(lines: string[]): boolean {
+  return lines.some((line) => /^[+~-] /.test(line));
+}
+
+function stripGutter(line: string, gutter: boolean): string {
+  return gutter ? line.slice(GUTTER_WIDTH) : line;
 }
 
 /**
@@ -51,19 +71,31 @@ export function looksRendered(text: string): boolean {
  */
 export function unrenderTree(rendered: string): string {
   const out: string[] = [];
+  const all = rendered.split('\n');
+  const gutter = hasGutter(all);
 
-  for (const raw of rendered.split('\n')) {
-    if (!raw.trim()) {
+  for (const full of all) {
+    if (!full.trim()) {
       out.push('');
       continue;
     }
+
+    // The status column is not part of the tree drawing, so it comes off
+    // before anything tries to read guides out of the line. A marked line
+    // gives its marker up to the same extraction the parser uses; an unmarked
+    // one has two blank columns to drop instead.
+    const { status, line } = gutter
+      ? extractStatus(full)
+      : { status: undefined, line: full };
+    const raw = status ? line : stripGutter(full, gutter);
+    const mark = status ? markerFor(status) : '';
 
     const node = NODE.exec(raw);
     if (node) {
       const [, guides, , text] = node;
       // Roots render bare, so a line carrying a marker is at least one deep.
       const depth = guides.length / GUIDE_WIDTH + 1;
-      out.push(INDENT.repeat(depth) + text.trim());
+      out.push(INDENT.repeat(depth) + mark + text.trim());
       continue;
     }
 
@@ -80,7 +112,7 @@ export function unrenderTree(rendered: string): string {
       continue;
     }
 
-    out.push(raw.trim());
+    out.push(mark + raw.trim());
   }
 
   return out.join('\n');

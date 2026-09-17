@@ -251,6 +251,21 @@ a/
     );
   });
 
+  it('measures depth past a marker written in front of the indentation', () => {
+    // Button.tsx is two deep despite the line starting with the marker, so
+    // dragging src/ has to take it along.
+    const marked = ['src/', '+   Button.tsx', 'README.md'].join('\n');
+    expect(moveBlock(marked, 0, 3, 0)).toBe(
+      ['README.md', 'src/', '  + Button.tsx'].join('\n')
+    );
+  });
+
+  it('keeps the marker when a line changes depth', () => {
+    expect(moveBlock(['a/', '  b/', '  - c.ts'].join('\n'), 2, 2, 4)).toBe(
+      ['a/', '  b/', '    - c.ts'].join('\n')
+    );
+  });
+
   it('leaves whitespace it never counted as indentation alone', () => {
     // A non-breaking space is not indentation by indentWidth's reckoning, so
     // it is part of the label -- and a move that changes no indent at all must

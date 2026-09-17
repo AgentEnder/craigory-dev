@@ -1,5 +1,6 @@
 import { INDENT } from './edits';
 import { indentPrefix, indentWidth } from './tree';
+import { extractStatus, markerFor, type NodeStatus } from './status';
 
 /**
  * Moving a subtree by dragging it.
@@ -17,14 +18,26 @@ export interface SourceLine {
   /** Leading whitespace measured in columns, tabs expanded. */
   indent: number;
   blank: boolean;
+  /** Set when the line carries a diff marker, wherever it was written. */
+  status?: NodeStatus;
+  /** The line with its indentation and any marker taken off. */
+  body: string;
 }
 
 export function toLines(source: string): SourceLine[] {
-  return source.split('\n').map((text) => ({
-    text,
-    indent: indentWidth(text),
-    blank: text.trim() === '',
-  }));
+  return source.split('\n').map((text) => {
+    // Measured off the line with the marker removed, the way the parser does
+    // it. A marker written in front of the indentation would otherwise stop
+    // indentWidth at the first character and read every such line as a root.
+    const { status, line } = extractStatus(text);
+    return {
+      text,
+      indent: indentWidth(line),
+      blank: text.trim() === '',
+      status,
+      body: line.slice(indentPrefix(line).length),
+    };
+  });
 }
 
 /**
@@ -122,15 +135,22 @@ export function gapFromY(
   return gap;
 }
 
-/** Re-indent one line by `delta` columns, leaving a blank line blank. */
+/**
+ * Re-indent one line by `delta` columns, leaving a blank line blank.
+ *
+ * `body` was sliced at exactly what indentWidth measured rather than
+ * trimStart()ed, because trimStart strips the whole Unicode whitespace set and
+ * a line indented with non-breaking spaces would lose characters on a move
+ * that asked for no indent change at all.
+ *
+ * A marker comes back after the indentation whatever side of it it was written
+ * on. A move already rewrites the moved block's leading whitespace, so this is
+ * the same normalisation reaching one character further.
+ */
 function reindent(line: SourceLine, delta: number): string {
   if (line.blank) return line.text;
-  // Slice off exactly what indentWidth measured, rather than trimStart()ing:
-  // that strips the whole Unicode whitespace set, so a line indented with
-  // non-breaking spaces would lose characters on a move that asked for no
-  // indent change at all.
-  const body = line.text.slice(indentPrefix(line.text).length);
-  return ' '.repeat(Math.max(0, line.indent + delta)) + body;
+  const marker = line.status ? markerFor(line.status) : '';
+  return ' '.repeat(Math.max(0, line.indent + delta)) + marker + line.body;
 }
 
 /**

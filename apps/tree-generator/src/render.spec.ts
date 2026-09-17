@@ -360,3 +360,201 @@ describe('measureTree', () => {
     expect(measureTree(tree)).toEqual({ lines: 2, widest: 8 });
   });
 });
+
+describe('annotation token', () => {
+  it('renders annotations with the token it was given', () => {
+    expect(
+      renderTree(parseTree('a.ts # does a thing', '#'), { token: '#' })
+    ).toBe('a.ts # does a thing');
+  });
+
+  it('reads a label containing the other token as plain text', () => {
+    const nodes = parseTree('nx build -- verbose', '#');
+    expect(nodes[0].label).toBe('nx build -- verbose');
+    expect(nodes[0].annotation).toBeUndefined();
+  });
+
+  it('shifts the hanging indent by the length of the token', () => {
+    // The token sits in the head, so its length moves the column the
+    // continuation lines pad out to.
+    const annotation = 'one two three four five six';
+
+    expect(renderTree(parseTree(`a.ts -- ${annotation}`), { width: 30 })).toBe(
+      ['a.ts -- one two three four', '        five six'].join('\n')
+    );
+
+    expect(
+      renderTree(parseTree(`a.ts ### ${annotation}`, '###'), {
+        token: '###',
+        width: 30,
+      })
+    ).toBe(['a.ts ### one two three four', '         five six'].join('\n'));
+  });
+});
+
+describe('diff status', () => {
+  const render = (source: string, opts = {}) =>
+    renderTree(parseTree(source), opts);
+
+  it('adds no gutter at all when nothing is marked', () => {
+    expect(render('src/\n  a.ts')).toBe('src/\n└── a.ts');
+  });
+
+  it('gives every line a status column once anything is marked', () => {
+    expect(render('src/\n  + a.ts\n  b.ts')).toBe(
+      ['~ src/', '+ ├── a.ts', '  └── b.ts'].join('\n')
+    );
+  });
+
+  it('does not call a folder new on the strength of one new file in it', () => {
+    // src holds an untouched folder as well as a new one, so it is changed.
+    // foo holds nothing but the new file, so it is new.
+    expect(render('src\n  components\n  foo\n    + tree')).toBe(
+      ['~ src/', '+ ├── foo/', '+ │   └── tree', '  └── components'].join('\n')
+    );
+  });
+
+  it('counts an untouched empty folder against its parent', () => {
+    expect(render('src/\n  + a.ts\n  empty/')).toBe(
+      // empty/ sorts first because directories are hoisted.
+      ['~ src/', '  ├── empty/', '+ └── a.ts'].join('\n')
+    );
+  });
+
+  it('calls a folder of nothing but new files new', () => {
+    expect(render('src/\n  + a.ts\n  + b.ts')).toBe(
+      ['+ src/', '+ ├── a.ts', '+ └── b.ts'].join('\n')
+    );
+  });
+
+  it('calls a folder changed when what is beneath it disagrees', () => {
+    expect(render('src/\n  + a.ts\n  - b.ts')).toBe(
+      ['~ src/', '+ ├── a.ts', '- └── b.ts'].join('\n')
+    );
+  });
+
+  it('calls a folder that only lost a file changed, not deleted', () => {
+    expect(render('src/\n  - a.ts')).toBe(['~ src/', '- └── a.ts'].join('\n'));
+  });
+
+  it('rolls a marker all the way up, not just one level', () => {
+    expect(render('a/\n  b/\n    + c.ts')).toBe(
+      ['+ a/', '+ └── b/', '+     └── c.ts'].join('\n')
+    );
+  });
+
+  it('rains a deleted folder down over everything inside it', () => {
+    expect(render('- src/\n  a.ts\n  b/\n    deep.ts')).toBe(
+      ['- src/', '- ├── b/', '- │   └── deep.ts', '- └── a.ts'].join('\n')
+    );
+  });
+
+  it('lets a deleted folder settle what its contents say of themselves', () => {
+    // There is nothing useful to say about a file inside a folder that is
+    // going away.
+    expect(render('- src/\n  + a.ts')).toBe(
+      ['- src/', '- └── a.ts'].join('\n')
+    );
+  });
+
+  it('does not rain an added folder down onto its contents', () => {
+    // If it did, a folder that rolled up to + from one new file would mark
+    // every untouched sibling as new too.
+    expect(render('+ src/\n  a.ts\n  b.ts')).toBe(
+      ['+ src/', '  ├── a.ts', '  └── b.ts'].join('\n')
+    );
+  });
+
+  it('stops a change at the line it was written on', () => {
+    expect(render('~ src/\n  a.ts')).toBe(['~ src/', '  └── a.ts'].join('\n'));
+  });
+
+  it("lets a line's own marker beat what would have rolled up to it", () => {
+    expect(render('~ src/\n  + a.ts\n  + b.ts')).toBe(
+      ['~ src/', '+ ├── a.ts', '+ └── b.ts'].join('\n')
+    );
+  });
+
+  it('blanks the status column on a wrapped annotation', () => {
+    expect(
+      render('src/\n  ~ main.ts -- now mounts the new shell', { width: 34 })
+    ).toBe(
+      [
+        '~ src/',
+        '~ └── main.ts -- now mounts the',
+        '                 new shell',
+      ].join('\n')
+    );
+  });
+
+  it('reads a marker written in front of the indentation', () => {
+    // The marker is not indentation, so Button.tsx is still inside src/.
+    expect(render(['src/', '+   Button.tsx'].join('\n'))).toBe(
+      ['+ src/', '+ └── Button.tsx'].join('\n')
+    );
+  });
+
+  it('gives the same tree either side of the indentation', () => {
+    expect(render(['src/', '  + Button.tsx'].join('\n'))).toBe(
+      render(['src/', '+   Button.tsx'].join('\n'))
+    );
+  });
+
+  it('reads a marker at the left margin as a root', () => {
+    expect(render(['src/', '+ other/'].join('\n'))).toBe(
+      ['  src/', '+ other/'].join('\n')
+    );
+  });
+
+  it('still lets a filename begin with a marker character', () => {
+    expect(render('-legacy.ts')).toBe('-legacy.ts');
+    expect(render(['pages/', '  +page.tsx'].join('\n'))).toBe(
+      ['pages/', '└── +page.tsx'].join('\n')
+    );
+  });
+
+  it('renders the whole propagation model at once', () => {
+    // Every rule in one tree. components/ holds only new files so it is new;
+    // utils/ only lost one so it changed; legacy/ was deleted so its contents
+    // go with it; src/ mixes all three so it changed.
+    const source = [
+      'src/',
+      '  components/',
+      '    + Button.tsx',
+      '    + Card.tsx',
+      '  utils/',
+      '    - old.ts',
+      '  ~ main.ts',
+      '  - legacy/',
+      '      dead.ts',
+    ].join('\n');
+
+    expect(render(source)).toBe(
+      [
+        '~ src/',
+        '+ ├── components/',
+        '+ │   ├── Button.tsx',
+        '+ │   └── Card.tsx',
+        '~ ├── utils/',
+        '- │   └── old.ts',
+        '- ├── legacy/',
+        '- │   └── dead.ts',
+        '~ └── main.ts',
+      ].join('\n')
+    );
+  });
+
+  it('counts the gutter against the wrap width', () => {
+    // The status column is real output, so it eats two columns out of the room
+    // an annotation has before it must break. Same text, same width, one break
+    // earlier once the tree is marked.
+    const words = 'aaa bbb ccc ddd eee fff ggg hhh iii';
+
+    expect(render(`a.ts -- ${words}`, { width: 40 }).split('\n')[0]).toBe(
+      'a.ts -- aaa bbb ccc ddd eee fff ggg hhh'
+    );
+    expect(render(`+ a.ts -- ${words}`, { width: 40 }).split('\n')[0]).toBe(
+      '+ a.ts -- aaa bbb ccc ddd eee fff ggg'
+    );
+  });
+});
