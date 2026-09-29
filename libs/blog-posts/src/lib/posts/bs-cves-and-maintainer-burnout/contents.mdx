@@ -88,6 +88,91 @@ export const socketNxAlerts = (
   </>
 );
 
+export const kernelCvePolicy = (
+  <>
+    Linux kernel documentation,{' '}
+    <a href="https://docs.kernel.org/process/cve.html">CVEs</a>. The kernel is
+    its own CVE Numbering Authority and assigns numbers from the stable release
+    process.
+  </>
+);
+
+export const kernelCveGrowth = (
+  <>
+    Michael Larabel,{' '}
+    <a href="https://www.phoronix.com/news/Linux-Kernel-CVEs-Nearly-2000">
+      The Linux Kernel Is Approaching 2,000 CVEs Per Release
+    </a>
+    , Phoronix, 28 August 2026, reporting a slide from Greg Kroah-Hartman ahead
+    of Kernel Recipes 2026. Linux 6.9 through 6.19 averaged roughly 500 CVEs
+    fixed per release; every release since 7.0 has been over a thousand, and 7.2
+    passed 1,500.
+  </>
+);
+
+export const kernelOverwhelmed = (
+  <>
+    <a href="https://www.tomshardware.com/software/linux/linux-kernel-nears-2-000-cves-per-release-as-ai-bug-hunters-scour-40-million-lines-of-code-maintainers-say-they-are-completely-overwhelmed">
+      Linux kernel nears record 2,000 vulnerabilities per release
+    </a>
+    , Tom's Hardware, reporting Jakub Kicinski's estimate in the Linux 7.3
+    networking pull request that between a third and a half of its 648 patches
+    were low-priority work driven by AI tooling, Andrew Lunn's April proposal to
+    remove nearly 28,000 lines of ISA and PCMCIA-era networking drivers, and the
+    removal of the FreeVxFS driver.
+  </>
+);
+
+export const socketEsbuildAlerts = (
+  <>
+    Socket,{' '}
+    <a href="https://socket.dev/npm/package/esbuild/alerts/0.28.2">
+      package alerts for <code>esbuild</code> 0.28.2
+    </a>
+    , read 31 August 2026. <code>Install scripts</code>,{' '}
+    <code>Network access</code>, <code>Shell access</code> and{' '}
+    <code>Dynamic require</code>, all filed under "supply chain risk".
+  </>
+);
+
+export const esbuildNativePackage = (
+  <>
+    <a href="https://unpkg.com/@esbuild/darwin-arm64@0.28.2/?meta">
+      <code>@esbuild/darwin-arm64</code> 0.28.2
+    </a>{' '}
+    contains <code>bin/esbuild</code> at 10,590,882 bytes, a 382-byte{' '}
+    <code>package.json</code> and a 145-byte <code>README.md</code>.
+  </>
+);
+
+export const socketEsbuildNativeAlerts = (
+  <>
+    Socket,{' '}
+    <a href="https://socket.dev/npm/package/@esbuild/darwin-arm64/alerts/0.28.2">
+      package alerts for <code>@esbuild/darwin-arm64</code> 0.28.2
+    </a>
+    , read 31 August 2026. Package Alerts reads "No alerts".
+  </>
+);
+
+export const nativeBinariesOnNpm = (
+  <>
+    npm registry metadata, read 31 August 2026:{' '}
+    <a href="https://www.npmjs.com/package/@swc/core-darwin-arm64">
+      <code>@swc/core-darwin-arm64</code>
+    </a>{' '}
+    ships 4 files and 24.8 MB, and{' '}
+    <a href="https://www.npmjs.com/package/@rollup/rollup-darwin-arm64">
+      <code>@rollup/rollup-darwin-arm64</code>
+    </a>{' '}
+    3 files and 1.8 MB. Nx lists ten platform packages such as{' '}
+    <a href="https://www.npmjs.com/package/@nx/nx-darwin-arm64/v/23.1.2">
+      <code>@nx/nx-darwin-arm64</code>
+    </a>{' '}
+    (three files, 18.4 MB) as optional dependencies of <code>nx</code>.
+  </>
+);
+
 export const ejsSecurityPolicy = (
   <>
     EJS{' '}
@@ -96,6 +181,39 @@ export const ejsSecurityPolicy = (
     </a>
     , which scopes out reports arising from passing unsanitized user input to
     the render method.
+  </>
+);
+
+export const lodashThreatModel = (
+  <>
+    Lodash{' '}
+    <a href="https://github.com/lodash/lodash/blob/main/threat-model.md">
+      <code>threat-model.md</code>
+    </a>
+    , linked from its <code>SECURITY.md</code>. It names what Lodash trusts,
+    including "the code that invokes Lodash", and lists out-of-scope report
+    classes such as unvalidated application input and prototype pollution via
+    trusted code.
+  </>
+);
+
+export const lodashThreatModelHistory = (
+  <>
+    Commits to <code>threat-model.md</code>:{' '}
+    <a href="https://github.com/lodash/lodash/pull/6026">#6026</a> added it (27
+    October 2025), <a href="https://github.com/lodash/lodash/pull/6099">#6099</a>{' '}
+    added a <code>_.template</code> security notice (6 February 2026), and{' '}
+    <a href="https://github.com/lodash/lodash/pull/6203">#6203</a> added "threat
+    model exclusions for common report patterns" (22 April 2026). GitHub
+    advisories{' '}
+    <a href="https://github.com/advisories/GHSA-r5fr-rjxr-66jc">
+      GHSA-r5fr-rjxr-66jc
+    </a>{' '}
+    and{' '}
+    <a href="https://github.com/advisories/GHSA-f23m-r3pf-42rh">
+      GHSA-f23m-r3pf-42rh
+    </a>{' '}
+    were both published on 1 April 2026, between the second and third.
   </>
 );
 
@@ -128,6 +246,31 @@ export const csafVex = (
     </a>
     , which defines the VEX profile a publisher uses to state that a product is
     not affected by an advisory.
+  </>
+);
+
+export const ipCveTickets = (
+  <>
+    GitHub advisory{' '}
+    <a href="https://github.com/advisories/GHSA-78xj-cgh5-2h22">
+      GHSA-78xj-cgh5-2h22
+    </a>{' '}
+    (CVE-2023-42282), severity Low. A GitHub issue search for the CVE ID
+    returned 408 results on 31 August 2026, the visible majority titled
+    "CVE-2023-42282 (Critical) detected in ip-1.1.5.tgz" by the scanner that
+    filed them. Examples:{' '}
+    <a href="https://github.com/nodejs/docker-node/issues/2039">
+      nodejs/docker-node#2039
+    </a>
+    ,{' '}
+    <a href="https://github.com/semantic-release/semantic-release/issues/3202">
+      semantic-release#3202
+    </a>
+    , <a href="https://github.com/Unitech/pm2/issues/5761">pm2#5761</a> and{' '}
+    <a href="https://github.com/actions/runner/issues/3245">
+      actions/runner#3245
+    </a>
+    .
   </>
 );
 
@@ -212,25 +355,21 @@ Most of the time it does not. Finding that out is the expensive part, the fix sh
 
 <Callout title="About the examples">
 
-Nx is the open source repository I work in every day, which makes it the one I can show you call sites from. The same alerts land on any task runner, bundler or test framework.
+Some of what follows comes from Nx, the open source repository I work in every day. It is where I can show you a call site and where I have spent the afternoons, not a claim that Nx is unusual.
 
 Nothing here says Nx is unsafe, or that the Nx team mishandles security. We read every report, work out whether it reaches us, and bump so nobody downstream carries something we could have taken off them. The complaint is about what the process costs to run, not whether to run it.
 
 </Callout>
 
-## Where the number comes from
+## Scanners match version numbers instead of call graphs
 
 Almost every advisory arrives with conditions attached. Something has to be handed a particular option, or reached from a request, before the bug is a bug at all.
 
-CVSS scores the worst context anyone can construct, which is the right question for a library that renders web responses for strangers. The database stores one score, and every consumer downstream reads that one. A CLI running on your laptop against files you wrote has a different threat model than an Express handler, and there is no field for that.
+`npm audit`, Socket and Dependabot do not check any of that. They check whether an installed version falls inside the affected range, because checking the conditions would mean resolving your call graph. For a library reached over the network, installed and reachable mostly coincide. There are two ways they come apart when the package is local developer tooling.
 
-## What the scanner does with it
+### A 9.8 Critical your code cannot reach
 
-`npm audit`, Socket and Dependabot do not check the conditions either. They check whether an installed version falls inside the affected range, because checking conditions would mean resolving your call graph. For a library reached over the network, installed and reachable mostly coincide. For developer tooling they come apart, in two different ways.
-
-### Installed is not reachable
-
-Nx uses EJS to expand generator templates, and that is the only thing it uses EJS for. The call site is three lines:<Cite href="https://github.com/nrwl/nx/blob/master/packages/devkit/src/generators/generate-files.ts">{nxGenerateFiles}</Cite>
+Nx uses EJS to expand generator templates. The call site is three lines:<Cite href="https://github.com/nrwl/nx/blob/master/packages/devkit/src/generators/generate-files.ts">{nxGenerateFiles}</Cite>
 
 ```ts filename="packages/devkit/src/generators/generate-files.ts"
 newContent = ejs.render(template, substitutions, {
@@ -242,9 +381,9 @@ CVE-2023-29827 is rated 9.8 Critical: template injection through the `closeDelim
 
 Both need an attacker to control the options object. Here it is a literal in the source with one key, and the key is the path of the file being rendered. The templates ship inside the generator package the developer installed, and `substitutions` are answers they typed into their own terminal. Editing any of that means already having write access to the developer's disk, and anyone who has that has better options than EJS.
 
-The pin reads `"ejs": "5.0.1"` anyway, a bump that landed in Nx 22.7.0.<Cite href="https://github.com/nrwl/nx/pull/35157">{nxEjsBump}</Cite>
+Despite being safe in our usage, we landed the bump to EJS 5.0.1 in 22.7.0.<Cite href="https://github.com/nrwl/nx/pull/35157">{nxEjsBump}</Cite>
 
-### Reachable is not exploitable
+### A network attack you have to run on yourself
 
 This one is different: the path is reachable and the bug fires exactly as written up. Nx works out which projects a command applies to by compiling patterns with minimatch:<Cite href="https://github.com/nrwl/nx/blob/master/packages/nx/src/utils/find-matching-projects.ts">{nxFindMatchingProjects}</Cite>
 
@@ -258,27 +397,45 @@ The pattern comes from `nx.json` or a `--projects` flag somebody typed. Exploiti
 
 Every build tool that has ever expanded `src/**/*.ts` gets handed the same 7.5. minimatch delegates brace expansion to `brace-expansion`, which Nx pins by override, and that pin moved twice in a week when the version it took on 29 July was called incomplete the next day.<Cite href="https://github.com/nrwl/nx/pull/36577">{nxBraceExpansionBump}</Cite>
 
-## What lands on the maintainer
+## Nobody upstream decides whether it applies to you
+
+Both of those numbers are defensible somewhere. CVSS scores the worst context anyone can construct, which is the right question to ask about a library that renders web responses for strangers.
+
+The database stores one score, and every consumer downstream reads that one. A CLI running on your laptop against files you wrote has a different threat model than an Express handler, and there is no field for that.
+
+The largest issuer in the ecosystem is candid about this. The Linux kernel became its own numbering authority and now assigns CVEs out of the stable release process, on the stated grounds that "almost any bug might be exploitable to compromise the security of the kernel, but the possibility of exploitation is often not evident when the bug is fixed", so the team is "overly cautious and assign CVE numbers to any bugfix that they identify."<Cite href="https://docs.kernel.org/process/cve.html">{kernelCvePolicy}</Cite>
+
+The same document is explicit about who is left holding the question:
+
+<Quote href="https://docs.kernel.org/process/cve.html" by="Linux kernel documentation" work="CVEs" cite={kernelCvePolicy}>
+
+the applicability of any specific CVE is up to the user of Linux to determine, it is not up to the CVE assignment team.
+
+</Quote>
+
+That is an honest description of the division of labour, and it is the work this whole post is about, assigned downstream in a sentence.
+
+## Every alert costs a maintainer an afternoon
 
 Both of those took reading a call site to settle. A scanner that does read the code hands over a different problem, and not a smaller one.
 
-### The alerts that describe the product
+### Flagged for doing its job
 
-Nx is a task runner. Running the commands in your config is the entire product, and Socket's alert page is a fair summary of what a scanner makes of that:
+esbuild is a bundler. It reads your files, spawns a native binary and writes new files, and Socket's alert page is a fair summary of what a scanner makes of that:
 
-<Quote href="https://socket.dev/npm/package/nx/alerts/23.1.2" by="Socket" work="package alerts for nx 23.1.2" cite={socketNxAlerts}>
+<Quote href="https://socket.dev/npm/package/esbuild/alerts/0.28.2" by="Socket" work="package alerts for esbuild 0.28.2" cite={socketEsbuildAlerts}>
 
 Shell access. This module accesses the system shell. Accessing the system shell increases the risk of executing arbitrary code.
 
 </Quote>
 
-Accurate, and load-bearing. `Install scripts`, `Network access`, `Dynamic require` and `Debug access` sit beside it, each describing something a build tool does on purpose. A developer installs Nx precisely so that it will access the system shell, and there is no version to bump to. The finding recurs on every scan for as long as the package does what it says on the tin.
+Accurate, and load-bearing. `Install scripts`, `Network access` and `Dynamic require` sit beside it, each describing something a bundler does on purpose. You install esbuild precisely so that it will run a binary against your filesystem, and there is no version to bump to. The finding recurs on every scan for as long as the package does what it says on the tin.
 
-### The alerts that need an afternoon
+### Four findings and an afternoon
 
-Above all of those, at the top of the list:
+Socket's page for `nx` carries that same set, and one more above it:
 
-<Quote href="https://socket.dev/npm/package/nx/alerts/23.1.2" by="Socket" work="package alerts for nx 23.1.2">
+<Quote href="https://socket.dev/npm/package/nx/alerts/23.1.2" by="Socket" work="package alerts for nx 23.1.2" cite={socketNxAlerts}>
 
 AI-detected potential security risk. AI has determined that this package may contain potential security issues or vulnerabilities. Found 4 instances.
 
@@ -290,15 +447,37 @@ Working out whether any of it reaches you means finding each call site and reaso
 
 For those four that was an afternoon, and most of the threat models did not survive contact with the code: the socket is a unix socket the daemon chmods to `0600`, and the commands come from config files in your own repository. That afternoon is not free, and nothing in the pipeline that raised the alert helps you spend it.
 
-## What you cannot do about it
+## Compiled code gets a pass
+
+Everything above is a false positive: an alert firing on code that cannot hurt you. Scanners are also quiet in places, and the quiet is not a verdict either.
+
+esbuild ships in two halves. The JavaScript half is the `esbuild` package, and it drew the alerts above. The other half is a compiled Go binary, published as one package per platform and pulled in as an optional dependency so the installer takes the one matching your machine.
+
+`@esbuild/darwin-arm64` is three files: a 145-byte README, a 382-byte `package.json`, and 10.1 MB of compiled binary.<Cite href="https://unpkg.com/@esbuild/darwin-arm64@0.28.2/?meta">{esbuildNativePackage}</Cite> Socket's page for it, same version and same release as the alerts above, reads in full:
+
+<Quote href="https://socket.dev/npm/package/@esbuild/darwin-arm64/alerts/0.28.2" by="Socket" work="package alerts for @esbuild/darwin-arm64 0.28.2" cite={socketEsbuildNativeAlerts}>
+
+No alerts
+
+</Quote>
+
+Nothing there is a finding about the binary, and I am not suggesting one is hiding in it. It is a statement about what a scanner can read. Static analysis needs source, and the advisory databases are indexed by package name and version, which is not a thing anyone files against a blob.
+
+That split is now normal. SWC and Rollup publish prebuilt Rust binaries the same way, and Nx ships its own Rust core in ten platform packages beside the JavaScript one.<Cite href="https://www.npmjs.com/package/@swc/core-darwin-arm64">{nativeBinariesOnNpm}</Cite> Whatever a dashboard reports for those packages was decided by the language their authors chose, not by what the code does. The JavaScript half of a tool gets read closely and answers for every line. The half that got rewritten for speed is not being cleared, it is being skipped.
+
+## Three ways to say no that all fail
 
 Having spent the afternoon, a maintainer has three moves, and all three are worth roughly nothing.
 
-### Draw a boundary
+### Write the boundary down
 
 The EJS maintainers wrote their position down. Their security policy says that giving end users unfettered access to the render method is "using EJS in an inherently un-secure way", and that "EJS is effectively a JavaScript runtime. Its entire job is to execute JavaScript."<Cite href="https://github.com/mde/ejs/blob/main/SECURITY.md">{ejsSecurityPolicy}</Cite> That is a boundary drawn in public, in the file the process tells you to read, and reports keep arriving anyway.
 
-### File a dispute
+Lodash went further and published a threat model: a document naming what the library trusts and what it does not. The code calling Lodash is trusted, so passing attacker-controlled data straight into a Lodash function "is an application bug, not a Lodash vulnerability."<Cite href="https://github.com/lodash/lodash/blob/main/threat-model.md">{lodashThreatModel}</Cite>
+
+Its commit history is a record of the reports it did not stop. The threat model landed in October 2025. A security notice for `_.template` was added to it in February 2026. Two more advisories were published against Lodash on 1 April 2026, and three weeks after that a commit added exclusions for common report patterns, among them a section explaining that getters and proxies are code rather than data.<Cite href="https://github.com/lodash/lodash/pull/6203">{lodashThreatModelHistory}</Cite> Somebody had been filing that one often enough to be worth a heading.
+
+### Dispute the score
 
 Disputing is allowed and accomplishes very little. NVD records the dispute for CVE-2023-29827 in the description itself:
 
@@ -314,21 +493,23 @@ NOTE: this is disputed by the vendor because the render function is not intended
 
 That same record carries a Primary CVSS of 9.8 Critical, assigned by NVD. The dispute is prose. The score is a field. GitHub marks the advisory Unreviewed so Dependabot skips it, and every scanner pulling from NVD directly still reports the 9.8.<Cite href="https://docs.github.com/en/code-security/security-advisories/working-with-global-security-advisories-from-the-github-advisory-database/about-the-github-advisory-database">{ghAdvisoryReview}</Cite>
 
-### Publish a VEX
+### Publish a machine-readable "not affected"
 
 VEX and CSAF let a publisher declare a product unaffected by an advisory, which is exactly the statement a maintainer wants to make.<Cite href="https://docs.oasis-open.org/csaf/csaf/v2.0/csaf-v2.0.html">{csafVex}</Cite> Consuming-side adoption is thin enough that publishing one gets you out of nothing today.
 
-## What ships
+## You bump anyway
 
 A published advisory naming your package is permanent, and most people who meet it will never read your explanation. "Critical RCE in your-package" travels further than any threat model you write down.
 
-Nobody is penalized for over-reporting, and a maintainer who declines to bump inherits every downstream user's compliance ticket. Those users are not filing because they read the advisory and disagreed. They are filing because their scanner failed their pipeline and you are the name attached to it.
+Nobody is penalized for over-reporting, and a maintainer who declines to bump inherits every downstream user's compliance ticket. CVE-2023-42282 is the shape of it: an SSRF in the `ip` package, rated Low by GitHub, where `isPublic()` misreads private addresses written in unusual formats. That matters if you gate a sensitive path on the result, and does not if you never call it. Searching GitHub for the CVE returns more than four hundred issues carrying it in the title, many opened by a scanner rather than a person and most of them labelled Critical, on projects including Node's official Docker images, semantic-release, pm2 and the Actions runner.<Cite href="https://github.com/advisories/GHSA-78xj-cgh5-2h22">{ipCveTickets}</Cite>
+
+Those maintainers are not being written to because somebody read the advisory and disagreed. They are being written to because a scanner failed somebody's pipeline and their name was attached to it.
 
 You bump, and most of the time it is cheap: the fixed version already sits inside the declared range, so it costs a lockfile line and a patch release. Sometimes there is nothing to bump to, as with GHSA-j5pp-6f4w-r5r6, which lists no patched version at all. Either way the release buys no security. It buys a green scanner.
 
 ## Some caveats
 
-Bump anyway, most of the time. The release is cheap, and a reachability argument that turns out to be wrong costs more than a version number you did not need. Mine has a shelf life: one pull request threading a caller-supplied options object into that render call makes me wrong, and nothing will tell me.
+Bump anyway, most of the time. The release is cheap, and being right about reachability does not travel. The argument lives in a thread somebody has to go and find, while the advisory shows up in every scan a prospective user runs before they adopt you. A package that reads Critical on a dashboard loses people who were never going to open the thread.
 
 ## Who pays
 
@@ -348,6 +529,22 @@ The training worked, and the tooling shipped the evidence:
 - `--omit=dev`, so build-time packages stop counting at all.
 
 Those flags exist because the output was unusable without them.<Cite href="https://docs.npmjs.com/cli/v11/commands/npm-audit">{npmAuditLevel}</Cite> Past that come the local habits: the audit step piped to `true`, the allowlist entry that outlives everyone who understood why it was added. Every one of those is a rational response to a channel that has never carried anything worth reading.
+
+### The code gets deleted
+
+The kernel is where the volume is easiest to see. CVEs fixed per release ran around 500 through the 6.x series. Every release since 7.0 has been over a thousand, 7.2 passed 1,500, and 7.3 is on course for 2,000.<Cite href="https://www.phoronix.com/news/Linux-Kernel-CVEs-Nearly-2000">{kernelCveGrowth}</Cite> That is not a change in how secure the kernel is. It is AI tooling reading forty million lines of code that nobody previously had a reason to read.
+
+Reviewing the networking pull request for 7.3, Jakub Kicinski put between a third and a half of its 648 patches down to low-priority work from that tooling:
+
+<Quote href="https://www.tomshardware.com/software/linux/linux-kernel-nears-2-000-cves-per-release-as-ai-bug-hunters-scour-40-million-lines-of-code-maintainers-say-they-are-completely-overwhelmed" by="Jakub Kicinski" work="Linux 7.3 networking pull request" cite={kernelOverwhelmed}>
+
+We are completely overwhelmed
+
+</Quote>
+
+Part of the response has been to delete things. A proposal went up in April to remove nearly 28,000 lines of networking drivers for ISA and PCMCIA-era hardware, and the FreeVxFS filesystem driver was removed after its maintainer noted that the decades-old compatibility code now mostly served as fodder for automated bug checkers. Those drivers were cheap to keep for as long as nobody was looking at them. They stopped being cheap when tools started finding defects in them that somebody was then obliged to answer for.
+
+Nobody decided that the hardware had stopped mattering. Scanning got cheap, answering did not, and the code that could not pay for its own triage went.
 
 ### The maintainer goes quiet
 
@@ -385,9 +582,9 @@ I haven't lost interest but my ability to care has been fairly limited mostly du
 
 The account applying that pressure is widely assessed to have belonged to the operation that put a backdoor in xz two years later, as CVE-2024-3094.<Cite href="https://nvd.nist.gov/vuln/detail/CVE-2024-3094">{xzBackdoor}</Cite> That campaign was about release velocity rather than advisory noise, so I am not claiming `npm audit` produced it. The resource it drained is the same one. A maintainer's attention is a security property of the package, and the current process treats it as free.
 
-## Conclusion
+## What would actually help
 
-Socket and Snyk both sell reachability analysis, which asks a better question than `npm audit` does. It is not what most CI gates run.
+Socket and Snyk both sell reachability analysis, which asks a better question than `npm audit` does. It is not what most CI gates run, and it still only reads the code that ships as source.
 
 The scanner asks whether a version is installed. The maintainer has to answer whether anyone can actually do the thing. Until the second question is as cheap as the first, the difference gets paid in releases that change nothing and in the people who stop answering. The advisories that do apply arrive through the same channel, at whoever is left.
 

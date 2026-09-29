@@ -1,4 +1,11 @@
 # Tooling and ecosystem
+bugfix(es)?
+getters?
+Lodash
+lodash
+esbuild
+SWC
+Rollup
 unix
 chmods?
 bundlers?
@@ -92,6 +99,14 @@ mai
 tai
 
 # People and proper nouns
+Jakub
+Kicinski
+Kroah
+Hartman
+Larabel
+Phoronix
+FreeVxFS
+PCMCIA
 Stenberg
 CPython
 Abramov
