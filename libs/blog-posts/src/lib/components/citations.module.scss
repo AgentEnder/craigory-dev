@@ -1,0 +1,31 @@
+.citations {
+  margin-top: 3rem;
+}
+
+// Doubled to clear `.blog-content ol` / `.blog-content p` in view.page.scss.
+.list.list {
+  margin-bottom: 0;
+  padding-left: 1.5rem;
+
+  li {
+    margin-bottom: 0.875rem;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: #555;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+
+    // Anchor target when a marker is linked to its entry.
+    &:target {
+      background: rgba(76, 81, 191, 0.08);
+      border-radius: 4px;
+    }
+  }
+
+  a {
+    color: #4c51bf;
+    word-break: break-word;
+  }
+}

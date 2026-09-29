@@ -1,4 +1,14 @@
 # Tooling and ecosystem
+bugfix(es)?
+getters?
+Lodash
+lodash
+esbuild
+SWC
+Rollup
+unix
+chmods?
+bundlers?
 Nx
 Nrwl
 pnpm
@@ -89,6 +99,17 @@ mai
 tai
 
 # People and proper nouns
+Jakub
+Kicinski
+Kroah
+Hartman
+Larabel
+Phoronix
+FreeVxFS
+PCMCIA
+Stenberg
+CPython
+Abramov
 Collina
 Matteo
 Ricci
@@ -96,3 +117,18 @@ Tollner
 Uber
 maintainer
 maintainers
+
+# Security and supply chain
+CVEs?
+triages
+xz
+minimatch
+glob-parent
+braceExpand
+[Rr]eachability
+untrusted
+globbing
+Snyk
+VEX
+CSAF
+CVSS

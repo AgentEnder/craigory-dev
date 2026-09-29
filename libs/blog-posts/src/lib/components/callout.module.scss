@@ -1,0 +1,35 @@
+// The class is doubled in the compiled output (`.callout.callout`) to raise
+// specificity to 0,2,0. `.blog-content p` in view.page.scss is 0,1,1 and sets
+// a 1.75rem paragraph margin meant for body copy; a single module class ties
+// with it and would win or lose on stylesheet order.
+.callout.callout {
+  margin: 2rem 0;
+  padding: 1.25rem 1.5rem;
+  border: 1px solid rgba(76, 81, 191, 0.28);
+  border-radius: 10px;
+  background: rgba(76, 81, 191, 0.045);
+
+  p {
+    margin: 0 0 0.875rem;
+    font-style: normal;
+    line-height: 1.7;
+    color: #3a3a3a;
+
+    &:last-child {
+      margin-bottom: 0;
+    }
+  }
+}
+
+.label {
+  // Overrides the shared paragraph colour above, so it needs to sit at the
+  // same doubled specificity.
+  .callout.callout & {
+    margin-bottom: 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: #4c51bf;
+  }
+}
