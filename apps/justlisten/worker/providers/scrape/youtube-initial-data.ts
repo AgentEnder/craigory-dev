@@ -24,7 +24,7 @@ function str(value: unknown): string | undefined {
 }
 
 /** Collect every value stored under `key`, at any depth. */
-function collect(node: unknown, key: string, out: unknown[] = []): unknown[] {
+export function collect(node: unknown, key: string, out: unknown[] = []): unknown[] {
   if (Array.isArray(node)) {
     for (const item of node) collect(item, key, out);
   } else if (node && typeof node === 'object') {
@@ -50,18 +50,35 @@ export function parseDurationBadge(text: string): number | undefined {
  */
 const UNAVAILABLE = /^\[(private|deleted|unavailable) video\]$/i;
 
-export function parseYouTubeInitialData(html: string): ScrapedPlaylist | null {
+/**
+ * The `ytInitialData` blob a YouTube page bootstraps itself from, or null.
+ *
+ * Shared by the playlist and search parsers: both pages ship the same blob
+ * under the same name, and only the renderers inside it differ.
+ */
+export function ytInitialData(html: string): unknown | null {
   const script = /var ytInitialData\s*=\s*(\{[\s\S]*?\});\s*<\/script>/.exec(
     html
   );
   if (!script?.[1]) return null;
-
-  let data: unknown;
   try {
-    data = JSON.parse(script[1]);
+    return JSON.parse(script[1]);
   } catch {
     return null;
   }
+}
+
+/**
+ * Rows YouTube renders for unavailable content, exported so the search parser
+ * can drop them too.
+ */
+export function isUnavailableTitle(title: string): boolean {
+  return UNAVAILABLE.test(title);
+}
+
+export function parseYouTubeInitialData(html: string): ScrapedPlaylist | null {
+  const data = ytInitialData(html);
+  if (!data) return null;
 
   const title =
     str(

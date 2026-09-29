@@ -11,6 +11,7 @@
 import type { Env, MusicProvider, ProviderLink, ResolvedMatch, SearchResult, Track } from '../types';
 import { exactTrackLink, searchTrackLink } from './links';
 import { pickBestMatch } from './matching';
+import { trace } from '../trace';
 
 const ITUNES_BASE = 'https://itunes.apple.com';
 /** Playlist import cap, per SPEC. */
@@ -61,6 +62,10 @@ async function itunes(pathAndQuery: string): Promise<ITunesResult[]> {
   const res = await fetch(`${ITUNES_BASE}${pathAndQuery}`, {
     headers: { Accept: 'application/json' },
   });
+  // iTunes is unauthenticated and limited to ~20 calls/minute *per IP*, and
+  // Workers egress from addresses shared across a whole PoP. It signals that
+  // with a 403, which is otherwise indistinguishable from "no such track".
+  trace('apple', 'http', { status: res.status, path: pathAndQuery });
   if (!res.ok) {
     throw new Error(`iTunes API error ${res.status} for ${pathAndQuery}`);
   }
@@ -304,7 +309,7 @@ export const appleProvider: MusicProvider = {
         if (byIsrc.length > 0) {
           // ISRC is authoritative; scoring only disambiguates multi-hits.
           const best =
-            pickBestMatch(track, byIsrc.map(mapResult), 0) ?? undefined;
+            pickBestMatch(track, byIsrc.map(mapResult), 0, 'apple') ?? undefined;
           const raw = best
             ? byIsrc.find((r) => String(r.trackId) === best.id)
             : byIsrc[0];
@@ -317,7 +322,7 @@ export const appleProvider: MusicProvider = {
         const results = await itunes(
           `/search?media=music&entity=song&country=US&limit=5&term=${encodeURIComponent(term)}`
         );
-        const best = pickBestMatch(track, results.map(mapResult));
+        const best = pickBestMatch(track, results.map(mapResult), undefined, 'apple');
         if (best) {
           const raw = results.find((r) => String(r.trackId) === best.id);
           if (raw) return { link: exactLinkFor(raw), matched: mapResult(raw) };

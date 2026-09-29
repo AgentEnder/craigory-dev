@@ -214,6 +214,9 @@ const OPEN_EXACT_STYLES: Record<ProviderId, string> = {
   apple: 'bg-[#FA243C] text-white shadow-sm hover:bg-[#B3122A]',
   youtube: 'bg-[#FF0033] text-white shadow-sm hover:bg-[#C10023]',
   deezer: 'bg-[#A238FF] text-white shadow-sm hover:bg-[#7A22CC]', // unslop-ignore — brand purple
+  bandcamp: 'bg-[#408294] text-white shadow-sm hover:bg-[#2F6373]',
+  lastfm: 'bg-[#BA0000] text-white shadow-sm hover:bg-[#8F0000]',
+  pandora: 'bg-[#224099] text-white shadow-sm hover:bg-[#1A3376]',
 };
 
 const OPEN_SEARCH_STYLES: Record<ProviderId, string> = {
@@ -225,6 +228,12 @@ const OPEN_SEARCH_STYLES: Record<ProviderId, string> = {
     'border border-gray-200 bg-white text-[#C10023] hover:border-[#FF0033]/50 hover:bg-[#FF0033]/5',
   deezer: // unslop-ignore — brand purple
     'border border-gray-200 bg-white text-[#7A22CC] hover:border-[#A238FF]/50 hover:bg-[#A238FF]/5',
+  bandcamp:
+    'border border-gray-200 bg-white text-[#2F6373] hover:border-[#408294]/50 hover:bg-[#408294]/5',
+  lastfm:
+    'border border-gray-200 bg-white text-[#8F0000] hover:border-[#BA0000]/50 hover:bg-[#BA0000]/5',
+  pandora:
+    'border border-gray-200 bg-white text-[#1A3376] hover:border-[#224099]/50 hover:bg-[#224099]/5',
 };
 
 /**
@@ -440,6 +449,9 @@ const TRACK_EXACT_STYLES: Record<ProviderId, string> = {
   apple: 'bg-[#FA243C]/15 text-[#B3122A] hover:bg-[#FA243C]/25',
   youtube: 'bg-[#FF0033]/15 text-[#C10023] hover:bg-[#FF0033]/25',
   deezer: 'bg-[#A238FF]/15 text-[#7A22CC] hover:bg-[#A238FF]/25', // unslop-ignore — brand purple
+  bandcamp: 'bg-[#408294]/15 text-[#2F6373] hover:bg-[#408294]/25',
+  lastfm: 'bg-[#BA0000]/15 text-[#8F0000] hover:bg-[#BA0000]/25',
+  pandora: 'bg-[#224099]/15 text-[#1A3376] hover:bg-[#224099]/25',
 };
 
 const TRACK_SEARCH_STYLES: Record<ProviderId, string> = {
@@ -451,6 +463,12 @@ const TRACK_SEARCH_STYLES: Record<ProviderId, string> = {
     'border border-dashed border-gray-300 text-gray-500 hover:border-[#FF0033]/60 hover:text-[#C10023]',
   deezer: // unslop-ignore — brand purple
     'border border-dashed border-gray-300 text-gray-500 hover:border-[#A238FF]/60 hover:text-[#7A22CC]',
+  bandcamp:
+    'border border-dashed border-gray-300 text-gray-500 hover:border-[#408294]/60 hover:text-[#2F6373]',
+  lastfm:
+    'border border-dashed border-gray-300 text-gray-500 hover:border-[#BA0000]/60 hover:text-[#8F0000]',
+  pandora:
+    'border border-dashed border-gray-300 text-gray-500 hover:border-[#224099]/60 hover:text-[#1A3376]',
 };
 
 const TRACK_BADGE_ABBR: Record<ProviderId, string> = {
@@ -458,6 +476,9 @@ const TRACK_BADGE_ABBR: Record<ProviderId, string> = {
   apple: 'Apple',
   youtube: 'YouTube',
   deezer: 'Deezer',
+  bandcamp: 'Bandcamp',
+  lastfm: 'Last.fm',
+  pandora: 'Pandora',
 };
 
 /**

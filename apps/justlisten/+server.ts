@@ -7,6 +7,11 @@
  * playlist *pages* are not in that list: they load through their own `+data.ts`
  * hooks, which call the same worker modules in-process rather than over HTTP.
  *
+ * `/api/song/:provider/:id/trace` is the one exception to that: a debug report
+ * on why each provider link came out the way it did. It is not a page data
+ * source, it 404s unless `TRACE_TOKEN` is set, and `/song/:provider/:id` (the
+ * page) is unaffected — different path prefix.
+ *
  * `wrangler.jsonc` points `main` at `vike:server-entry`, which wraps this file.
  */
 import vike from '@vikejs/hono';
@@ -16,6 +21,7 @@ import { workerEnvMiddleware } from './worker/page-env';
 import { playlistRoutes } from './worker/routes/playlist';
 import { previewRoutes } from './worker/routes/preview';
 import { searchRoutes } from './worker/routes/search';
+import { traceRoutes } from './worker/routes/trace';
 import type { Env } from './worker/types';
 
 const port = process.env.PORT ? parseInt(process.env.PORT, 10) : 3000;
@@ -27,6 +33,8 @@ const app = new Hono<AppEnv>();
 app.route('/api/search', searchRoutes);
 app.route('/api/playlists', playlistRoutes);
 app.route('/api/preview', previewRoutes);
+// Debug only, and absent unless TRACE_TOKEN is set — see worker/routes/trace.ts.
+app.route('/api/song', traceRoutes);
 
 // Error convention: { error: string } with the right status. Scoped to /api/*
 // so a page render failure still reaches Vike's error page instead of being

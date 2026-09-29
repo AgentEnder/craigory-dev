@@ -23,6 +23,7 @@ import type {
 } from '../types';
 import { exactTrackLink, searchTrackLink } from './links';
 import { pickBestMatch } from './matching';
+import { trace } from '../trace';
 
 const API_BASE = 'https://api.deezer.com';
 /** Playlist import cap, per SPEC. */
@@ -104,6 +105,7 @@ async function deezerGet<T>(pathAndQuery: string): Promise<T> {
   const res = await fetch(`${API_BASE}${pathAndQuery}`, {
     headers: { Accept: 'application/json' },
   });
+  trace('deezer', 'http', { status: res.status, path: pathAndQuery });
   if (!res.ok) {
     throw new Error(`Deezer API error ${res.status} for ${pathAndQuery}`);
   }
@@ -182,7 +184,7 @@ export const deezerProvider: MusicProvider = {
       const q = `${track.artist} ${track.title}`.trim();
       if (!q) return fallback;
       const candidates = await this.search(env, q, 5);
-      const best = pickBestMatch(track, candidates);
+      const best = pickBestMatch(track, candidates, undefined, 'deezer');
       if (best) return { link: exactTrackLink('deezer', best.id), matched: best };
     } catch {
       // Degrade to a search link — never throw from resolve.

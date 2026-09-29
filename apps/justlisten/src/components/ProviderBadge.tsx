@@ -1,21 +1,30 @@
 import { cx } from '@new-personal-monorepo/small-app-design-system';
 import { FaDeezer } from 'react-icons/fa6';
 import type { IconType } from 'react-icons';
-import { SiApplemusic, SiSpotify, SiYoutubemusic } from 'react-icons/si';
+import {
+  SiApplemusic,
+  SiBandcamp,
+  SiLastdotfm,
+  SiPandora,
+  SiSpotify,
+  SiYoutubemusic,
+} from 'react-icons/si';
 
 import type { ProviderId, ProviderLink } from '../../worker/types';
 
 /**
  * Provider branding. Badges and buttons are colored text; the compact icon
  * links used in the playback banner carry each service's brand mark, where a
- * word would not survive the space. Spotify green #1DB954, Apple rose, YouTube
- * red, Deezer violet.
+ * word would not survive the space.
  */
 export const PROVIDER_LABELS: Record<ProviderId, string> = {
   spotify: 'Spotify',
   apple: 'Apple Music',
   youtube: 'YouTube Music',
   deezer: 'Deezer',
+  bandcamp: 'Bandcamp',
+  lastfm: 'Last.fm',
+  pandora: 'Pandora',
 };
 
 /**
@@ -28,14 +37,22 @@ export const PROVIDER_LABELS: Record<ProviderId, string> = {
  * fell back to the nearest Tailwind ramp (rose, red, violet), which is how a
  * provider ends up wearing a colour nobody chose for it.
  *
- *   spotify #1DB954 / #14833b     apple   #FA243C / #B3122A
- *   youtube #FF0033 / #C10023     deezer  #A238FF / #7A22CC
+ *   spotify  #1DB954 / #14833b     apple    #FA243C / #B3122A
+ *   youtube  #FF0033 / #C10023     deezer   #A238FF / #7A22CC
+ *   bandcamp #408294 / #2F6373     lastfm   #BA0000 / #8F0000
+ *   pandora  #224099 / #1A3376
+ *
+ * Bandcamp's own teal is the one that does not clear 4.5:1 on white unaided
+ * (4.3:1), which is why its ink is two steps darker rather than one.
  */
 const BADGE_STYLES: Record<ProviderId, string> = {
   spotify: 'bg-[#1DB954]/15 text-[#14833b]',
   apple: 'bg-[#FA243C]/15 text-[#B3122A]',
   youtube: 'bg-[#FF0033]/15 text-[#C10023]',
   deezer: 'bg-[#A238FF]/15 text-[#7A22CC]', // unslop-ignore — Deezer's brand purple
+  bandcamp: 'bg-[#408294]/15 text-[#2F6373]',
+  lastfm: 'bg-[#BA0000]/15 text-[#8F0000]',
+  pandora: 'bg-[#224099]/15 text-[#1A3376]',
 };
 
 export interface ProviderBadgeProps {
@@ -63,6 +80,9 @@ const EXACT_STYLES: Record<ProviderId, string> = {
   apple: 'bg-[#FA243C] text-white shadow-sm hover:bg-[#B3122A]',
   youtube: 'bg-[#FF0033] text-white shadow-sm hover:bg-[#C10023]',
   deezer: 'bg-[#A238FF] text-white shadow-sm hover:bg-[#7A22CC]', // unslop-ignore — brand purple
+  bandcamp: 'bg-[#408294] text-white shadow-sm hover:bg-[#2F6373]',
+  lastfm: 'bg-[#BA0000] text-white shadow-sm hover:bg-[#8F0000]',
+  pandora: 'bg-[#224099] text-white shadow-sm hover:bg-[#1A3376]',
 };
 
 const SEARCH_STYLES: Record<ProviderId, string> = {
@@ -74,6 +94,12 @@ const SEARCH_STYLES: Record<ProviderId, string> = {
     'border border-gray-200 bg-white text-[#C10023] hover:border-[#FF0033]/50 hover:bg-[#FF0033]/5',
   deezer: // unslop-ignore — brand purple
     'border border-gray-200 bg-white text-[#7A22CC] hover:border-[#A238FF]/50 hover:bg-[#A238FF]/5',
+  bandcamp:
+    'border border-gray-200 bg-white text-[#2F6373] hover:border-[#408294]/50 hover:bg-[#408294]/5',
+  lastfm:
+    'border border-gray-200 bg-white text-[#8F0000] hover:border-[#BA0000]/50 hover:bg-[#BA0000]/5',
+  pandora:
+    'border border-gray-200 bg-white text-[#1A3376] hover:border-[#224099]/50 hover:bg-[#224099]/5',
 };
 
 export interface ProviderLinkButtonProps {
@@ -140,6 +166,9 @@ const PROVIDER_ICONS: Record<ProviderId, IconType> = {
   apple: SiApplemusic,
   youtube: SiYoutubemusic,
   deezer: FaDeezer,
+  bandcamp: SiBandcamp,
+  lastfm: SiLastdotfm,
+  pandora: SiPandora,
 };
 
 const PROVIDER_ICON_COLORS: Record<ProviderId, string> = {
@@ -147,6 +176,9 @@ const PROVIDER_ICON_COLORS: Record<ProviderId, string> = {
   apple: 'text-[#FA243C] hover:bg-[#FA243C]/10',
   youtube: 'text-[#FF0033] hover:bg-[#FF0033]/10',
   deezer: 'text-[#A238FF] hover:bg-[#A238FF]/10',
+  bandcamp: 'text-[#408294] hover:bg-[#408294]/10',
+  lastfm: 'text-[#BA0000] hover:bg-[#BA0000]/10',
+  pandora: 'text-[#224099] hover:bg-[#224099]/10',
 };
 
 /** Icon-only link out to a provider. Exact matches only — a search URL here

@@ -10,6 +10,9 @@ describe('provider registry', () => {
       'apple',
       'youtube',
       'deezer',
+      'bandcamp',
+      'lastfm',
+      'pandora',
     ]);
   });
 
@@ -19,6 +22,7 @@ describe('provider registry', () => {
 
   it('validates provider ids', () => {
     expect(isProviderId('spotify')).toBe(true);
+    expect(isProviderId('bandcamp')).toBe(true);
     expect(isProviderId('tidal')).toBe(false);
   });
 });

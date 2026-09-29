@@ -23,6 +23,9 @@ const PROVIDER_COLUMNS: Record<ProviderId, string> = {
   apple: 'Apple Music',
   youtube: 'YouTube',
   deezer: 'Deezer',
+  bandcamp: 'Bandcamp',
+  lastfm: 'Last.fm',
+  pandora: 'Pandora',
 };
 
 const FIXED_COLUMNS = ['Title', 'Artist', 'Album', 'ISRC', 'Release Date'];
