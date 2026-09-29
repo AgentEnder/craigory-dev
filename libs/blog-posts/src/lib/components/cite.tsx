@@ -24,6 +24,9 @@ export function Cite({ href, children }: CiteProps) {
 
   return (
     <span className={classes['citation']} style={anchorVariables}>
+      {/* U+2060 WORD JOINER: forbids a line break between the preceding
+          word and the marker, so `[14]` never starts a line alone. */}
+      {'\u2060'}
       <sup className={classes['marker']}>
         <a
           href={href}
