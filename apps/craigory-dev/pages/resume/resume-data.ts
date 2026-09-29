@@ -78,11 +78,13 @@ export const resume: Resume = {
           groups: [
             {
               bullets: [
-                'Designed the plugin API behind Project Crystal.',
-                'Wrote @nx/dotnet, the first-party .NET plugin.',
-                'Led the Rust terminal UI for task runs.',
-                'Led SOC 2 compliance since the initial 2024 audit.',
-                'Led the public response to the S1ngularity supply-chain attack.',
+                'Core maintainer of Nx, an open-source build system, 11M weekly downloads.',
+                'Own core configuration, the plugin API, and .NET support.',
+                'Shipped @nx/dotnet from proposal to GA in Nx 22, now 75k weekly downloads.',
+                "Drove much of Nx's Rust adoption in core, leading the task-run terminal UI.",
+                'Led three annual SOC 2 audits covering the CLI, cloud, and operations.',
+                'Ran the public response to a 2025 supply-chain attack on the ecosystem.',
+                'Reviewed ~2,100 PRs and advised enterprise customers on performance.',
               ],
             },
           ],
