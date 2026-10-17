@@ -257,7 +257,7 @@ export const spotifyProvider: MusicProvider = {
       const q = `${normalizeTitle(track.title)} ${normalizeArtist(track.artist)}`.trim();
       if (q) {
         const candidates = await searchTracks(env, q, 5);
-        const best = pickBestMatch(track, candidates);
+        const best = pickBestMatch(track, candidates, undefined, 'spotify');
         if (best) return { link: exactTrackLink('spotify', best.id), matched: best };
       }
     } catch {

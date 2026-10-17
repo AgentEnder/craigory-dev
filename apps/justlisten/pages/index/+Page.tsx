@@ -2,6 +2,7 @@ import { AppHeader } from '@new-personal-monorepo/small-app-design-system';
 import { Logo } from '../../src/components/Logo';
 import { SearchBox } from '../../src/components/SearchBox';
 import { ProviderBadge } from '../../src/components/ProviderBadge';
+import { PROVIDER_IDS } from '../../worker/types';
 
 export function Page() {
   return (
@@ -20,7 +21,7 @@ export function Page() {
           </h2>
           <p className="mt-3 text-base text-gray-500">
             Search any track and get listen links for Spotify, Apple Music,
-            YouTube Music, and Deezer.
+            YouTube Music, Deezer, Bandcamp, Last.fm, and Pandora.
           </p>
         </section>
 
@@ -32,15 +33,17 @@ export function Page() {
           className="mt-4 flex flex-wrap items-center justify-center gap-2"
           aria-hidden="true"
         >
-          <ProviderBadge provider="spotify" />
-          <ProviderBadge provider="apple" />
-          <ProviderBadge provider="youtube" />
-          <ProviderBadge provider="deezer" />
+          {/* Driven by the registry rather than listed by hand: a provider
+              added to PROVIDER_IDS and missing from the hero is the kind of
+              omission nobody notices. */}
+          {PROVIDER_IDS.map((provider) => (
+            <ProviderBadge key={provider} provider={provider} />
+          ))}
         </div>
 
         <p className="mt-8 text-center text-xs text-gray-400">
-          Have a playlist? Paste a Spotify, Apple Music, YouTube, or Deezer
-          link into the box above and it will be imported instead.
+          Have a playlist? Paste a Spotify, Apple Music, YouTube, Deezer, or
+          Bandcamp link into the box above and it will be imported instead.
         </p>
       </main>
     </>

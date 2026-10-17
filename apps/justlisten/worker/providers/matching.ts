@@ -10,10 +10,12 @@ import type {
   AggregatedSearchResult,
   Env,
   ProviderId,
+  ProviderLink,
   ResolvedMatch,
   Track,
 } from '../types';
 import { kvGetJson, kvPutJson, matchCacheKey } from '../cache';
+import { trace } from '../trace';
 import { exactTrackLink, searchTrackLink } from './links';
 import { getProvider } from './index';
 
@@ -189,7 +191,13 @@ export function scoreMatch(
 export function pickBestMatch<T extends Track>(
   source: Pick<Track, 'title' | 'artist' | 'durationMs'>,
   candidates: readonly T[],
-  threshold: number = DEFAULT_MATCH_THRESHOLD
+  threshold: number = DEFAULT_MATCH_THRESHOLD,
+  /**
+   * Which provider is asking, for tracing. Inferred from the candidates when
+   * omitted — but an *empty* candidate list has no provider to infer from, and
+   * "this catalog returned nothing" is precisely the outcome worth attributing.
+   */
+  scope?: ProviderId
 ): T | null {
   let best: T | null = null;
   let bestScore = 0;
@@ -200,7 +208,21 @@ export function pickBestMatch<T extends Track>(
       bestScore = score;
     }
   }
-  return bestScore >= threshold ? best : null;
+  const accepted = bestScore >= threshold ? best : null;
+
+  // Every provider scores through here, so one instrumentation point answers
+  // "did the upstream have nothing, or did we reject what it sent?" for all of
+  // them. The candidate's own provider names the scope — candidates always
+  // come from the target catalog.
+  trace(scope ?? candidates[0]?.provider ?? 'match', 'candidates', {
+    count: candidates.length,
+    bestScore: Number(bestScore.toFixed(3)),
+    threshold,
+    accepted: Boolean(accepted),
+    ...(best ? { bestTitle: best.title, bestArtist: best.artist } : {}),
+  });
+
+  return accepted;
 }
 
 /**
@@ -269,6 +291,14 @@ async function readCachedMatch(
  */
 export async function seedSourceMatch(env: Env, track: Track): Promise<void> {
   if (!track.id || normalizeArtist(track.artist) === '') return;
+  // Three providers name a track with a packed tuple rather than an opaque
+  // token (see the id codecs in links.ts), and `exactTrackLink` refuses to
+  // build an "exact" URL from one it cannot parse. Seeding that search link
+  // would write a row `readCachedMatch` then ignores — and, because the
+  // net-new check below only recognises an exact entry, would rewrite it on
+  // every visit rather than costing nothing the second time.
+  const link = exactTrackLink(track.provider, track.id);
+  if (link.kind !== 'exact') return;
   const key = matchCacheKey(`norm:${normKey(track)}`, track.provider);
   try {
     // Net-new only. A read costs from a pool ten times larger and ten times
@@ -283,14 +313,43 @@ export async function seedSourceMatch(env: Env, track: Track): Promise<void> {
     if (existing?.link?.kind === 'exact' && typeof existing.link.url === 'string') {
       return;
     }
-    await kvPutJson(
-      env,
-      key,
-      { link: exactTrackLink(track.provider, track.id), matched: track },
-      MATCH_TTL_SECONDS
-    );
+    await kvPutJson(env, key, { link, matched: track }, MATCH_TTL_SECONDS);
   } catch {
     // Best-effort.
+  }
+}
+
+/**
+ * File an exact link somebody else established for this recording.
+ *
+ * `seedSourceMatch` records the link a track has to its *own* provider;
+ * this records one to a *different* provider that resolution did not find —
+ * today that means the MusicBrainz oracle, which answers by ISRC and so knows
+ * nothing about our scoring. Filing it means the next page view, and every
+ * playlist row for the same recording, gets the link without asking again.
+ *
+ * Filed under every key the track answers to (ISRC *and* normalized), unlike
+ * `seedSourceMatch`'s single normalized write: this link cost a real request to
+ * an outside service rather than being free in hand, so it is worth the extra
+ * write to make sure both kinds of reader find it.
+ *
+ * Net-new only, and never throws.
+ */
+export async function seedResolvedLink(
+  env: Env,
+  track: Track,
+  link: ProviderLink
+): Promise<void> {
+  if (link.kind !== 'exact') return;
+  for (const keyPart of matchKeysForTrack(track)) {
+    const key = matchCacheKey(keyPart, link.provider);
+    try {
+      const existing = await kvGetJson<ResolvedMatch>(env, key);
+      if (existing?.link?.kind === 'exact') continue;
+      await kvPutJson(env, key, { link }, MATCH_TTL_SECONDS);
+    } catch {
+      // Best-effort.
+    }
   }
 }
 
@@ -354,6 +413,13 @@ export async function resolveTrackOnProvider(
   const provider = getProvider(target);
   if (!provider) return { link: searchTrackLink(target, track) };
 
+  // Recorded before anything else, because "this deployment holds no
+  // credentials for X" is the single most common reason a link is a search
+  // link and the one that looks identical to every other reason.
+  if (!provider.available(env)) {
+    trace(target, 'skipped', { reason: 'provider reports no credentials' });
+  }
+
   const cacheKey = matchCacheKey(matchKeyForTrack(track), target);
   // Same-provider links are derived directly from the id — skip the cache.
   // Tracks whose match key would be title-only (no ISRC, empty-normalized
@@ -365,7 +431,10 @@ export async function resolveTrackOnProvider(
     // supplies the artwork and ISRC the importer copies onto its own row —
     // otherwise a warm cache would produce worse rows than a cold one.
     const cached = await readCachedMatch(env, track, target);
-    if (cached) return cached;
+    if (cached) {
+      trace(target, 'cache-hit', { url: cached.link.url });
+      return cached;
+    }
   }
 
   let resolved: ResolvedMatch;

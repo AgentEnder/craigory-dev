@@ -1,16 +1,36 @@
 # JustListen
 
 "JustWatch, but for music": search for a song, see where you can listen to it
-(Spotify, Apple Music, YouTube / YouTube Music, Deezer), and import a playlist
-from any supported platform to get listen links for every track.
+(Spotify, Apple Music, YouTube / YouTube Music, Deezer, Bandcamp, Last.fm,
+Pandora), and import a playlist from any supported platform to get listen links
+for every track.
+
+The seven platforms are not seven of a kind, and what each one can do here
+follows directly from what it publishes:
+
+| Platform | Search | Resolve a track | Import a collection | Needs a key |
+|---|---|---|---|---|
+| Deezer | ✅ lead catalog | ISRC, then title/artist | playlists + albums | no |
+| Apple Music | ✅ | ISRC, then title/artist | public playlists | no |
+| Spotify | ✅ | ISRC, then title/artist | playlists + albums | optional |
+| YouTube Music | ❌ quota | title/artist (keyless page scrape, or the API) | playlists | optional |
+| **Bandcamp** | ✅ | title/artist, stricter | albums | no |
+| **Last.fm** | ✅ | exact name lookup | ❌ none exist | **yes** |
+| **Pandora** | ❌ no API | ❌ cache only | ❌ none exist | n/a |
 
 Search runs against the catalogs that need no credentials or quota — Deezer
-first, then Spotify and iTunes when configured. Deezer leads because it is
+first, then Spotify and iTunes when configured, then Bandcamp and (with a key)
+Last.fm. Deezer leads because it is
 keyless, indexes independent releases the other catalogs miss, and returns an
 ISRC on every row, which makes cross-platform resolution exact rather than
 fuzzy. Pressing Enter (or the last row of the suggestions dropdown) opens
 `/search?q=…`, which fans out across every available catalog, merges
 duplicates, and shows which platforms carry each recording.
+
+Song pages also carry **audio features** (tempo, key, energy, danceability…)
+and **"more like this"** recommendations, from
+[ReccoBeats](https://reccobeats.com) — a metadata source rather than an eighth
+platform. See "Audio features and recommendations" below.
 
 See [SPEC.md](./SPEC.md) for the full architecture and contracts.
 
@@ -46,7 +66,7 @@ pnpm --filter justlisten secrets:push    # secreq → wrangler secret bulk
 `secret bulk` preserves secrets absent from the payload, so a key you leave
 empty in 1Password is skipped rather than cleared.
 
-The app works with **zero secrets** (Deezer and Apple/iTunes need no
+The app works with **zero secrets** (Deezer, Apple/iTunes and Bandcamp need no
 credentials) and degrades per provider:
 
 - No Spotify creds → Spotify is skipped as a search catalog and unresolved
@@ -54,12 +74,20 @@ credentials) and degrades per provider:
   still opens a real song page, via the embed page — and, once opened, seeds
   the match cache so later visitors get that exact Spotify track too (see
   "Every pasted link teaches the cache" below).
-- No YouTube key → YouTube links are `https://music.youtube.com/search?q=…`
-  search links. Playlist import still works — it falls back to reading the
-  public playlist page, which also costs no quota — and so does opening a
-  pasted `watch?v=…` link, via the keyless `oembed` endpoint. YouTube never
-  backs search either way: its `search.list` costs 100 of a 10,000-unit daily
-  quota, so it is only used to resolve a link on the song detail page.
+- No YouTube key → track resolution reads the public search results page
+  instead (no quota, no key), and only falls back to a
+  `https://music.youtube.com/search?q=…` link when that finds no convincing
+  match. Playlist import likewise falls back to the public playlist page, and a
+  pasted `watch?v=…` link opens via the keyless `oembed` endpoint. YouTube never
+  backs the search box either way: its `search.list` costs 100 of a 10,000-unit
+  daily quota, so the API is only ever used to resolve a single link.
+- No Last.fm key → Last.fm is skipped as a search catalog and its links become
+  search links. Unlike the others it has no keyless tier at all: every
+  `ws.audioscrobbler.com` method requires an `api_key`. Keys are free and
+  instant from <https://www.last.fm/api/account/create>.
+- Bandcamp and Pandora never take credentials. Bandcamp's search endpoint and
+  its album/track pages are unauthenticated; Pandora publishes no public API
+  to authenticate against at all.
 
 For local dev, `vike dev` reads secrets from an untracked `.dev.vars` beside
 `wrangler.jsonc` — `@cloudflare/vite-plugin` sources them there rather than
@@ -139,6 +167,8 @@ configured, so everything works with zero secrets:
 | Spotify track | Web API (ISRC, album) | `open.spotify.com/embed/track` — no ISRC |
 | YouTube playlist | Data API (50 quota units/call) | public playlist page — no quota |
 | YouTube video | Data API `videos.list` (1 unit, has duration) | `youtube.com/oembed` — no quota, no duration |
+| Bandcamp album | *(no API tier exists)* | `data-tralbum` on the public album page |
+| Bandcamp track | *(no API tier exists)* | `data-tralbum` on the public track page |
 | Deezer / Apple | *(never needed any)* | public APIs |
 
 Both fallbacks also catch credentials that exist but fail — an expired token,
@@ -147,6 +177,259 @@ first and *any* failure falls through rather than 404ing the song page. Losing
 duration costs only the +0.1 duration bonus in `scoreMatch`, so cross-provider
 matching stays good — and auto-generated YouTube music channels are named
 "<Artist> - Topic", which normalizes to the bare artist.
+
+## Getting more than one real link
+
+The honest failure mode of a zero-secret deployment: **five of the seven
+providers cannot produce an exact link at all.** Spotify, YouTube and Last.fm
+each bail out the moment `available(env)` is false; Pandora has no API to call;
+Bandcamp's raised threshold means it rarely claims a mainstream recording. That
+leaves Apple and Deezer — and on a page you reached from a Deezer search,
+Deezer's link is built from the id it already has, costing no network at all. So
+the page can show one real link and six search boxes, which reads as broken even
+though every part is behaving as designed.
+
+Two things close most of that gap without asking anyone for a credential.
+
+**YouTube now resolves without a key.** `search.list` costs 100 of a
+10,000-unit daily quota, which is why YouTube can never back the search box —
+but it also meant a keyless deployment could never link to a specific YouTube
+video, only to a search. Reading the public search results page uses the same
+`ytInitialData` technique the playlist importer already relies on, costs no
+quota and no key, and the rows it returns go through the same `pickBestMatch`
+scoring as the API path, so a lyric video or a cover is rejected the same way.
+For most people YouTube is the one platform they can definitely play something
+on, which made this the most expensive absence in the set.
+
+**MusicBrainz fills the rest.** Every other resolution path searches a platform
+and then has to *decide* whether the result is the same recording. MusicBrainz
+is looked up by **ISRC**, so identity comes from the recording code rather than
+a title guess, and the URL relationships its editors attach to a recording are
+exactly the cross-platform mapping everything else is trying to infer. It is
+keyless, documented, and stable — not a scrape.
+
+The mapping step reuses the providers' *own* `parseTrackUrl` implementations
+rather than adding a second set of URL patterns, so a MusicBrainz link and a
+pasted link are understood identically. Anything nothing claims is dropped, as
+is any relationship MusicBrainz marks `ended` — a delisted URL looks exact and
+goes nowhere, which is worse than a search link.
+
+It runs only for providers that came back with a search link, and only for
+tracks carrying an ISRC (every Deezer row has one). A provider that resolved on
+its own keeps its own answer — that one arrived with artwork and an album, which
+a bare URL relationship doesn't carry. Whatever the oracle finds is written into
+the match cache, so playlist rows and later views get it for free.
+
+Coverage is uneven and that's expected: the relationships are
+editor-contributed, so they're good on well-known releases, thin on the long
+tail, and better for YouTube than for the subscription services.
+
+MusicBrainz allows about one request per second per IP and **requires** a
+descriptive User-Agent naming the app and a contact — the opposite of the
+browser-impersonating header the page scrapers send, and it must not be
+replaced with one. Real volume is one request per recording per 30 days.
+
+### If you want all seven
+
+The above is what code can do. The rest is credentials, and they are free:
+
+| Credential | Unlocks | Cost |
+|---|---|---|
+| `SPOTIFY_CLIENT_ID` / `_SECRET` | exact Spotify links, **plus ISRCs** that make every other provider's match exact rather than fuzzy | free app registration |
+| `YOUTUBE_API_KEY` | the API path (durations, better ranking) instead of the page scrape | free, 10k units/day |
+| `LASTFM_API_KEY` | exact Last.fm links and Last.fm as a search catalog | free, instant |
+
+Spotify is the one worth doing first — not for its own link, but because its
+ISRCs feed the ISRC-first path in `matching.ts` for *everything else*.
+
+### Finding out why a link is a search link
+
+"Search on X" means five completely different things — no credentials, no such
+recording, a 403 from a shared-IP rate limit, a match that scored below
+threshold, or a request shape that was written against documentation and never
+verified against a live response. They need different fixes and look identical,
+which made every diagnosis here a guess.
+
+`GET /api/song/:provider/:id/trace?token=…` reports which one actually happened:
+
+```sh
+curl 'https://…/api/song/deezer/3135556/trace?token=…' | jq
+```
+
+```
+spotify   search  skipped: provider reports no credentials
+apple     search  upstream returned 403 (rate limited? shared Worker egress IP)
+youtube   exact   matched: Queen — Bohemian Rhapsody (score 1.05 of 5 candidate(s))
+deezer    exact   source provider — link built from the id, no request made
+bandcamp  search  12 candidate(s), best score 0.71 — below threshold 0.8
+lastfm    search  skipped: provider reports no credentials
+pandora   search  not attempted
+```
+
+Each row also carries its raw events (HTTP statuses, candidate counts, timings),
+and the two enrichment layers are reported separately under `oracles` — so
+"why is there no audio-features panel" gets an answer too.
+
+**It needs `TRACE_TOKEN` set**, and 404s identically to an unknown path when it
+is not. That gate is not decoration: the trace has to bypass the song page's
+24-hour memo, because a trace of a cache hit records nothing — none of the
+instrumented code runs. That makes it an uncached fan-out across every upstream
+on demand, which is exactly the request shape that would get this Worker's
+shared egress IP throttled by iTunes and MusicBrainz if anyone looped it. Set it
+to any random string, the same way as the provider credentials.
+
+Tracing costs nothing when it is off: `AsyncLocalStorage` carries the collector
+down the call tree, so instrumented code does one property read per call and
+`MusicProvider.resolve` never grew a debug argument.
+
+**The first thing to check with it** is Apple, which is keyless and should
+already be exact. If it reports a 403, that is the iTunes Search API's ~20
+calls/minute *per IP* — unauthenticated, so the budget is per egress address,
+and Workers share those per PoP.
+
+## Audio features and recommendations
+
+ReccoBeats is wired in as a **metadata source, not a provider**. `MusicProvider`
+answers "where can I listen to this", and ReccoBeats has no player and no
+human-facing track page — so it gets no `PROVIDER_IDS` entry, no listen button,
+and no CSV column, all of which would be dead weight. It lives in
+`worker/reccobeats/` beside the registry and enriches what the registry
+produces.
+
+It supplies three things none of the seven platforms do.
+
+**Audio features.** Tempo, key, loudness, and seven 0–1 measures — energy,
+danceability, valence, acousticness, instrumentalness, liveness, speechiness —
+on Spotify's own field names and scales. Spotify deprecated its
+`/v1/audio-features` endpoint in November 2024 and shipped no replacement, which
+is largely why ReccoBeats exists. The numbers are ReccoBeats' *estimates*, not
+Spotify's originals, which is why the panel says so rather than presenting them
+as neutral fact.
+
+**An ISRC for a Spotify track id.** The quieter win, and the reason this runs
+*before* cross-provider resolution rather than after. The keyless Spotify path
+(the embed scrape) produces tracks carrying no ISRC at all — which is exactly
+why those fall back to fuzzy title/artist/duration matching on every other
+platform. One lookup turns six guesses into six exact identity matches.
+
+**Recommendations**, rendered as rows linking back to this app's own
+`/song/spotify/:id`. Resolving six recommendations across seven providers would
+be 42 lookups on a page that has already done one; linking inward defers that to
+the click, where exactly one of the six gets resolved and the other five cost
+nothing. It is also the better page — a recommendation you can only open on
+Spotify is useless to someone who doesn't use Spotify, which is the whole
+premise of this app.
+
+### The lookup key is always a Spotify id
+
+ReccoBeats is keyed on a Spotify track id (or its own UUID). That sounds like it
+limits this to Spotify-sourced songs and doesn't: the song page has already
+resolved a Spotify link for every track it renders, so a Deezer- or
+Bandcamp-sourced recording reaches ReccoBeats through the Spotify id sitting in
+its own resolved links. A track with no *exact* Spotify match gets no features,
+which is the honest outcome — a search link is a query, not a recording, and
+there is nothing to look up.
+
+What the key does constrain is *timing*, and that asymmetry is inherent: only a
+Spotify-sourced track has its id early enough for the ISRC to improve its own
+page's matching. Everything else is enriched after resolution, which still fills
+the KV entry that the next render of that recording reads.
+
+### Caching, because it is rate-limited
+
+No credentials and no quota to buy, but ReccoBeats rate-limits and does not
+publish the numbers. The UUID, ISRC and features are cached together in KV under
+`recco:<spotifyId>` for 30 days — one entry, because all three are immutable
+facts about a recording and all three are wanted at once. Keying on the
+**Spotify** id rather than the page's own provider/id is what makes it pay: the
+same recording is reachable from seven different `/song/:provider/:id` URLs, and
+this collapses all seven into one entry, so the second platform's page costs a
+KV read instead of two more HTTP calls.
+
+Misses are cached too, for 7 days rather than 30 — ReccoBeats' catalog grows, so
+today's miss is next month's hit. But only *durable* misses: a 404 is cached, a
+429 or an outage is not. Caching a rate-limit response would suppress features
+for a week over a five-minute limit.
+
+The `Retry-After` header on a 429 is deliberately ignored. A Worker cannot sit
+and wait inside a user's request, and a song page that hangs to be polite about
+somebody else's quota is a worse page than one without a tempo on it.
+
+### Unverified against the live API
+
+**This is the one upstream here that has never been called for real.** The
+network policy on the machine it was built on returns 403 for `reccobeats.com`
+and `api.reccobeats.com` alike, so the endpoint paths and field names come from
+ReccoBeats' published documentation and other public consumers of the API rather
+than from a response anybody here has seen.
+
+Two consequences are built into the code rather than left as a warning:
+
+- The **list envelope is accepted in any plausible shape** — a bare array, or
+  rows under `content`, `data` or `tracks`. Guessing wrong would mean every
+  lookup silently returning nothing; accepting all four costs a few lines.
+- **Every field is range-checked at the boundary.** An energy of 1.4 or a
+  loudness of +12 means a field was misread, not that the song is unusual, so it
+  is dropped rather than rendered.
+
+Everything returns null on any failure and every caller treats null as "no
+enrichment", so if a path is wrong the song page renders exactly as it did
+before ReccoBeats existed — no error, just no features. **The first live deploy
+should confirm the real shapes**, after which the envelope handling can be
+narrowed to whatever the service actually sends.
+
+## The three that aren't streaming catalogs
+
+Bandcamp, Last.fm and Pandora were added because the four licensed catalogs
+miss in three different directions, and each one needs a different mechanism.
+
+**Bandcamp is the long tail.** Its music is artist-uploaded rather than
+licensed, so a great deal of what it carries exists on none of the other six —
+and, just as importantly, a great deal of what they carry exists on none of
+Bandcamp. That asymmetry is why its match threshold is raised from 0.6 to
+**0.8**: search Bandcamp for a mainstream track and you will usually find
+something, but that something is a cover, a bedroom remix or an unrelated song
+of the same name, filed under whatever artist string the uploader typed. At the
+default threshold those clear the bar, and the row gets a confident link to the
+wrong song. A wrong "exact" link is the one failure this app cannot degrade out
+of — it looks exactly like a right one — so Bandcamp has to be more certain
+than its peers before claiming one.
+
+Bandcamp also has no credentialed tier to fall back to. Its album and track
+pages carry a `data-tralbum` blob (the same JSON its own player is built from)
+and its search box is backed by an unauthenticated JSON endpoint; both are
+undocumented, so both carry the caveats at the end of this section. Albums
+import as collections — a Bandcamp "collection" in the site's own sense is a
+fan's purchase history, not a track list, so there is nothing else to import.
+
+**Last.fm is not a streaming service, which is the point.** It is the scrobble
+ledger the other platforms report *into*, so it knows about a recording whether
+or not any given catalog licenses it, and its track page is where you go for
+tags, similar tracks and play counts. Its identity is a *name pair* rather than
+an id — its URLs are `/music/<artist>/_/<track>` and its API is queried the same
+way — so resolution uses `track.getInfo` (exact, one request) before falling
+back to `track.search`. `autocorrect=1` is on, and its answer is checked against
+the normalized source artist and title before it is trusted: autocorrect can
+walk far enough to name a different act, and an unverified correction would
+mean linking to somebody else's song.
+
+**Pandora publishes nothing, so it is link-only.** There is no public catalog
+API; the one that exists is a partner/device integration behind a commercial
+agreement, and the web app is a client-rendered SPA whose data arrives over an
+authenticated endpoint. There is no keyless page equivalent to Spotify's embed
+or Bandcamp's `data-tralbum`. So Pandora costs **zero** subrequests and does two
+things instead:
+
+1. A pasted Pandora link opens a real song page. Its track URLs are
+   `/artist/<artist>/<album>/<track>` — human-written slugs, not opaque ids —
+   so the recording is named from the URL alone with no request at all. The
+   names come back lowercased and punctuation-stripped ("AC/DC" becomes "Ac
+   Dc"), which costs nothing downstream: `matching.ts` normalizes exactly that
+   away before comparing anything.
+2. That paste is then the *only* supply of exact Pandora links for everyone
+   else — see the next section. Pandora is the clearest case in the whole
+   registry for the match cache: `resolve()` can never find a Pandora link, so
+   every one that is ever shown came from somebody's paste.
 
 ## Every pasted link teaches the cache
 
@@ -158,7 +441,9 @@ us by pasting a link. That id is now recorded too, under
 The payoff is direct links on platforms this deployment has no credentials
 for. Paste one `open.spotify.com/track/…` link with Spotify unconfigured, and
 every later visitor who reaches that recording from Deezer or YouTube gets the
-exact Spotify track instead of a search box. It is also the only affordable way
+exact Spotify track instead of a search box. For Pandora this is not an
+optimization but the entire mechanism: nothing else can ever produce an exact
+Pandora link. It is also the only affordable way
 to learn YouTube video ids, since `search.list` costs 100 of a 10,000-unit
 daily quota and a paste costs nothing.
 
@@ -200,9 +485,12 @@ tier falls through to the other.
 
 Two caveats. These parsers read undocumented page structure and will break when
 the sites change — YouTube has already moved playlist rows from
-`playlistVideoRenderer` to `lockupViewModel` once. And both platforms' terms
-prohibit automated access, which is worth knowing even though this only reads
-public pages with no authentication.
+`playlistVideoRenderer` to `lockupViewModel` once, and Bandcamp's
+`data-tralbum` and its `autocomplete_elastic` endpoint carry no contract
+either. And these platforms' terms prohibit automated access, which is worth
+knowing even though this only reads public pages with no authentication.
+Bandcamp is the one with no second tier to fall back to, so a break there
+degrades it to search links rather than to a slower path.
 
 ## Playback
 
@@ -272,21 +560,42 @@ holds the real KV bindings in both modes.
   | YouTube | `playlists.insert` + `playlistItems.insert` | Free OAuth, but 50 quota units per call — a 100-track playlist costs ~5,050 of the 10,000/day project quota. |
   | Apple Music | `POST /v1/me/library/playlists` via MusicKit JS | Requires a paid Apple Developer Program membership for the MusicKit key that signs the developer token. |
 
+  Bandcamp, Last.fm and Pandora have no write path at all, per-user OAuth or
+  otherwise: Bandcamp has no user playlists, Last.fm retired its playlist API,
+  and Pandora publishes no public API.
+
   Adding any of these would mean per-user OAuth; with PKCE and MusicKit JS it
   could run entirely client-side, leaving the Worker stateless.
+- **Last.fm and Pandora collections cannot be imported**, and the app says so
+  rather than trying: their `parsePlaylistUrl` returns null, so a pasted
+  collection link falls to the 422 that lists what *is* supported instead of a
+  "could not import" that implies it might work next time.
+- **Pandora track metadata is reconstructed from the URL**, not fetched. Case
+  and punctuation are lost — "AC/DC" reads as "Ac Dc" on the song page — which
+  is invisible to matching (everything normalizes through the same lowercasing
+  and punctuation-stripping) and mildly visible to the reader. The alternative
+  was no Pandora song page at all.
 - **Apple Music playlist import caveat.** Public Apple Music playlists are
   fetched via the iTunes/Apple embed lookup, which has no official contract.
   If a playlist cannot be fetched without a MusicKit developer token, the API
   returns a clear `422` explaining that Apple playlist import is unavailable.
 - **Imported playlists are ephemeral** — stored in KV with a 7-day TTL, after
   which the share URL 404s with a friendly message.
+- **No playback for Bandcamp.** Its pages do carry streamable MP3 URLs in the
+  same `data-tralbum` blob the importer reads, so a Bandcamp preview is
+  feasible — it is simply not built. The playback banner streams Deezer
+  previews only. Worth revisiting; out of scope for adding the providers.
 - **Long imports finish in the background, not during the import request.**
   A Worker invocation gets 50 outbound fetches on the free plan (KV draws on a
   separate 1,000 budget, so it does not compete). Import live-resolves its
-  first 20 tracks, reads the KV match cache for the next 20, and gives the
+  first 15 tracks, reads the KV match cache for the next 20, and gives the
   remainder locally-built *search* links. The playlist page then walks the
   tail through `POST /api/playlists/:id/resolve` in batches of 8 — each its
   own invocation with its own budget — and the endpoint writes results back,
-  so a later visitor gets a complete page server-side. Measured on an
-  88-track playlist with no credentials: 20 rows resolved at import, all 88
-  after the walk, with 82 carrying artwork.
+  so a later visitor gets a complete page server-side. The live batch was 20
+  until Bandcamp's search joined the per-track cost: the zero-secret ceiling is
+  now 3 fetches/track (apple + deezer + bandcamp term searches, one of which is
+  usually the track's own source and costs nothing), and 15 × 3 = 45 leaves
+  five of the 50 for the playlist fetch itself. Measured on an 88-track
+  playlist with no credentials, before that change: 20 rows resolved at import,
+  all 88 after the walk, with 82 carrying artwork.

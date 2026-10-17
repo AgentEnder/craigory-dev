@@ -1,8 +1,13 @@
 /**
- * The JustListen mark: one play triangle carrying four colours, for one song
- * across four services. Inline rather than an <img> so it inherits size from
+ * The JustListen mark: one play triangle carrying a spectrum, for one song
+ * across many services. Inline rather than an <img> so it inherits size from
  * whatever renders it and adds no request; `public/favicon.svg` is the same
  * artwork for the tab.
+ *
+ * The four stops are a gradient, not a census. They were one-per-service when
+ * there were four providers; the mark deliberately did not grow a stop when
+ * Bandcamp, Last.fm and Pandora arrived, because a mark that has to be
+ * redrawn every time the registry changes is a mark doing the wrong job.
  *
  * The mark is the one place the app is allowed chroma — `styles.css` keeps the
  * UI itself to ink and a single accent so the provider colours stay meaningful.

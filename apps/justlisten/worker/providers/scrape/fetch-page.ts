@@ -14,9 +14,14 @@
 const BROWSER_UA =
   'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 ' +
   '(KHTML, like Gecko) Chrome/140.0.0.0 Safari/537.36';
+import { trace } from '../../trace';
 
 /** Public page HTML, or null on any non-OK response or transport error. */
-export async function fetchPublicPage(url: string): Promise<string | null> {
+export async function fetchPublicPage(
+  url: string,
+  /** Trace scope — the provider this page is being read for. */
+  scope = 'page'
+): Promise<string | null> {
   try {
     const res = await fetch(url, {
       headers: {
@@ -26,9 +31,13 @@ export async function fetchPublicPage(url: string): Promise<string | null> {
       },
       redirect: 'follow',
     });
+    trace(scope, 'http', { status: res.status, url });
     if (!res.ok) return null;
-    return await res.text();
-  } catch {
+    const html = await res.text();
+    trace(scope, 'body', { url, bytes: html.length });
+    return html;
+  } catch (err) {
+    trace(scope, 'error', { url, message: String(err) });
     return null;
   }
 }
