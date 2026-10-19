@@ -1,4 +1,4 @@
-import { BlogPost } from '@new-personal-monorepo/blog-posts';
+import { BlogPost, CitationsProvider } from '@new-personal-monorepo/blog-posts';
 import { renderToString } from 'react-dom/server';
 import { createElement } from 'react';
 
@@ -11,12 +11,17 @@ export function calculateReadingTimeFromPost(post: BlogPost): number {
       TikiTable: ({ children }: { children?: any }) => children || '', // Pass through table content
       Tabs: ({ children }: { children?: any }) => children || '', // Pass through tabbed content
       Tab: ({ children }: { children?: any }) => children || '', // Pass through tab panel content
+      Callout: ({ children }: { children?: any }) => children || '', // Pass through callout body
       Cite: ({ children }: { children?: any }) => children || '', // Pass through citation body
+      Quote: ({ children }: { children?: any }) => children || '', // Pass through quoted text
+      Citations: () => null, // Source list repeats bodies already counted via Cite
       pre: ({ children }: { children?: any }) => children || '', // Keep code content for word count
     };
     
     // Try to render the MDX to HTML and extract text content
-    const htmlString = renderToString(createElement(post.mdx, { components: stubComponents }));
+    const htmlString = renderToString(
+      createElement(CitationsProvider, null, createElement(post.mdx, { components: stubComponents }))
+    );
     const textContent = extractTextFromHTML(htmlString);
     const wordCount = textContent.split(/\s+/).filter(word => word.length > 0).length;
     

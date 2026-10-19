@@ -1,6 +1,12 @@
 .citation {
   position: relative;
-  display: inline-block;
+  // `inline-block` would make this an atomic inline, which the line breaker is
+  // free to push onto the next line on its own. `inline` keeps the marker in
+  // the same text run as the word joiner emitted before it.
+  display: inline;
+  // Keeps the brackets and digits together if the marker itself is near the
+  // end of a line.
+  white-space: nowrap;
   line-height: 0;
   // The popover lives inside; if any ancestor sets overflow:hidden, it will
   // still clip — but most blog containers leave overflow visible.
@@ -58,6 +64,9 @@
   line-height: 1.5;
   letter-spacing: 0;
   text-align: left;
+  // `white-space` is inherited, and .citation sets nowrap to hold the marker
+  // together. Without this reset the citation body renders as one long line.
+  white-space: normal;
 
   // Closed state: hidden but kept in the DOM. visibility transition is
   // delayed on exit so the fade plays before the element becomes inert.

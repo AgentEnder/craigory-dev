@@ -762,21 +762,7 @@ div {
 }
 
 // Return link styles
-.return-link-top {
-  a {
-    color: #667eea;
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.2s ease;
-
-    &:hover {
-      color: #764ba2;
-    }
-  }
-}
-
 // Tiki theme return links
-.blog-post-theme.theme-tiki .return-link-top a,
 .blog-post-theme.theme-tiki .return-link-bottom a {
   color: #d84315 !important;
 

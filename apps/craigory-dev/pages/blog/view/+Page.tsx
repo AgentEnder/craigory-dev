@@ -1,9 +1,13 @@
 import {
   slugMap,
+  Callout,
+  Citations,
+  CitationsProvider,
   Cite,
   CodeWrapper,
   LinkToPost,
   PostContext,
+  Quote,
   Tab,
   Tabs,
   TikiTable,
@@ -49,26 +53,26 @@ export function Page() {
 
   return (
     <>
-      {returnLink ? (
-        <div className="return-link-top">
-          <Link href={returnLink}>← Return to previous page</Link>
-        </div>
-      ) : null}
       <PostContext.Provider value={postData}>
         <div className={`blog-post-theme ${getPostThemeClass(postData)}`}>
           <BlogPostEnhanced>
+            <CitationsProvider>
             {postData.mdx({
               components: {
                 h1: BlogH1,
                 pre: CodeWrapper,
                 Anchor: ContentMarker,
+                Callout,
+                Citations,
                 Cite,
                 LinkToPost,
+                Quote,
                 Tab,
                 Tabs,
                 TikiTable,
               },
             })}
+            </CitationsProvider>
           </BlogPostEnhanced>
         </div>
         {/* Outside the themed wrapper so a tiki post's palette does not bleed
